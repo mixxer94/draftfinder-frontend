@@ -6,17 +6,20 @@ export default {
         filters: {
             type: Object,
             required: true
+        },
+        participants: {
+            type: Array,
+            required: true
         }
     },
     methods: {
-        getNameByProfileId(draft) {
-            return draft.nameHost
+        getNameByProfileId(profileId) {
+            return this.participants.filter(p => { return p.profileId == profileId })[0]?.name
         },
         openDraft(draft) {
             window.open(`https://aoe2cm.net/draft/${draft.draftId}`, '​_blank​');
         },
         loadDrafts(params) {
-            console.info('params for fetch', params)
             let _params = {};
             if (this.filters && this.filters.presetId) {
                 _params.presetId = this.filters.presetId;
@@ -47,6 +50,13 @@ export default {
             },
             deep: true
         },
+        participants: {
+            handler() {
+                this.localParticipants = [...participants];
+            },
+            deep: true,
+            // immediate: true
+        },
     },
     computed: {
         mappedItems() {
@@ -61,6 +71,12 @@ export default {
                 element.liga = element.ligaHost;
                 element.hostName = this.getNameByProfileId(element.profileIdHost);
                 element.guestName = this.getNameByProfileId(element.profileIdGuest);
+
+                // if (element.hostName !== element.nameHost)
+                //     element.hostName += ` (${element.nameHost})`
+                // if (element.guestName !== element.nameGuest)
+                //     element.guestName += ` (${element.nameGuest})`
+
                 return element;
             });
         }
@@ -77,10 +93,10 @@ export default {
                 key: 'liga'
             }, {
                 title: 'Host',
-                key: 'nameHost'
+                key: 'hostName'
             }, {
                 title: 'Gast',
-                key: 'nameGuest'
+                key: 'guestName'
             }, {
                 title: '',
                 key: 'actions',

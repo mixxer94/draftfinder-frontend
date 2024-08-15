@@ -26,12 +26,34 @@ export default {
             }]
         };
     },
+    watch: {
+        participants: {
+            handler(newParticipants) {
+                this.localParticipants = [...newParticipants];
+            },
+            deep: true,
+            immediate: true // Ensure immediate update on mount
+        },
+    },
+    computed: {
+        participantsByLiga() {
+            if (this.localFilters.liga)
+                return this.localParticipants.filter((el) => el.liga == this.localFilters.liga);
+            else
+                return this.localParticipants
+        }
+    },
     methods: {
         setPreset(presetId) {
             this.localFilters.presetId = presetId;
             this.emitFilters();
         },
-        emitFilters() {
+        emitFilters(fieldToClear) {
+            if (fieldToClear == 'liga')
+                this.localFilters.liga = null
+            else if (fieldToClear == 'profileId')
+                this.localFilters.profileId = null
+
             this.$emit('update-filters', this.localFilters);
         }
     }
@@ -44,10 +66,10 @@ export default {
         </v-label>
         <v-form>
             <v-select clearable label="Liga" :items="ligen" item-title="beschreibung" item-value="liga"
-                v-model="localFilters.liga" @update:modelValue="emitFilters"></v-select>
+                v-model="localFilters.liga" @update:modelValue="emitFilters('profileId')"></v-select>
 
-            <v-select clearable label="Teilnehmer" :items="localParticipants" item-title="name" item-value="profileId"
-                v-model="localFilters.profileId" @update:modelValue="emitFilters"></v-select>
+            <v-select clearable label="Teilnehmer" :items="participantsByLiga" item-title="name" item-value="profileId"
+                v-model="localFilters.profileId" @update:modelValue="emitFilters()"></v-select>
         </v-form>
         <v-btn rounded="xl" variant="tonal" @click="setPreset()"
             :color="!localFilters.presetId ? 'primary' : 'default'">
