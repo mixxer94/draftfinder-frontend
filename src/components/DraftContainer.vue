@@ -19,6 +19,9 @@ export default {
         openDraft(draft) {
             window.open(`https://aoe2cm.net/draft/${draft.draftId}`, '​_blank​');
         },
+        updateFilters(filters) {
+            this.localFilters = filters
+        },
         loadDrafts(params) {
             let _params = {};
             if (this.filters && this.filters.presetId) {
@@ -33,7 +36,7 @@ export default {
 
             axios.get('/api/drafts', { params: _params })
                 .then(response => {
-                    this.filteredDrafts = response?.data; // Store the draft details
+                    this.drafts = response?.data; // Store the draft details
                 })
                 .catch(error => {
                     console.error('Error fetching draft:', error);
@@ -46,47 +49,56 @@ export default {
     watch: {
         filters: {
             handler() {
-                this.loadDrafts(this.filters)
+                this.updateFilters(this.filters);
             },
             deep: true
         },
         participants: {
-            handler() {
+            handler(participants) {
                 this.localParticipants = [...participants];
             },
             deep: true,
-            // immediate: true
         },
     },
     computed: {
         mappedItems() {
-            return this.filteredDrafts?.map((element) => {
-                element.created_at = new Date(element.created_at).toLocaleString('de-DE', {
+            let filteredDrafts = this.drafts.map((element) => {
+                const formatter = Intl.DateTimeFormat('de-DE', {
                     month: '2-digit',
                     day: '2-digit',
                     year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+
+                let date = new Date(element.created_at);
+                element.formattedDate = formatter.format(date);
                 element.liga = element.ligaHost;
                 element.hostName = this.getNameByProfileId(element.profileIdHost);
                 element.guestName = this.getNameByProfileId(element.profileIdGuest);
 
-                // if (element.hostName !== element.nameHost)
-                //     element.hostName += ` (${element.nameHost})`
-                // if (element.guestName !== element.nameGuest)
-                //     element.guestName += ` (${element.nameGuest})`
-
                 return element;
             });
+
+            if (!this.localFilters.liga && !this.localFilters.presetId && !this.localFilters.profileId)
+                return filteredDrafts;
+            else {
+                return filteredDrafts
+                    .filter(el => el.ligaHost === this.localFilters.liga || !this.localFilters.liga)
+                    .filter(el => el.profileIdHost === this.localFilters.profileId || el.profileIdGuest === this.localFilters.profileId || !this.localFilters.profileId)
+                    .filter(el => el.presetId === this.localFilters.presetId || !this.localFilters.presetId)
+            }
         }
     },
     data() {
         return {
-            filteredDrafts: [],
+            drafts: [],
+            localParticipants: [],
+            localFilters: {},
+
             headers: [{
                 title: 'Datum',
-                key: 'created_at',
+                key: 'formattedDate',
                 order: "desc"
             }, {
                 title: 'Liga',

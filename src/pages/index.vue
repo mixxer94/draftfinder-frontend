@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { useTheme, useDisplay  } from 'vuetify'
+import { useTheme, useDisplay } from 'vuetify'
 import axios from 'axios';
 import FilterContainer from '../components/FilterContainer.vue';
 import DraftContainer from '../components/DraftContainer.vue';
@@ -58,9 +58,9 @@ export default {
       this.filters = { ...this.filters, ...newFilters };
     },
     toggleTheme() {
-      this.theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark';
+      this.theme.global.name = this.theme.global.name == 'dark' ? 'light' : 'dark';
     }
-  }, 
+  },
   setup() {
     const { mdAndUp } = useDisplay();
     return { isMdAndUp: mdAndUp };
