@@ -1,6 +1,6 @@
 <template>
   <v-app-bar :elevation="2" density="compact" color="primary" class="sticky-app-bar">
-    <v-app-bar-title>DraftFinder</v-app-bar-title>
+    <v-app-bar-title>Draft Finder</v-app-bar-title>
 
     <template v-slot:append>
       <v-btn icon @click="toggleTheme">
@@ -82,10 +82,8 @@ export default {
 
 .sticky-filter {
   position: sticky;
-  top: 64px;
-  /* Adjust this value based on the height of your app bar */
-  height: calc(100vh - 64px);
-  /* Adjust this value based on the height of your app bar */
+  top: 32px;
+  height: calc(100vh - 32px);
   overflow-y: auto;
 }
 </style>

@@ -16,25 +16,17 @@ export default {
         getNameByProfileId(profileId) {
             return this.participants.filter(p => { return p.profileId == profileId })[0]?.name
         },
+        getDraftType(draft) {
+            return draft.presetId === 'CuTUL' ? 'CIVS' : 'MAPS';
+        },
         openDraft(draft) {
             window.open(`https://aoe2cm.net/draft/${draft.draftId}`, '​_blank​');
         },
         updateFilters(filters) {
             this.localFilters = filters
         },
-        loadDrafts(params) {
-            let _params = {};
-            if (this.filters && this.filters.presetId) {
-                _params.presetId = this.filters.presetId;
-            }
-            if (this.filters && this.filters.profileId) {
-                _params.profileId = this.filters.profileId;
-            }
-            if (this.filters && this.filters.liga) {
-                _params.liga = this.filters.liga;
-            }
-
-            axios.get('/api/drafts', { params: _params })
+        loadDrafts() {
+            axios.get('/api/drafts', { params: { actions: true } })
                 .then(response => {
                     this.drafts = response?.data; // Store the draft details
                 })
@@ -74,6 +66,7 @@ export default {
                 let date = new Date(element.created_at);
                 element.formattedDate = formatter.format(date);
                 element.liga = element.ligaHost;
+                element.draft_type = this.getDraftType(element);
                 element.hostName = this.getNameByProfileId(element.profileIdHost);
                 element.guestName = this.getNameByProfileId(element.profileIdGuest);
 
@@ -81,12 +74,13 @@ export default {
             });
 
             if (!this.localFilters.liga && !this.localFilters.presetId && !this.localFilters.profileId)
-                return filteredDrafts;
+                return filteredDrafts.sort((a, b) => new Date(b["created_at"]) - new Date(a["created_at"]));
             else {
                 return filteredDrafts
                     .filter(el => el.ligaHost === this.localFilters.liga || !this.localFilters.liga)
                     .filter(el => el.profileIdHost === this.localFilters.profileId || el.profileIdGuest === this.localFilters.profileId || !this.localFilters.profileId)
                     .filter(el => el.presetId === this.localFilters.presetId || !this.localFilters.presetId)
+                    .sort((a, b) => new Date(b["created_at"]) - new Date(a["created_at"]))
             }
         }
     },
@@ -100,6 +94,9 @@ export default {
                 title: 'Datum',
                 key: 'formattedDate',
                 order: "desc"
+            }, {
+                title: 'Typ',
+                key: 'draft_type'
             }, {
                 title: 'Liga',
                 key: 'liga'
