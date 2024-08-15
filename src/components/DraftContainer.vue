@@ -88,7 +88,7 @@ export default {
         return {
             drafts: [],
             localParticipants: [],
-            localFilters: {},
+            localFilters: {}, 
 
             headers: [{
                 title: 'Datum',
