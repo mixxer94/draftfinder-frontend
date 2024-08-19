@@ -11,6 +11,8 @@
 </template>
 
 <script>
+import { useTheme } from 'vuetify'
+
 export default {
     data() {
         return {
@@ -21,10 +23,6 @@ export default {
         toggleTheme() {
             this.theme.global.name = this.theme.global.name == 'dark' ? 'light' : 'dark';
         }
-    },
-    setup() {
-        const { mdAndUp } = useDisplay();
-        return { isMdAndUp: mdAndUp };
     },
 };
 </script>

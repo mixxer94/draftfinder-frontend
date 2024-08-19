@@ -1,14 +1,5 @@
 <template>
-  <v-app-bar :elevation="2" density="compact" color="primary" class="sticky-app-bar">
-    <v-app-bar-title>Draft Finder</v-app-bar-title>
-
-    <template v-slot:append>
-      <v-btn icon @click="toggleTheme">
-        <v-icon>mdi-theme-light-dark</v-icon>
-      </v-btn>
-    </template>
-  </v-app-bar>
-
+  <AppBar />
 
   <v-row>
     <v-col cols="12" md="4" :class="{ 'sticky-filter': isMdAndUp }">
@@ -22,15 +13,17 @@
 </template>
 
 <script>
-import { useTheme, useDisplay } from 'vuetify'
+import { useDisplay } from 'vuetify'
 import axios from 'axios';
 import FilterContainer from '../components/FilterContainer.vue';
 import DraftContainer from '../components/DraftContainer.vue';
+import AppBar from '../components/AppBar.vue';
 
 export default {
   components: {
     FilterContainer,
-    DraftContainer
+    DraftContainer,
+    AppBar
   },
 
   data() {
@@ -40,8 +33,7 @@ export default {
         profileId: null,
         presetId: null
       },
-      participants: [],
-      theme: useTheme()
+      participants: []
     };
   },
   methods: {
