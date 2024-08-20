@@ -1,5 +1,5 @@
 <template>
-    <v-app-bar :elevation="2" density="compact" color="primary" class="sticky-app-bar">
+    <v-app-bar :elevation="2" density="compact" color="app-bar" class="sticky-app-bar">
         <v-app-bar-title>Draft Finder</v-app-bar-title>
 <!-- 
         <v-dialog max-width="500">
