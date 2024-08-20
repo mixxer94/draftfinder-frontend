@@ -1,3 +1,20 @@
+<template>
+    <v-container>
+        <v-data-table :headers="headers" :items="mappedItems" :items-per-page="-1" hide-default-footer show-expand
+            item-value="draftId">
+            <template v-slot:item.actions="{ item }">
+                <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary" @click="openDraft(item)">
+                    öffnen
+                </v-btn>
+            </template>
+            <template v-slot:expanded-row="{ item }">
+                <DraftDetail :draftActions="item.actions" />
+            </template>
+        </v-data-table>
+    </v-container>
+
+</template>
+
 <script>
 import axios from 'axios';
 
@@ -88,7 +105,7 @@ export default {
         return {
             drafts: [],
             localParticipants: [],
-            localFilters: {}, 
+            localFilters: {},
 
             headers: [{
                 title: 'Datum',
@@ -116,18 +133,6 @@ export default {
     }
 }
 </script>
-
-<template>
-    <v-container>
-        <v-data-table :headers="headers" :items="mappedItems" :items-per-page="-1" hide-default-footer>
-            <template v-slot:item.actions="{ item }">
-                <v-btn append-icon="mdi-open-in-new" variant="tonal" color="secondary" @click="openDraft(item)">
-                    öffnen
-                </v-btn>
-            </template>
-        </v-data-table>
-    </v-container>
-</template>
 
 <style scoped>
 .v-container {
