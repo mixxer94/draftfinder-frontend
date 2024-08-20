@@ -1,7 +1,11 @@
 #!/bin/bash
 
+git pull
+
+npm run build
+
 # Copy the draftfinder directory
-cd -r ../draftfinder 
+cd  ../draftfinder 
 
 # Remove the _dist directory if it exists
 if [ -d "_dist" ]; then
