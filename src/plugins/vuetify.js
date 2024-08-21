@@ -8,9 +8,9 @@ import { createVuetify } from 'vuetify'
 const light = {
   dark: false,
   colors: {
-    background: '#f2ecd0',
-    surface: '#f2ecd0',
-    'surface-bright': '#f2ecd0',
+    background: '#f6f7e9',
+    surface: '#ebebd1',
+    // 'surface-bright': '#f2ecd0',
     secondary: '#216967',
     'app-bar': '#094bad',
   },
@@ -22,11 +22,12 @@ const dark = {
     'app-bar': '#06357a',
   }
 }
+const  defaultDarkTheme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
-    defaultTheme: 'dark',
+    defaultTheme: defaultDarkTheme ? 'dark' : 'light',
     themes: {
       light,
       dark
