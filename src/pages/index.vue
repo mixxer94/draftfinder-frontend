@@ -7,9 +7,12 @@
     </v-col>
     <v-col cols="12" md="8">
       <DraftContainer :filters="filters" :participants="participants" />
+      
     </v-col>
   </v-row>
-
+  <footer>
+    draftfinder.de was created under Microsoft's <a href="https://www.xbox.com/en-US/developers/rules">"Game Content Usage Rules"</a> using assets from Age of Empires II: Definitive Edition, and it is not endorsed by or affiliated with Microsoft.
+  </footer>
 </template>
 
 <script>
@@ -74,8 +77,14 @@ export default {
 
 .sticky-filter {
   position: sticky;
-  top: 32px;
-  height: calc(100vh - 32px);
+  top: 36px;
+  height: calc(100vh - 36px);
   overflow-y: auto;
+}
+
+footer {
+  font-size: 14px;
+  color:grey;
+  padding:12px;
 }
 </style>
