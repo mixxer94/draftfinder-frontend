@@ -1,10 +1,38 @@
 <template>
     <v-container>
-        <v-data-table :headers="headers" :items="mappedItems" :items-per-page="-1" hide-default-footer>
-            <template v-slot:item.actions="{ item }">
-                <v-btn append-icon="mdi-open-in-new" variant="tonal" color="secondary" @click="openDraft(item)">
+        <v-data-table :headers="headers" :items="mappedItems" :items-per-page="-1" hide-default-footer
+            item-value="draftId" v-model:expanded="expandedRows">
+
+            <template v-slot:item="{ item, isExpanded }">
+                <tr @click="toggleExpand(item)">
+                    <td v-for="header in headers" :key="header.key">
+                        {{ item[header.key] }}
+                    </td>
+                    <td>
+                        <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary"
+                            @click.stop="openDraft(item)">
+                            öffnen
+                        </v-btn>
+                    </td>
+                    <td>
+                        <v-btn icon @click.stop="toggleExpand(item)">
+                            <v-icon>{{ isRowExpanded(item) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                        </v-btn>
+                    </td>
+                </tr>
+            </template>
+            <!-- <template v-slot:item.actions="{ item }">
+                <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary" @click="openDraft(item)">
                     öffnen
                 </v-btn>
+            </template> -->
+
+            <template v-slot:expanded-row="{ item }">
+                <tr>
+                    <td :colspan="headers.length + 2" class="pa-0">
+                        <DraftDetail :draftActions="item.actions" :draftType="getDraftType(item)" />
+                    </td>
+                </tr>
             </template>
         </v-data-table>
     </v-container>
@@ -25,6 +53,17 @@ export default {
         }
     },
     methods: {
+        toggleExpand(item) {
+            const index = this.expandedRows.indexOf(item.draftId);
+            if (index === -1) {
+                this.expandedRows.push(item.draftId);
+            } else {
+                this.expandedRows.splice(index, 1);
+            }
+        },
+        isRowExpanded(item) {
+            return this.expandedRows.includes(item.draftId);
+        },
         getNameByProfileId(profileId) {
             return this.participants.filter(p => { return p.profileId == profileId })[0]?.name
         },
@@ -100,6 +139,7 @@ export default {
         return {
             drafts: [],
             localParticipants: [],
+            expandedRows: [],
             localFilters: {},
 
             headers: [{
@@ -118,19 +158,20 @@ export default {
             }, {
                 title: 'Gast',
                 key: 'guestName'
-            }, {
-                title: '',
-                key: 'actions',
-                sortable: false
             }]
+            // , {
+            //     title: '',
+            //     key: 'actions',
+            //     sortable: false
+            // }]
         }
 
     }
 }
 </script>
 
-<style scoped>
-.v-container {
-    padding: 12px;
+<style>
+ td {
+    cursor: pointer
 }
 </style>
