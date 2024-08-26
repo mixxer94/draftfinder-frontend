@@ -1,3 +1,37 @@
+<template>
+    <v-container>
+        <v-label>
+            Filter Drafts per ...
+        </v-label>
+        <v-form>
+            <v-select clearable label="Liga" :items="ligen" item-title="beschreibung" item-value="liga"
+                v-model="localFilters.liga" @update:modelValue="emitFilters('profileId')"></v-select>
+
+            <v-select clearable label="Teilnehmer" :items="participantsByLiga" item-title="name" item-value="profileId"
+                v-model="localFilters.profileId" @update:modelValue="emitFilters()"></v-select>
+        </v-form>
+        <v-btn rounded="xl" variant="tonal" @click="setPreset()"
+            :color="!localFilters.presetId ? 'primary' : 'default'">
+            Alle Drafts
+        </v-btn>
+        <br /><br />
+        <v-btn rounded="xl" variant="tonal" @click="setPreset('CuTUL')"
+            :color="localFilters.presetId === 'CuTUL' ? 'primary' : 'default'">
+            Civdrafts
+        </v-btn>
+        <br /><br />
+        <v-btn rounded="xl" variant="tonal" @click="setPreset('Mtmcc')"
+            :color="localFilters.presetId === 'Mtmcc' ? 'primary' : 'default'">
+            Mapdrafts (Liga 1-5)
+        </v-btn>
+        <br /><br />
+        <v-btn rounded="xl" variant="tonal" @click="setPreset('RshyE')"
+            :color="localFilters.presetId === 'RshyE' ? 'primary' : 'default'">
+            Mapdrafts (Liga 6-9)
+        </v-btn>
+    </v-container>
+</template>
+
 <script>
 export default {
     props: ['filters', 'participants'],
@@ -59,36 +93,3 @@ export default {
     }
 };
 </script>
-<template>
-    <v-container>
-        <v-label>
-            Filter Drafts per ...
-        </v-label>
-        <v-form>
-            <v-select clearable label="Liga" :items="ligen" item-title="beschreibung" item-value="liga"
-                v-model="localFilters.liga" @update:modelValue="emitFilters('profileId')"></v-select>
-
-            <v-select clearable label="Teilnehmer" :items="participantsByLiga" item-title="name" item-value="profileId"
-                v-model="localFilters.profileId" @update:modelValue="emitFilters()"></v-select>
-        </v-form>
-        <v-btn rounded="xl" variant="tonal" @click="setPreset()"
-            :color="!localFilters.presetId ? 'primary' : 'default'">
-            Alle Drafts
-        </v-btn>
-        <br /><br />
-        <v-btn rounded="xl" variant="tonal" @click="setPreset('CuTUL')"
-            :color="localFilters.presetId === 'CuTUL' ? 'primary' : 'default'">
-            Civdrafts
-        </v-btn>
-        <br /><br />
-        <v-btn rounded="xl" variant="tonal" @click="setPreset('Mtmcc')"
-            :color="localFilters.presetId === 'Mtmcc' ? 'primary' : 'default'">
-            Mapdrafts (Liga 1-5)
-        </v-btn>
-        <br /><br />
-        <v-btn rounded="xl" variant="tonal" @click="setPreset('RshyE')"
-            :color="localFilters.presetId === 'RshyE' ? 'primary' : 'default'">
-            Mapdrafts (Liga 6-9)
-        </v-btn>
-    </v-container>
-</template>
