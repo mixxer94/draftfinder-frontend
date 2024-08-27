@@ -1,11 +1,11 @@
 <template>
     <v-container>
         <v-data-table :headers="headers" :items="mappedItems" :items-per-page="-1" hide-default-footer
-            item-value="draftId" v-model:expanded="expandedRows" sticky="true" density="compact">
+            item-value="draftId" v-model:expanded="expandedRows" density="compact">
 
             <template v-slot:item="{ item }">
                 <tr @click="toggleExpand(item)">
-                    <td v-for="header in headers" :key="header.key" class="cursor-pointer" :align="header.key =='hostName' ? 'end' : null">
+                    <td v-for="header in headers" :key="header.key" class="cursor-pointer">
                         {{ header.key == 'draft_type' ? '' : item[header.key] }}
                         <img v-if="header.key == 'formattedDate'" :src="getIconUrl(item)" class="icon-draft-type"/>
                     </td>
