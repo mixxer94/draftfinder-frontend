@@ -1,12 +1,13 @@
 <template>
     <v-container>
         <v-data-table :headers="headers" :items="mappedItems" :items-per-page="-1" hide-default-footer
-            item-value="draftId" v-model:expanded="expandedRows">
+            item-value="draftId" v-model:expanded="expandedRows" sticky="true" density="compact">
 
-            <template v-slot:item="{ item, isExpanded }">
+            <template v-slot:item="{ item }">
                 <tr @click="toggleExpand(item)">
-                    <td v-for="header in headers" :key="header.key" class="cursor-pointer">
-                        {{ item[header.key] }}
+                    <td v-for="header in headers" :key="header.key" class="cursor-pointer" :align="header.key =='hostName' ? 'end' : null">
+                        {{ header.key == 'draft_type' ? '' : item[header.key] }}
+                        <img v-if="header.key == 'formattedDate'" :src="getIconUrl(item)" class="icon-draft-type"/>
                     </td>
                     <td class="cursor-pointer">
                         <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary"
@@ -72,6 +73,10 @@ export default {
         },
         openDraft(draft) {
             window.open(`https://aoe2cm.net/draft/${draft.draftId}`, '​_blank​');
+        },
+        getIconUrl(item) {
+            let type = item.draft_type === 'MAPS' ? 'map' : 'civ';
+            return `../placeholder/${type}_placeholder.png`;
         },
         updateFilters(filters) {
             this.localFilters = filters
@@ -147,9 +152,6 @@ export default {
                 key: 'formattedDate',
                 order: "desc"
             }, {
-                title: 'Typ',
-                key: 'draft_type'
-            }, {
                 title: 'Liga',
                 key: 'liga'
             }, {
@@ -169,3 +171,12 @@ export default {
     }
 }
 </script>
+
+<style>
+ td {
+    img.icon-draft-type {
+        width:20px;
+        vertical-align:bottom;
+    }
+}
+</style>
