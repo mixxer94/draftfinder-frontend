@@ -5,16 +5,16 @@
 
             <template v-slot:item="{ item, isExpanded }">
                 <tr @click="toggleExpand(item)">
-                    <td v-for="header in headers" :key="header.key">
+                    <td v-for="header in headers" :key="header.key" class="cursor-pointer">
                         {{ item[header.key] }}
                     </td>
-                    <td>
+                    <td class="cursor-pointer">
                         <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary"
                             @click.stop="openDraft(item)">
                             öffnen
                         </v-btn>
                     </td>
-                    <td>
+                    <td class="cursor-pointer">
                         <v-btn icon @click.stop="toggleExpand(item)">
                             <v-icon>{{ isRowExpanded(item) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
                         </v-btn>
@@ -169,9 +169,3 @@ export default {
     }
 }
 </script>
-
-<style>
- td {
-    cursor: pointer
-}
-</style>
