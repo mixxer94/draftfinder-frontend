@@ -179,8 +179,8 @@ tbody .detail-wrapper {
         .civ-icon-wrapper {
 
             text-align: center;
-            width: 90px;
-            height: 90px;
+            width: 64px;
+            height: 64px;
             background: #0a830a;
             border: 6px solid #30a330;
             padding: 6px 0;
@@ -195,7 +195,7 @@ tbody .detail-wrapper {
             }
 
             .civ-icon {
-                width: 72px;
+                width: 46px;
             }
 
             .item-description {
@@ -205,6 +205,17 @@ tbody .detail-wrapper {
                 width: 100%;
                 color:#fff;
                 font-size: 12px;
+                overflow-x: clip;
+            }
+        }
+        @media (min-width: 961px) {
+            .civ-icon-wrapper {
+                width: 90px;
+                height: 90px;
+
+                .civ-icon {
+                    width: 72px;
+                }
             }
         }
     }
