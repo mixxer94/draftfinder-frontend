@@ -181,17 +181,17 @@ tbody .detail-wrapper {
             text-align: center;
             width: 90px;
             height: 90px;
-            background: darkgreen;
-            border: 4px solid green;
-            padding: 4px 0;
+            background: #0a830a;
+            border: 6px solid #30a330;
+            padding: 6px 0;
             margin: 4px;
             border-radius: 8px;
             position: relative;
 
             &&.sniped,
             &&.banned {
-                border-color: #a50b0b;
-                background-color: #6b1919;
+                border-color: #cf3d3d;
+                background-color: #972727;
             }
 
             .civ-icon {
