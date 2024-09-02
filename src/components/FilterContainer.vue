@@ -4,11 +4,11 @@
             Filter Drafts per ...
         </v-label>
         <v-form>
-            <v-select clearable label="Liga" :items="ligen" item-title="beschreibung" item-value="liga"
-                v-model="localFilters.liga" @update:modelValue="emitFilters('profileId')"></v-select>
+            <v-autocomplete clearable label="Liga" :items="ligen" item-title="beschreibung" item-value="liga"
+                v-model="localFilters.liga" @update:modelValue="emitFilters('profileId')"></v-autocomplete>
 
-            <v-select clearable label="Teilnehmer" :items="participantsByLiga" item-title="name" item-value="profileId"
-                v-model="localFilters.profileId" @update:modelValue="emitFilters()"></v-select>
+            <v-autocomplete clearable label="Teilnehmer" :items="participantsByLiga" item-title="name" item-value="profileId"
+                v-model="localFilters.profileId" @update:modelValue="emitFilters()"></v-autocomplete>
         </v-form>
         <v-btn rounded="xl" variant="tonal" @click="setPreset()"
             :color="!localFilters.presetId ? 'primary' : 'default'">
