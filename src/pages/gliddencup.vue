@@ -1,48 +1,30 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import AppBar from '../components/AppBar.vue'
 
-// --- API base (same origin proxy to backend) ---
+// --- API base ---
 const API = '/api/gliddencup'
 
-// --- Auth state ---
+// Auth state
 const tokenKey = 'gliddencup_token'
 const usernameKey = 'gliddencup_username'
 const token = ref(localStorage.getItem(tokenKey) || '')
 const me = ref(localStorage.getItem(usernameKey) || '')
 
-const auth = reactive({
-    username: '',
-    password: '',
-    loading: false,
-    error: '',
-})
+const auth = reactive({ username: '', password: '', loading: false, error: '' })
 
 function setSession(t, user) {
-    token.value = t;
-    me.value = user?.username || '';
-
-    if (t) {
-        localStorage.setItem(tokenKey, t);
-    } else {
-        localStorage.removeItem(tokenKey);
-    }
-
-    if (me.value) {
-        localStorage.setItem(usernameKey, me.value);
-    } else {
-        localStorage.removeItem(usernameKey);
-    }
+    token.value = t
+    me.value = user?.username || ''
+    if (t) localStorage.setItem(tokenKey, t); else localStorage.removeItem(tokenKey)
+    if (me.value) localStorage.setItem(usernameKey, me.value); else localStorage.removeItem(usernameKey)
 }
 
 async function api(path, opts = {}) {
     const headers = opts.headers ? { ...opts.headers } : {}
     if (!(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json'
     if (token.value) headers['Authorization'] = `Bearer ${token.value}`
-    const res = await fetch(`${API}${path}`, {
-        method: 'GET',
-        ...opts,
-        headers,
-    })
+    const res = await fetch(`${API}${path}`, { method: 'GET', ...opts, headers })
     if (!res.ok) {
         let msg = 'Request failed'
         try { const j = await res.json(); msg = j?.error || msg } catch { }
@@ -52,241 +34,226 @@ async function api(path, opts = {}) {
     return ct.includes('application/json') ? res.json() : res.text()
 }
 
-// --- Tabs ---
-const tab = ref('account')
+// Tabs – "public" zuerst
+const tab = ref('public')
 
-// --- Signup / Login ---
+// Auth actions
 async function doSignup() {
     auth.loading = true; auth.error = ''
     try {
-        const data = await api('/signup', {
-            method: 'POST',
-            body: JSON.stringify({
-                username: auth.username.trim(),
-                password: auth.password
-            })
-        })
-        setSession(data.token, data.user)
-        tab.value = 'tips'
-    } catch (e) { auth.error = e.message }
-    finally { auth.loading = false }
+        const data = await api('/signup', { method: 'POST', body: JSON.stringify({ username: auth.username.trim(), password: auth.password }) })
+        setSession(data.token, data.user); tab.value = 'tips'; await loadMyTips()
+    } catch (e) { auth.error = e.message } finally { auth.loading = false }
 }
-
 async function doLogin() {
     auth.loading = true; auth.error = ''
     try {
-        const data = await api('/login', {
-            method: 'POST',
-            body: JSON.stringify({
-                username: auth.username.trim(),
-                password: auth.password
-            })
-        })
-        setSession(data.token, data.user)
-        tab.value = 'tips'
-        await loadMyTips()
-    } catch (e) { auth.error = e.message }
-    finally { auth.loading = false }
+        const data = await api('/login', { method: 'POST', body: JSON.stringify({ username: auth.username.trim(), password: auth.password }) })
+        setSession(data.token, data.user); tab.value = 'tips'; await loadMyTips()
+    } catch (e) { auth.error = e.message } finally { auth.loading = false }
 }
+function logout() { setSession('', '') }
 
-function logout() {
-    setSession('', '')
-}
-
-// --- Profiles & Tips ---
-const profiles = ref([])
-const profilesLoading = ref(false)
-const profilesError = ref('')
-const picks = ref([]) // array of { profileId, playerName }
-const tipsLoading = ref(false)
-const tipsSaved = ref(false)
-const tipsError = ref('')
+// Profiles & tips
+const profiles = ref([]), picks = ref([])
+const profilesLoading = ref(false), profilesError = ref('')
+const tipsLoading = ref(false), tipsSaved = ref(false), tipsError = ref('')
 
 function buildPicksFromProfiles() {
     const existing = new Map(picks.value.map(p => [p.profileId, p.playerName]))
     picks.value = profiles.value.map(p => ({ profileId: p.id, playerName: existing.get(p.id) || '' }))
 }
-
 async function loadProfiles() {
     profilesLoading.value = true; profilesError.value = ''
-    try {
-        const data = await api('/profiles')
-        profiles.value = Array.isArray(data) ? data : []
-        buildPicksFromProfiles()
-    } catch (e) {
-        profilesError.value = e.message
-        profiles.value = []
-    } finally {
-        profilesLoading.value = false
-    }
+    try { const data = await api('/profiles'); profiles.value = Array.isArray(data) ? data : []; buildPicksFromProfiles() }
+    catch (e) { profilesError.value = e.message; profiles.value = [] }
+    finally { profilesLoading.value = false }
 }
-
 async function loadMyTips() {
     if (!token.value || !profiles.value.length) return
-    const res = await api('/tips/me')
-    if (Array.isArray(res?.picks)) {
-        const map = new Map(res.picks.map(p => [p.profileId, p.playerName]))
-        picks.value = profiles.value.map(p => ({ profileId: p.id, playerName: map.get(p.id) || '' }))
-    }
+    try {
+        const res = await api('/tips/me')
+        if (Array.isArray(res?.picks)) {
+            const map = new Map(res.picks.map(p => [p.profileId, p.playerName]))
+            picks.value = profiles.value.map(p => ({ profileId: p.id, playerName: map.get(p.id) || '' }))
+        }
+    } catch { }
 }
-
 async function saveTips() {
     tipsLoading.value = true; tipsError.value = ''; tipsSaved.value = false
     try {
-        // validation: all 16 filled
-        const missing = picks.value.find(p => !p.playerName || !p.playerName.trim())
-        // if (missing) throw new Error('Bitte alle 16 Felder ausfüllen.')
         await api('/tips', {
             method: 'POST',
             body: JSON.stringify({
-                picks: picks.value.map(p => ({
-                    profileId: p.profileId,
-                    playerName: p.playerName.trim()
-                }))
+                picks: picks.value.map(p => ({ profileId: p.profileId, playerName: (p.playerName || '').trim() }))
             })
         })
         tipsSaved.value = true
-    } catch (e) { tipsError.value = e.message }
-    finally { tipsLoading.value = false }
+    } catch (e) { tipsError.value = e.message } finally { tipsLoading.value = false }
 }
 
-// --- Public users & tips ---
-const users = ref([])
-const selectedUser = ref('')
-const selectedTips = ref([])
-const publicLoading = ref(false)
-const publicError = ref('')
-
-async function loadUsers() {
-    try {
-        users.value = await api('/users')
-    } catch (e) { console.error(e) }
-}
+// Public users & tips
+const users = ref([]), selectedUser = ref(''), selectedTips = ref([])
+const publicLoading = ref(false), publicError = ref('')
+async function loadUsers() { try { users.value = await api('/users') } catch { } }
 
 async function loadPublicTips(username) {
     if (!username) return
     publicLoading.value = true; publicError.value = ''; selectedTips.value = []
-    try {
-        const data = await api(`/tips/${encodeURIComponent(username)}`)
-        selectedTips.value = Array.isArray(data?.picks) ? data.picks : []
-    } catch (e) { publicError.value = e.message }
-    finally { publicLoading.value = false }
+    try { const data = await api(`/tips/${encodeURIComponent(username)}`); selectedTips.value = Array.isArray(data?.picks) ? data.picks : [] }
+    catch (e) { publicError.value = e.message } finally { publicLoading.value = false }
 }
 
-onMounted(async () => {
-    await loadProfiles()
-    await loadUsers()
-    if (token.value) await loadMyTips()
-})
+function selectUser(username) {
+    selectedUser.value = username
+    loadPublicTips(username)
+}
+
+onMounted(async () => { await loadProfiles(); await loadUsers(); if (token.value) await loadMyTips() })
 </script>
 
 <template>
-    <v-container class="py-6">
-        <v-card elevation="1" class="mb-6">
-            <v-toolbar density="comfortable" color="primary" dark>
-                <v-toolbar-title>/gliddencup</v-toolbar-title>
-                <v-spacer />
-                <div v-if="me">
-                    <v-chip color="secondary" class="mr-2" label>{{ me }}</v-chip>
-                    <v-btn variant="outlined" @click="logout">Logout</v-btn>
-                </div>
-            </v-toolbar>
+    <AppBar />
 
-            <v-tabs v-model="tab" bg-color="primary" color="white" grow>
-                <v-tab value="account">Account</v-tab>
-                <v-tab value="tips">Tipps abgeben</v-tab>
-                <v-tab value="public">Accounts & Tipps</v-tab>
-            </v-tabs>
-        </v-card>
+    <v-card class="pa-0">
+        <!-- Tabs oben -->
+        <v-tabs v-model="tab" bg-color="primary" color="white">
+            <v-tab value="public">Tipps ansehen</v-tab>
+            <v-tab value="tips">Tipps abgeben</v-tab>
+        </v-tabs>
+        <v-divider />
 
-        <!-- Account Tab -->
         <v-window v-model="tab">
-            <v-window-item value="account">
-                <v-row>
-                    <v-col cols="12" md="6">
-                        <v-card elevation="1" class="pa-4">
-                            <h3 class="mb-4">Anmelden</h3>
-                            <v-alert v-if="auth.error" type="error" variant="tonal" class="mb-3">{{ auth.error
-                                }}</v-alert>
-                            <v-text-field v-model="auth.username" label="Username" density="comfortable"
-                                variant="outlined" />
-                            <v-text-field v-model="auth.password" type="password" label="Passwort" density="comfortable"
-                                variant="outlined" />
-                            <v-btn :loading="auth.loading" color="primary" class="mt-2" @click="doLogin">Login</v-btn>
-                        </v-card>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                        <v-card elevation="1" class="pa-4">
-                            <h3 class="mb-4">Registrieren</h3>
-                            <v-alert v-if="auth.error" type="error" variant="tonal" class="mb-3">{{ auth.error
-                                }}</v-alert>
-                            <v-text-field v-model="auth.username" label="Username" density="comfortable"
-                                variant="outlined" />
-                            <v-text-field v-model="auth.password" type="password" label="Passwort" density="comfortable"
-                                variant="outlined" />
-                            <v-btn :loading="auth.loading" color="secondary" class="mt-2"
-                                @click="doSignup">Signup</v-btn>
-                        </v-card>
-                    </v-col>
-                </v-row>
-            </v-window-item>
-
-            <!-- Tipps Tab -->
-            <v-window-item value="tips">
-                <v-card elevation="1" class="pa-4">
-                    <div class="d-flex align-center mb-4">
-                        <h3 class="mr-4 mb-0">Tipps abgeben</h3>
-                        <v-chip v-if="!token" color="warning" variant="tonal">Bitte einloggen, um Tipps zu
-                            speichern</v-chip>
-                    </div>
-
-                    <v-alert v-if="tipsError" type="error" variant="tonal" class="mb-3">{{ tipsError }}</v-alert>
-                    <v-alert v-if="tipsSaved" type="success" variant="tonal" class="mb-3">Gespeichert!</v-alert>
-
-                    <v-row>
-                        <v-col cols="12" md="6" lg="4" v-for="p in picks" :key="p.profileId">
-                            <v-text-field :label="profiles.find(x => x.id === p.profileId)?.label"
-                                v-model="p.playerName" density="comfortable" variant="outlined" hide-details="auto"
-                                persistent-placeholder :disabled="!token" />
-                        </v-col>
-                    </v-row>
-
-                    <div class="d-flex justify-end">
-                        <v-btn color="primary" :loading="tipsLoading" :disabled="!token"
-                            @click="saveTips">Speichern</v-btn>
-                    </div>
-                </v-card>
-            </v-window-item>
-
-            <!-- Public Tab -->
+            <!-- TAB 1: Tipps ansehen (zweispaltig) -->
             <v-window-item value="public">
-                <v-card elevation="1" class="pa-4">
-                    <h3 class="mb-4">Accounts & Tipps</h3>
-                    <v-row class="mb-4" align="center">
-                        <v-col cols="12" md="6">
-                            <v-autocomplete label="Account auswählen" :items="users.map(u => u.username)"
-                                v-model="selectedUser" clearable density="comfortable" variant="outlined"
-                                @update:modelValue="loadPublicTips" />
+                <div class="pa-4">
+                    <v-row>
+                        <!-- Spalte 1: Auswahl -->
+
+                        <!-- <v-col cols="12" md="4">
+              <h3 class="mb-4">Account wählen</h3>
+              <v-card class="pa-4">
+                <v-autocomplete
+                  label="Account auswählen"
+                  :items="users.map(u => u.username)"
+                  v-model="selectedUser"
+                  clearable
+                  density="comfortable"
+                  variant="outlined"
+                  @update:modelValue="loadPublicTips"
+                />
+                <v-alert v-if="publicError" type="error" variant="tonal" class="mt-3">{{ publicError }}</v-alert>
+                <v-skeleton-loader v-if="publicLoading" type="table" class="mt-3" />
+              </v-card>
+            </v-col> -->
+                        <v-col cols="12" md="4">
+                            <h3 class="mb-4">Accounts</h3>
+                            <v-card class="pa-0">
+                                <v-list lines="one" density="comfortable" nav>
+                                    <v-skeleton-loader v-if="!users.length" type="list-item-two-line" class="ma-2" />
+                                    <v-list-item v-for="u in users" :key="u.username" :value="u.username"
+                                        @click="selectUser(u.username)" :active="selectedUser === u.username">
+                                        <v-list-item-title>{{ u.username }}</v-list-item-title>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card>
+
+                            <v-alert v-if="publicError" type="error" variant="tonal" class="mt-3">{{ publicError
+                                }}</v-alert>
                         </v-col>
-                    </v-row>
 
-                    <v-alert v-if="publicError" type="error" variant="tonal" class="mb-3">{{ publicError }}</v-alert>
+                        <!-- Spalte 2: Ergebnisse -->
+                        <v-col cols="12" md="8">
+                            <h3 class="mb-4">Tipps</h3>
+                            <v-card class="pa-4">
+                                <div v-if="!selectedUser" class="text-body-2 mb-3">
+                                    Wähle links einen Account, um die Tipps zu sehen.
+                                </div>
 
-                    <v-skeleton-loader v-if="publicLoading" type="table" />
-
-                    <v-row v-else>
-                        <v-col cols="12" md="6" lg="4" v-for="p in selectedTips" :key="p.profileId">
-                            <v-card variant="tonal" class="pa-3">
-                                <div class="text-caption text-medium-emphasis mb-1">{{ profiles.find(x => x.id === p.profileId)?.label }}</div>
-                                <div class="text-subtitle-1">{{ p.playerName || '—' }}</div>
+                                <v-row v-if="selectedUser">
+                                    <v-col cols="12" md="6" lg="4" v-for="p in selectedTips" :key="p.profileId">
+                                        <v-card variant="tonal" class="pa-3">
+                                            <div class="text-caption text-medium-emphasis mb-1">
+                                                {{profiles.find(x => x.id === p.profileId)?.label}}
+                                            </div>
+                                            <div class="text-subtitle-1">
+                                                {{ p.playerName && p.playerName.trim() ? p.playerName : '---' }}
+                                            </div>
+                                        </v-card>
+                                    </v-col>
+                                </v-row>
                             </v-card>
                         </v-col>
                     </v-row>
-                </v-card>
+                </div>
+            </v-window-item>
+
+            <!-- TAB 2: Tipps abgeben (zweispaltig) -->
+            <v-window-item value="tips">
+                <div class="pa-4">
+                    <v-row>
+                        <!-- Spalte 1: Login/Signup -->
+                        <v-col cols="12" md="4">
+                            <h3 class="mb-4">Account</h3>
+                            <v-card class="pa-4">
+                                <div v-if="me" class="mb-3 d-flex align-center">
+                                    <v-chip color="secondary" class="mr-2" label>{{ me }}</v-chip>
+                                    <v-btn variant="outlined" @click="logout">Logout</v-btn>
+                                </div>
+
+                                <v-alert v-if="auth.error" type="error" variant="tonal" class="mb-3">{{ auth.error
+                                    }}</v-alert>
+
+                                <v-text-field v-model="auth.username" label="Username" variant="outlined"
+                                    density="comfortable" />
+                                <v-text-field v-model="auth.password" label="Passwort" type="password"
+                                    variant="outlined" density="comfortable" />
+
+                                <div class="d-flex gap-2 mt-2">
+                                    <v-btn :loading="auth.loading" color="primary" @click="doLogin">Login</v-btn>
+                                    <v-btn :loading="auth.loading" color="secondary" @click="doSignup">Signup</v-btn>
+                                </div>
+                            </v-card>
+                        </v-col>
+
+                        <!-- Spalte 2: Formular -->
+                        <v-col cols="12" md="8">
+                            <h3 class="mb-4">Tipps abgeben / anpassen</h3>
+                            <v-card class="pa-4">
+                                <v-chip v-if="!token" color="warning" variant="tonal" class="mb-3">
+                                    Bitte einloggen, um Tipps zu speichern
+                                </v-chip>
+
+                                <v-alert v-if="tipsError" type="error" variant="tonal" class="mb-3">{{ tipsError
+                                    }}</v-alert>
+                                <v-alert v-if="tipsSaved" type="success" variant="tonal"
+                                    class="mb-3">Gespeichert!</v-alert>
+
+                                <v-skeleton-loader v-if="profilesLoading" type="table" class="mb-4" />
+                                <v-alert v-if="profilesError" type="error" variant="tonal" class="mb-3">{{ profilesError
+                                    }}</v-alert>
+
+                                <v-row v-if="profiles.length">
+                                    <v-col cols="12" md="6" lg="4" v-for="p in picks" :key="p.profileId">
+                                        <v-text-field :label="profiles.find(x => x.id === p.profileId)?.label"
+                                            v-model="p.playerName" variant="outlined" density="comfortable"
+                                            persistent-placeholder :disabled="!token" />
+                                    </v-col>
+                                </v-row>
+
+                                <div class="d-flex justify-end">
+                                    <v-btn color="primary" :loading="tipsLoading" :disabled="!token || !profiles.length"
+                                        @click="saveTips">
+                                        Speichern
+                                    </v-btn>
+                                </div>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                </div>
             </v-window-item>
         </v-window>
-    </v-container>
+    </v-card>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>
