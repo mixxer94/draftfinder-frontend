@@ -1,6 +1,6 @@
 <template>
     <v-app-bar :elevation="2" density="compact" color="app-bar" class="sticky-app-bar">
-        <v-app-bar-title>Draft Finder</v-app-bar-title>
+        <v-app-bar-title>{{ isGliddencup ? 'GliddenCup' : 'Draft Finder' }}</v-app-bar-title>
 
         <v-spacer></v-spacer>
 
