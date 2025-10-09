@@ -462,7 +462,7 @@ onMounted(async () => {
         <!-- Tabs oben -->
         <v-tabs v-model="tab" bg-color="primary" color="white">
             <v-tab value="mytips">Tipps abgeben</v-tab>
-            <v-tab value="player-rankings">Spieler-Rankings</v-tab>
+            <!-- <v-tab value="player-rankings">Spieler-Rankings</v-tab> -->
             <v-tab value="alltips" v-if="showResults">Tipps ansehen</v-tab>
             <v-tab value="analytics" v-if="showResults">Auswertungen</v-tab>
         </v-tabs>
