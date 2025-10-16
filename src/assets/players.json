@@ -1,0 +1,500 @@
+[
+    {
+      "user": "OIDA | Quendi_kelar",
+      "median": {
+        "micro": 7,
+        "macro": 9,
+        "strategy": 8,
+        "speed": 8,
+        "experience": 10
+      },
+      "quotes": [
+        "Warum bin ich so schlecht?",
+        "Ich bin so ein schlechter Spieler!\nWie kann der Gegner nur so schlecht sein?",
+        "Das Matchup kann man einfach auf lategame spielen!",
+        "Mein Gegner spielt so scheiße!",
+        "Scheiss all in, können die einfach normal spielen",
+        "Im deathmatch wäre das ein civ win",
+        "Besser hätte man das nicht machen können!",
+        "Niemand wird es schaffen Gleip zu coachen"
+      ],
+      "hints": [
+        "Boomer",
+        "boomy oder agro, nix dazwischen",
+        "Selbstbewusst defensiv",
+        "Walls, no Balls",
+        "Schwäche: Lame",
+        "Stirbt gegen MAA",
+        "Pickt Fortress",
+        "Überrollt die Gegner im Lategame",
+        "Greedy"
+      ],
+      "civ": "Celts",
+      "map": "Fortress",
+      "unit": " Boyar",
+      "color": 5
+    },
+    {
+      "user": "OIDA | Tropfzahn",
+      "median": {
+        "micro": 3,
+        "macro": 5.5,
+        "strategy": 6,
+        "speed": 3,
+        "experience": 4.5
+      },
+      "hints": [
+        "Stable Units, eigene Dorfbewohner löschen",
+        "Kramt Zeug aus abgelegenen Ecken des Tech Tree",
+        "Easy to shake, hard to break",
+        "nicht fancies oder spices, aber strategisch clean",
+        "Armee fightet gerne mal nicht",
+        "Idle TC, schlechtere BO, weniger APM",
+        "Untätige Villager"
+      ],
+      "quotes": [
+        "DIESE SCHEIß VILLAGER MACHEN NICHT WAS SIE SOLLEN!",
+        "WARUM ARBEITEST DU NICHT?! *löscht vil*",
+        "War so klar, dass das wieder mir passiert.",
+        "Warum machen meine Units nicht was sie sollen",
+        "und du wirst deleted, und du, und du."
+      ],
+      "civ": "Teutons",
+      "map": "Arena",
+      "unit": "Knights",
+      "color": 3
+    },
+    {
+      "user": "Blackrock",
+      "median": {
+        "micro": 4,
+        "macro": 6,
+        "strategy": 3,
+        "speed": 7,
+        "experience": 4.5
+      },
+      "hints": [
+        "Wenn Quatsch gespielt wird",
+        "Unkonventionelle unit choices und klare Favoriten",
+        "Eher passiv, ist im Lategame viel besser als in Earlygame",
+        "Trollt",
+        "Meta-Slave (nicht die civ)",
+        "Reaktiv",
+        "Off Meta"
+      ],
+      "quotes": [
+        "Man hat nie verloren solange der Gegner noch keinen doppelten Score hat",
+        "EW Teamgames sind die Krone der Schöpfung",
+        "Einfach Gineten gehen!",
+        "Ich hab das",
+        "Und wieder rettet Light Cav den Tag!"
+      ],
+      "civ": "Byzen, Berber",
+      "map": "Hybrid",
+      "unit": "egal, hauptsache commitment",
+      "color": 2
+    },
+    {
+      "user": "CrozZby",
+      "median": {
+        "micro": 7,
+        "macro": 6,
+        "strategy": 6.5,
+        "speed": 7,
+        "experience": 5
+      },
+      "hints": [
+        "BORING Arabia Andy",
+        "hybride Kartenpicks",
+        "Meta (für Gleipcord-Verhältnisse)",
+        "Well balanced, Meta-orientiert",
+        "Sehr aggressiv, all in",
+        "Laming"
+      ],
+      "quotes": [
+        "Darüber habe ich ein YouTube Video gemacht! Ich weiß wie man das besiegt.",
+        "Ich spiele gerade einfach nur scheiße"
+      ],
+      "civ": "Litauer, Italiener",
+      "map": "Arabien, Kawasan",
+      "unit": "Archer oder Knights",
+      "color": 1
+    },
+    {
+      "user": "TrCL.ovoin",
+      "median": {
+        "micro": 5,
+        "macro": 5,
+        "strategy": 6,
+        "speed": 5,
+        "experience": 7
+      },
+      "hints": [
+        "Womöglich der größtmögliche Clown hier.",
+        "Passiv oder all in",
+        "Clown",
+        "Monk Play, liebt Malaien",
+        "Aggro",
+        "Arena/Closed Maps"
+      ],
+      "quotes": [
+        "Mein Deins, dass sind doch nur bürgerliche Kategorien",
+        "Irgendwas österreichisches. Schmarrn oder so.",
+        "Leinwand",
+        "LC ist Cheaten."
+      ],
+      "civ": "malaien",
+      "map": "arena",
+      "unit": "skirm",
+      "color": "keine "
+    },
+    {
+      "user": "OIDA | onkyox",
+      "median": {
+        "micro": 4,
+        "macro": 7.5,
+        "strategy": 7,
+        "speed": 5,
+        "experience": 6
+      },
+      "hints": [
+        "Die Personifikation der 30 Minuten Nicht-Angriffspakt Lobbies",
+        "Wären stonewalls in dark age erlaubt wäre der mann 2k",
+        "Boomer",
+        "Unique Units",
+        "Strategisch",
+        "Closed Maps, Boom, mind 4 TC",
+        "Wilde Plays, UU",
+        "composition spieler"
+      ],
+      "quotes": [
+        "Ohne Walls? Ohne mich!",
+        "Die Map ist super für Drush FC!",
+        "Ich sehe da jetzt ein' Longswords-Angle!"
+      ],
+      "civ": "Lithuanians",
+      "map": "TG Fortress, Houseboat",
+      "unit": "Paladin, SO",
+      "color": 5
+    },
+    {
+      "user": "OIDA | Gleipdonir",
+      "median": {
+        "micro": 4,
+        "macro": 5,
+        "strategy": 2,
+        "speed": 9,
+        "experience": 4.5
+      },
+      "hints": [
+        "Knight All in",
+        "2 TC 3 Stables",
+        "Scouts into knights into chevas into pikes",
+        "Sein größter Feind ist er selbst.",
+        "Würde auch ein Feuer versuchen mit Knights zu löschen.",
+        "Overmicroed Scouts 2min um in der Zeit seine Eco zu idlen",
+        "Microd seine Armee mit Negativ Ergebnis und verliert zuhause alles",
+        "Viele Klicks, wenig Action."
+      ],
+      "quotes": [
+        "Hmm, was soll ich spielen? Ah, ich weiß - Knights!",
+        "Ich MUSS Knight All In gehen",
+        "die map hab ich noch nie gesehen (Vier Seen)",
+        "XY ist die beste Civ.",
+        "Oida",
+        "Ich kenn die Map nicht!",
+        "Ich hätte echt nicht gedacht, dass Pikes Ritter schlagen können",
+        "Knights werden nur von mehr Knights gecountert"
+      ],
+      "civ": "Magyar, Berber, Azteken, Lith",
+      "map": "African Clearing",
+      "unit": "Knights/Cheva",
+      "color": 8
+    },
+    {
+      "user": "OIDA | Kloerb",
+      "median": {
+        "micro": 5.5,
+        "macro": 6,
+        "strategy": 6,
+        "speed": 6,
+        "experience": 6
+      },
+      "hints": [
+        "lässt sich  sehr schnell aus dem Konzept bringen",
+        "Boom hinter Stone Walls",
+        "Meso Civs",
+        "Sein Kryptonit ist seine Ungeduld und sein Unwillen im Late Game",
+        "Ruhiger Spielstil mitklaren Plan",
+        "spielt Mixed Maps",
+        "Passiv",
+        "Defensiver, eher sicherer Spieler",
+        "Aggro",
+        "eher boomig. Wenig Aggresivität"
+      ],
+      "quotes": [
+        "Hussar Raids? GG, kein' Bock mehr!",
+        "Ich geb auf, das Game geht schon 50 min, kein Bock mehr",
+        "Es ist zwar auf meinen Bildschirm dass bedeutet noch lange nicht dass ich das sehe.",
+        "Ich hätte gerne steinwälle gesehen",
+        "GG!",
+        "Wir spielen zum Spass ne, und du kommst mit so einer SCHEISSE hier!",
+        "Hussarraids sind unfair."
+      ],
+      "civ": "Maya",
+      "map": "Golden Swamp",
+      "unit": "Galleys",
+      "color": 3
+    },
+    {
+      "user": "OIDA | Tasty",
+      "median": {
+        "micro": 6.5,
+        "macro": 7,
+        "strategy": 8,
+        "speed": 6,
+        "experience": 8
+      },
+      "hints": [
+      "Hat den Anspruch 2k zu sein mit den Händen eines 14xx.",
+        "baut Army und chillt damit zuhause",
+        "Mönche",
+        "Clown Plays auf closed Maps",
+        "Flexibel, auf keiner Map wirklich schlecht",
+        "Hat viel Wissen dass er bis zur Niederlage nicht einsetzt",
+        "Kann starke und ruhige Pushes spielen und trotzdem seine Eco clean behalten.",
+        "Dropt immer TCs wenn er Castle hittet",
+        "Mix aus Aggresivität und Boom, starke BOs (on point).",
+        "Weirde Timings, solides Meta-Play auf Meta-Maps",
+        "Fokussierter Spielstyl, variable Strategien"
+      ],
+      "quotes": [
+        "wenigste APM",
+        "Ich bin so dumm und dick und dämlich, warum verlier ich gegen so ne Scheiße?",
+        "Warum spiele ich immer so scheiße gegen \"Person X\"",
+        "Das beste am Kindergärtnern sind die Mütter",
+        "Tasty?, Tasty: \"....\"",
+        "Im Notfall Monks"
+      ],
+      "civ": "Portuguese",
+      "map": "Arena",
+      "unit": "Monks",
+      "color": 8
+    },
+    {
+      "user": "Koerbel",
+      "median": {
+        "micro": 8,
+        "macro": 8,
+        "strategy": 7,
+        "speed": 7,
+        "experience": 6
+      },
+      "hints": [
+        "Womöglich mit das Beste was die Gleipcordsche Arabia-Abteilung zu bieten hat.",
+        "adaptiert gut",
+        "Meta",
+        "Arb timing jedes Game",
+        "auf closed Maps ein wenig überfordert.",
+        "Sehr aggressiv und mit sehr guten Micro.",
+        "trollt manchmal, wenn er voraus ist",
+        "mag offene Karten",
+        "Aggro",
+        "Open Maps Experte",
+        "Archer fokussierter Spielstyl",
+        "Schaden beim Gegner wird durch die eigene Eco ausgeglichen"
+      ],
+      "quotes": [
+        "Scheiß Forcepicker.",
+        "Oh, das war dumm von mir!",
+        "Der Gegner ist schon GG."
+      ],
+      "civ": "Litauer",
+      "map": "Arab",
+      "unit": "Keine UU",
+      "color": 3
+    },
+    {
+      "user": "Hansdampf",
+      "median": {
+        "micro": 6.5,
+        "macro": 8,
+        "strategy": 4.5,
+        "speed": 8,
+        "experience": 5.5
+      },
+      "hints": [
+        "Vills/Arme Ratio 170/30",
+        "Migra / Nomad / Chaos Pick",
+        "Hartnäckig, oft auf mehr Eco als man denkt",
+        "If in doubt, boom it out.",
+        "Das personifizierte Wirtschaftswunder. Boomt sich aus alles raus.",
+        "Verteidigt mit minimalsten Aufwand.",
+        "Ausdauernd, gibt nicht leicht auf.",
+        "Monk-Rush",
+        "dominieren auf geschlossenen Karten, hoffnungslos sterben auf offenen",
+        "Sehr greedy"
+      ],
+      "quotes": [
+        "Ich geb jetzt sofort auf oder ich geb gar nicht mehr auf",
+        "Das ist gg...ich versuchs noch ein bisschen...(Spielt 2h weiter)",
+        "Ah, DAS macht die/das Tech/Unit  - das wusste ich nicht!",
+        "EYY, Wieso hab ich denn keine Army?!",
+        "Ich bin dead",
+        "Da hab ich wohl nicht genug eco gehabt(bei 170 vills)"
+      ],
+      "map": "Migra",
+      "color": "Keine"
+    },
+    {
+      "user": "hannezthemenace",
+      "median": {
+        "micro": 5,
+        "macro": 6,
+        "strategy": 6,
+        "speed": 5,
+        "experience": 4
+      },
+      "hints": [
+        "Absolute Wildcard",
+        "pickt Nomad Maps",
+        "Eher boomig unterwegs"
+      ],
+      "quotes": [],
+      "civ": "Mongols",
+      "map": "Nomad",
+      "unit": "Scouts",
+      "color": "Keine"
+    },
+    {
+      "user": "Atomlelek",
+      "median": {
+        "micro": 6,
+        "macro": 4,
+        "strategy": 4,
+        "speed": 6,
+        "experience": 4
+      },
+      "hints": [
+        "Komplett lost",
+        "castledroppt deine mudda mit verbundenen augen",
+        "spielt hauptsächlich für Unterhaltung/Content",
+        "Lamer",
+        "Trollig",
+        "Mags wild, mags dreckig",
+        "Wahrscheinlich der strategisch eingeschränkteste Spieler im Turnier.",
+        "Kleiner Nomadnerd",
+        "Freut sich über sinnfreies einwallen von vills.",
+        "Vilfightet gerne",
+        "Spielt gerne Conqs",
+        "Spielt wie lyx von Wish bestellt",
+        "Aggro+",
+        "Aggressiver Spielstil"
+      ],
+      "quotes": [
+        "Leck' Eier!",
+        "Skibidi was ein OPFA DIGGAH",
+        "Ich geh trushen.!",
+        "Onky, noch ein letztes Abend Arena? Du hast nicht letztes gecallt.",
+        "Ich geh boxen!",
+        "Das Spiel wird durch einen Castledrop entschieden."
+      ],
+      "civ": "Spanish ",
+      "map": "Nomad",
+      "unit": "Conq/Mange ",
+      "color": 6
+    },
+    {
+      "user": "Peter Pahn",
+      "median": {
+        "micro": 6,
+        "macro": 8,
+        "strategy": 6.5,
+        "speed": 6,
+        "experience": 6
+      },
+      "hints": [
+        "Mag sonderbare Civs",
+        "Early Imp Timing Plays",
+        "Boom und Defense, gern mit Mönchen",
+        "Closed map oder troll",
+        "Bevorzugt Walls",
+        "Großer Chinese fan.",
+        "Clown",
+        "3 TC into Imp",
+        "MAA; spielt gerne Infanterie",
+        "Aggresiv",
+        "Gute Execution der Strategie, aber wenig abweichen davon. Oft Offmeta"
+      ],
+      "quotes": [
+        "Micro ist cheaten!",
+        "Leinwand",
+        "Chinese TOP 1 auf Arena!",
+        "Liebe auf dem Stand-Up Paddleboard.Oder sonst einer seiner Grammyverdächtigen Tracks.",
+        "HAAALLLLOOOOO",
+        "WO POCKET?"
+      ],
+      "civ": "Chinese",
+      "map": "Arena",
+      "unit": "Pike/Halb/Monk",
+      "color": "keine"
+    },
+    {
+      "user": "Makrobean",
+      "median": {
+        "micro": 6,
+        "macro": 5,
+        "strategy": 7,
+        "speed": 5,
+        "experience": 5
+      },
+      "hints": [
+        "unorthodox aggressiv",
+        "Kreativ und chaotisch",
+        "Ein Spieler der versucht anderen Spielern sein Spiel aufzudrücken.",
+        "Ist am besten wenn es messy wird.",
+        "Off Meta, Aggressiver Spielstyl",
+        "Schaden beim Gegner muss größer als das Chaos der eigenen Eco sein"
+      ],
+      "quotes": [
+        "Wenn ich vom Gegner mehr töte als ich selbst idle, dann gewinn' ich!",
+        "Dein TC = kein TC",
+        "Welches Boar?",
+        "M@A retten den Tag"
+      ],
+      "civ": "Khmer",
+      "map": "Landwahn",
+      "unit": "Shotel",
+      "color": 7
+    },
+    {
+      "user": "OIDA | Thorb0203",
+      "median": {
+        "micro": 4,
+        "macro": 4,
+        "strategy": 4,
+        "speed": 2,
+        "experience": 5
+      },
+      "hints": [
+        "Archer, Archer, Archer.",
+        "clowny plays auf closed maps",
+        "Sehr solide Armeeproduktion, mieses Dark Age",
+        "Lamer",
+        "Wo eine Armbrust ist, da ist ein Weg. Designierter Archerproduzent.",
+        "Range idle time ist stets geringer als das idle TC.",
+        "Fragt gerne nach Ratschlägen um sie nicht umzusetzen.",
+        "Armee statt vills produzieren",
+        "8k res banken und nur eine Unit spielen",
+        "Schlechte Timings, viel idle TC",
+        "Aggressiver Spielstyl"
+      ],
+      "quotes": [
+        "Ich kann keine BO mit nur 2 Boars!",
+        "Erich Müller? Den fick ich weg",
+        "Irgendwas über eco verlieren während man seine xbow microed",
+        "Archer?",
+        "Skirms sind unfair"
+      ]
+    }
+  ]

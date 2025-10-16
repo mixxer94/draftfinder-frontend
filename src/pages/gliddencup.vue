@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import AppBar from '../components/AppBar.vue'
+import PlayerCharacteristics from '../components/PlayerCharacteristics.vue'
 
 // --- API base ---
 const API = '/api/gliddencup';
@@ -462,7 +463,7 @@ onMounted(async () => {
         <!-- Tabs oben -->
         <v-tabs v-model="tab" bg-color="primary" color="white">
             <v-tab value="mytips">Tipps abgeben</v-tab>
-            <!-- <v-tab value="player-rankings">Spieler-Rankings</v-tab> -->
+            <v-tab value="characteristics">Spieler-Charakteristiken</v-tab>
             <v-tab value="alltips" v-if="showResults">Tipps ansehen</v-tab>
             <v-tab value="analytics" v-if="showResults">Auswertungen</v-tab>
         </v-tabs>
@@ -903,7 +904,9 @@ onMounted(async () => {
                     </v-row>
                 </div>
             </v-window-item>
-
+            <v-window-item value="characteristics">
+                <PlayerCharacteristics/>
+            </v-window-item>
         </v-window>
     </v-card>
 </template>
