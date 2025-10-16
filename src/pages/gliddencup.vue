@@ -462,8 +462,8 @@ onMounted(async () => {
     <v-card class="pa-0">
         <!-- Tabs oben -->
         <v-tabs v-model="tab" bg-color="primary" color="white">
-            <v-tab value="mytips">Tipps abgeben</v-tab>
-            <v-tab value="characteristics">Spieler-Charakteristiken</v-tab>
+            <v-tab value="mytips">Tippen</v-tab>
+            <v-tab value="characteristics">Teilnehmer</v-tab>
             <v-tab value="alltips" v-if="showResults">Tipps ansehen</v-tab>
             <v-tab value="analytics" v-if="showResults">Auswertungen</v-tab>
         </v-tabs>

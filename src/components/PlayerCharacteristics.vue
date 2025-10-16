@@ -202,15 +202,15 @@ onMounted(() => {
       </div>
 
       <div class="name">{{ p.user }}</div>
-      <!-- <div class="meta">{{ (p.civ || '???') + ' | ' + (p.map || '???') + ' | ' + (p.unit || '???') }}</div> -->
+
       <div class="stats-container" v-if="isShowingStats(p.user)">
         <div class="hint">{{ firstHint(p) }}</div>
         <div class="flex-placeholder"></div>
 
         <div class="meta">
-          <span>{{ (p.civ || '???') }}</span>
-          <hr class="divider" />
           <span>{{ (p.map || '???') }}</span>
+          <hr class="divider" />
+          <span>{{ (p.civ || '???') }}</span>
           <hr class="divider" />
           <span>{{ (p.unit || '???') }}</span>
         </div>
@@ -292,13 +292,12 @@ onMounted(() => {
 }
 
 .flex-placeholder {
-  flex-grow:1;
+  flex-grow: 1;
 }
 
 .meta {
   font-size: 16px;
   font-weight: bold;
-  margin-top: 6px;
   text-align: center;
   color: #ccc;
 
@@ -309,8 +308,6 @@ onMounted(() => {
     margin-left: 45%;
   }
 }
-
-
 
 .hint {
   font-size: 16px;
@@ -410,7 +407,7 @@ onMounted(() => {
   font-size: 16px;
   margin-top: 10px;
   margin-bottom: 20px;
-  background-color:rgba(17, 17, 17, .63);
+  background-color: rgba(17, 17, 17, .63);
   color: #ccc;
   overflow-y: auto;
 }
