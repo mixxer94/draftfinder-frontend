@@ -514,7 +514,7 @@ onMounted(async () => {
                                 <v-skeleton-loader v-if="profilesLoading" type="table" class="mb-4" />
                                 <v-alert v-if="profilesError" type="error" variant="tonal" class="mb-3">{{
                                     profilesError
-                                }}</v-alert>
+                                    }}</v-alert>
 
                                 <v-row v-if="profiles.length">
                                     <v-col cols="12" md="6" lg="3" v-for="p in picks" :key="p.profileId">
@@ -526,7 +526,7 @@ onMounted(async () => {
                                 </v-row>
 
                                 <v-alert v-if="tipsError" type="error" variant="tonal" class="mb-3">{{ tipsError
-                                    }}</v-alert>
+                                }}</v-alert>
                                 <v-alert v-if="tipsSaved" type="success" variant="tonal"
                                     class="mb-3">Gespeichert!</v-alert>
 
@@ -558,6 +558,10 @@ onMounted(async () => {
                 </div>
             </v-window-item>
 
+            <v-window-item value="characteristics">
+                <PlayerCharacteristics/>
+            </v-window-item>
+
             <!-- TAB Tipps ansehen  -->
             <v-window-item value="alltips" v-if="showResults">
                 <div class="pa-4">
@@ -575,7 +579,7 @@ onMounted(async () => {
                             </v-card>
 
                             <v-alert v-if="publicError" type="error" variant="tonal" class="mt-3">{{ publicError
-                            }}</v-alert>
+                                }}</v-alert>
                         </v-col>
 
                         <!-- Spalte 2: Ergebnisse -->
@@ -707,7 +711,7 @@ onMounted(async () => {
                                                 <td>
                                                     {{ p.label }}
                                                     <div class="text-caption text-medium-emphasis"> {{ p.truth
-                                                    }}</div>
+                                                        }}</div>
                                                 </td>
                                                 <td class="text-right">{{ p.correct }}</td>
                                                 <!-- <td class="text-right">{{ p.totalUsers }}</td> -->
@@ -734,7 +738,7 @@ onMounted(async () => {
                                                 <td>
                                                     {{ p.label }}
                                                     <div class="text-caption text-medium-emphasis"> {{ p.truth
-                                                    }}</div>
+                                                        }}</div>
                                                 </td>
                                                 <td class="text-right">{{ p.correct }}</td>
                                                 <!-- <td class="text-right">{{ p.totalUsers }}</td> -->
@@ -759,7 +763,7 @@ onMounted(async () => {
                                                 <td>
                                                     <div class="font-weight-medium">{{ p.label }}</div>
                                                     <div class="text-caption text-medium-emphasis"> {{ p.truth
-                                                    }}</div>
+                                                        }}</div>
                                                 </td>
                                                 <td class="text-right">{{ p.diversityCount }}</td>
                                                 <td>
@@ -817,7 +821,8 @@ onMounted(async () => {
                                         <tbody>
                                             <tr v-for="row in consensusList" :key="row.profileId">
                                                 <td class="font-weight-medium">{{ row.label }}
-                                                    <div class="text-caption text-medium-emphasis"> {{ row.truth }}</div>
+                                                    <div class="text-caption text-medium-emphasis"> {{ row.truth }}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <v-chip :color="row.isTruthTop ? 'success' : undefined"
@@ -883,7 +888,7 @@ onMounted(async () => {
                                                 <td>
                                                     <div class="font-weight-medium">{{ p.label }}</div>
                                                     <div class="text-caption text-medium-emphasis">{{ p.truth
-                                                        }}</div>
+                                                    }}</div>
                                                 </td>
                                                 <td>
                                                     <div class="d-flex flex-wrap">
@@ -903,9 +908,6 @@ onMounted(async () => {
                         </v-col>
                     </v-row>
                 </div>
-            </v-window-item>
-            <v-window-item value="characteristics">
-                <PlayerCharacteristics/>
             </v-window-item>
         </v-window>
     </v-card>
