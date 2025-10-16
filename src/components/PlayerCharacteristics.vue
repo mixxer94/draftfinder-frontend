@@ -159,6 +159,7 @@ function cardStyle(p, i) {
 
 onMounted(() => {
   if (!document.getElementById('fa-6-6-0')) {
+    
     const link = document.createElement('link')
     link.id = 'fa-6-6-0'
     link.rel = 'stylesheet'
@@ -259,7 +260,7 @@ onMounted(() => {
   position: absolute;
   width: 240px;
   height: 390px;
-  background-image: url('/gliddencup/card.png');
+  background-image: url('/gliddencup/card.webp');
   background-size: cover;
   background-position: center;
   border-radius: 12px;
