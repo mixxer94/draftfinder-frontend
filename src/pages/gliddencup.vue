@@ -559,7 +559,7 @@ onMounted(async () => {
             </v-window-item>
 
             <!-- TAB Tipps ansehen  -->
-            <v-window-item value="alltips">
+            <v-window-item value="alltips" v-if="showResults">
                 <div class="pa-4">
                     <v-row>
                         <v-col cols="12" md="3">
@@ -611,7 +611,7 @@ onMounted(async () => {
             </v-window-item>
 
             <!-- TAB 3: Auswertungen -->
-            <v-window-item value="analytics">
+            <v-window-item value="analytics" v-if="showResults">
                 <div class="pa-4">
                     <v-row>
                         <!-- Linke Spalte: Auswahl -->
