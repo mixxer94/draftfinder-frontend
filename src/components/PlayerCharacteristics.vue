@@ -66,7 +66,6 @@ watch(positions, (val) => {
     localStorage.setItem('cardPositions', JSON.stringify(val))
 }, { deep: true })
 
-// watch(minimized, val => localStorage.setItem('cardMinimized', JSON.stringify(val)), { deep: true })
 
 
 function statList(p) {
@@ -95,6 +94,10 @@ function toggle(name) {
 
 function toggleMinimized(name) {
   minimized[name] = !minimized[name]
+  positions[name] = positions[name] || {}
+  positions[name].minimized = minimized[name]
+  localStorage.setItem('cardPositions', JSON.stringify(positions))
+
   const allTrue = players.value.every(p => minimized[p.user] === true)
   const allFalse = players.value.every(p => minimized[p.user] !== true)
   allMinimized.value = allTrue
@@ -102,8 +105,17 @@ function toggleMinimized(name) {
 
 // -- Toolbar Button functions ----------------
 function reset() {
-  Object.keys(positions).forEach(k => delete positions[k])
+  Object.keys(positions).forEach(k => {
+    delete positions[k]
+    minimized[k] = false
+  })
+  zCounter.value = 0
+
   localStorage.removeItem('cardPositions')
+
+  players.value.forEach(p => {
+    positions[p.user].minimized =false
+  })
 }
 
 function zoom() {
@@ -173,6 +185,13 @@ onMounted(() => {
     const saved = Object.values(positions)
     const maxZ = saved.length ? Math.max(...saved.map(p => p.zIndex || 0)) : 0
     zCounter.value = maxZ
+
+    players.value.forEach(p => {
+      const entry = positions[p.user]
+      if (entry && typeof entry.minimized === 'boolean') {
+        minimized[p.user] = entry.minimized
+      }
+    })
   }
 })
 </script>
@@ -287,7 +306,7 @@ onMounted(() => {
   background-size: cover;
   background-position: center;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  box-shadow: 2px 4px 9px 0px rgb(127 72 15 / 20%);
   cursor: grab;
   padding: 15px 20px;
   box-sizing: border-box;
@@ -312,7 +331,7 @@ onMounted(() => {
 
     .name {
       margin: 0;
-      font-size:16px;
+      font-size: 16px;
     }
 
     >.toggle-btn,
@@ -327,7 +346,7 @@ onMounted(() => {
 
 .card:hover {
   transform: scale(1.05);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
+  box-shadow: 2px 4px 9px 0px rgb(17 127 15 / 50%)
 }
 
 .name {
@@ -475,7 +494,7 @@ onMounted(() => {
 
 .toolbar {
   position: absolute;
-  top: 10px;
+  top: 3px;
   right: 10px;
   z-index: 999;
 }
@@ -484,11 +503,11 @@ onMounted(() => {
   background: #fff;
   color: #000;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 4px 14px;
+  padding: 0px 5px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
-  margin-left: 6px;
+  margin-left: 5px;
 }
 
 .toolbar-btn:hover {
