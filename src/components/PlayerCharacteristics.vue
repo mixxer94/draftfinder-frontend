@@ -13,6 +13,8 @@ const gridMode = ref(false)
 const allFlipped = ref(false)
 const minimized = reactive({})
 const allMinimized = ref(false)
+const showNamesBackground = ref(false)
+
 
 
 function startDrag(p, e) {
@@ -104,6 +106,11 @@ function toggleMinimized(name) {
 }
 
 // -- Toolbar Button functions ----------------
+
+function toggleBackground() {
+  showNamesBackground.value = !showNamesBackground.value
+}
+
 function reset() {
   Object.keys(positions).forEach(k => {
     delete positions[k]
@@ -114,7 +121,7 @@ function reset() {
   localStorage.removeItem('cardPositions')
 
   players.value.forEach(p => {
-    positions[p.user].minimized =false
+    positions[p.user].minimized = false
   })
 }
 
@@ -140,8 +147,13 @@ function toggleAll() {
 function toggleMinimizeAll() {
   allMinimized.value = !allMinimized.value
   players.value.forEach(p => {
-    minimized[p.user] = allMinimized.value
+    const name = p.user
+    minimized[name] = allMinimized.value
+    positions[name] = positions[name] || {}
+    positions[name].minimized = allMinimized.value
   })
+
+  localStorage.setItem('cardPositions', JSON.stringify(positions))
 }
 
 // ------------------------------------------
@@ -175,6 +187,8 @@ function cardStyle(p, i) {
 onMounted(() => {
   if (!document.getElementById('fa-6-6-0')) {
 
+    players.value.sort((a, b) => (b.elo || 0) - (a.elo || 0))
+
     // load and apply saved z-indeces 
     const saved = Object.values(positions)
     const maxZ = saved.length ? Math.max(...saved.map(p => p.zIndex || 0)) : 0
@@ -191,9 +205,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="pc-root" @pointermove="onDrag" @pointerup="endDrag" @pointerleave="endDrag">
+  <div class="pc-root" @pointermove="onDrag" @pointerup="endDrag" @pointerleave="endDrag" :class="showNamesBackground ? 'background-bracket' : 'background-color'
+    ">
     <!-- Toolbar -->
     <div class="toolbar">
+      <button class="toolbar-btn" @click="toggleBackground">
+        <i class="fa-solid" :class="showNamesBackground ? 'fa-image' : 'fa-images'"></i>
+      </button>
       <button class="toolbar-btn" @click="resetZoom">
         <i class="fa-solid fa-magnifying-glass-minus"></i>
       </button>
@@ -203,12 +221,12 @@ onMounted(() => {
       <button class="toolbar-btn" :class="{ active: gridMode }" @click="toggleGrid">
         <i class="fa-solid fa-table-cells-large"></i>
       </button>
+      <button class="toolbar-btn" @click="toggleAll">
+        <i class="fa-solid" :class="allFlipped ? 'fa-angles-up' : 'fa-angles-down'"></i>
+      </button>
       <button class="toolbar-btn" :class="{ active: allMinimized }" @click="toggleMinimizeAll">
         <i class="fa-solid"
           :class="allMinimized ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
-      </button>
-      <button class="toolbar-btn" @click="toggleAll">
-        <i class="fa-solid" :class="allFlipped ? 'fa-angles-up' : 'fa-angles-down'"></i>
       </button>
       <button class="toolbar-btn" style="right: 15px" @click="reset">
         <i class="fa-solid fa-rotate-left"></i> Reset
@@ -229,6 +247,7 @@ onMounted(() => {
         </div>
 
         <div class="name">{{ p.user }}</div>
+        <div class="elo">{{ `${p.elo} (${p.maxElo})` }}</div>
 
         <div class="stats-container" v-if="isShowingStats(p.user)">
           <div class="hint">{{ firstHint(p) }}</div>
@@ -280,16 +299,23 @@ onMounted(() => {
 
 <style scoped>
 .pc-root {
-  background-color: #0f0f0f;
-  background: url('/gliddencup/bracket.webp');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
   height: calc(100vh - 98px);
   color: #fff;
   position: relative;
   overflow: hidden;
   font-family: 'Marcellus SC', serif;
   user-select: none;
+}
+
+.background-bracket {
+  background: url('/gliddencup/bracket_with_names_r1.webp');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.background-color {
+  background-color: rgb(11, 11, 11);
+
 }
 
 .card {
@@ -348,6 +374,11 @@ onMounted(() => {
   font-weight: bold;
   text-align: center;
   margin-top: 10px;
+}
+
+.elo {
+  font-size: 12px;
+  text-align: center;
 }
 
 .flex-placeholder {
