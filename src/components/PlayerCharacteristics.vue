@@ -12,6 +12,7 @@ const zCounter = ref(0)
 const gridMode = ref(false)
 const allFlipped = ref(false)
 const minimized = reactive({})
+const allMinimized = ref(false)
 
 
 function startDrag(p, e) {
@@ -40,11 +41,6 @@ function onDrag(e) {
   positions[name] = positions[name] || {}
   positions[name].top = e.clientY - containerTop - offsetY
   positions[name].left = e.clientX - containerLeft - offsetX
-
-  // positions[name] = {
-  //   top: e.clientY - containerTop - offsetY,
-  //   left: e.clientX - containerLeft - offsetX
-  // }
 }
 
 function endDrag() {
@@ -99,6 +95,9 @@ function toggle(name) {
 
 function toggleMinimized(name) {
   minimized[name] = !minimized[name]
+  const allTrue = players.value.every(p => minimized[p.user] === true)
+  const allFalse = players.value.every(p => minimized[p.user] !== true)
+  allMinimized.value = allTrue
 }
 
 // -- Toolbar Button functions ----------------
@@ -121,9 +120,15 @@ function toggleGrid() {
 
 function toggleAll() {
   allFlipped.value = !allFlipped.value
-  // alle Karten in denselben Zustand bringen
   players.value.forEach(p => {
     showStats[p.user] = !allFlipped.value
+  })
+}
+
+function toggleMinimizeAll() {
+  allMinimized.value = !allMinimized.value
+  players.value.forEach(p => {
+    minimized[p.user] = allMinimized.value
   })
 }
 
@@ -185,6 +190,10 @@ onMounted(() => {
       <button class="toolbar-btn" :class="{ active: gridMode }" @click="toggleGrid">
         <i class="fa-solid fa-table-cells-large"></i>
       </button>
+      <button class="toolbar-btn" :class="{ active: allMinimized }" @click="toggleMinimizeAll">
+        <i class="fa-solid"
+          :class="allMinimized ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
+      </button>
       <button class="toolbar-btn" @click="toggleAll">
         <i class="fa-solid" :class="allFlipped ? 'fa-angles-up' : 'fa-angles-down'"></i>
       </button>
@@ -194,61 +203,62 @@ onMounted(() => {
     </div>
 
     <!-- Cards -->
-    <div v-for="(p, i) in players" :key="p.user" class="card" :class="{minimized: minimized[p.user]}" :style="cardStyle(p, i)"
-      @pointerdown="startDrag(p, $event)" @mouseenter="onHoverStart(p)" @mouseleave="onHoverEnd(p)">
+    <div v-for="(p, i) in players" :key="p.user" class="card" :class="{ minimized: minimized[p.user] }"
+      :style="cardStyle(p, i)" @pointerdown="startDrag(p, $event)" @mouseenter="onHoverStart(p)"
+      @mouseleave="onHoverEnd(p)">
       <div class="minimize-btn" @click.stop="toggleMinimized(p.user)">
         <i class="fa-solid"
           :class="minimized[p.user] ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
       </div>
       <template v-if="!minimized[p.user]">
-      <div class="toggle-btn" :class="{ rotated: !isShowingStats(p.user) }" @click.stop="toggle(p.user)">
-        <i class="fa-solid fa-angles-down"></i>
-      </div>
-
-      <div class="name">{{ p.user }}</div>
-
-      <div class="stats-container" v-if="isShowingStats(p.user)">
-        <div class="hint">{{ firstHint(p) }}</div>
-
-        <div class="meta">
-          <span>{{ (p.map || '???') }}</span>
-          <hr class="divider" />
-          <span>{{ (p.civ || '???') }}</span>
-          <hr class="divider" />
-          <span>{{ (p.unit || '???') }}</span>
+        <div class="toggle-btn" :class="{ rotated: !isShowingStats(p.user) }" @click.stop="toggle(p.user)">
+          <i class="fa-solid fa-angles-down"></i>
         </div>
 
-        <div class="flex-placeholder"></div>
+        <div class="name">{{ p.user }}</div>
 
-        <!-- Stats -->
-        <div class="stats">
-          <div v-for="s in statList(p)" :key="s.label" class="stat">
-            <span class="label">{{ s.label }}:</span>
-            <div class="bar">
-              <div class="bar-mask" :style="{ width: (100 - (s.value || 0) * 10) + '%' }"></div>
+        <div class="stats-container" v-if="isShowingStats(p.user)">
+          <div class="hint">{{ firstHint(p) }}</div>
+
+          <div class="meta">
+            <span>{{ (p.map || '???') }}</span>
+            <hr class="divider" />
+            <span>{{ (p.civ || '???') }}</span>
+            <hr class="divider" />
+            <span>{{ (p.unit || '???') }}</span>
+          </div>
+
+          <div class="flex-placeholder"></div>
+
+          <!-- Stats -->
+          <div class="stats">
+            <div v-for="s in statList(p)" :key="s.label" class="stat">
+              <span class="label">{{ s.label }}:</span>
+              <div class="bar">
+                <div class="bar-mask" :style="{ width: (100 - (s.value || 0) * 10) + '%' }"></div>
+              </div>
+              <div class="value">{{ s.value }}</div>
             </div>
-            <div class="value">{{ s.value }}</div>
           </div>
         </div>
-      </div>
 
-      <!-- Hints / Quotes -->
-      <div class="extra" v-else>
-        <strong>Hints:</strong>
-        <ul class="item-list">
-          <li v-for="(h, idx) in p.hints" :key="idx">{{ h }}</li>
-        </ul>
-        <strong>(not actually) Quotes:</strong>
-        <ul class="item-list">
-          <li v-for="(q, idx) in p.quotes" :key="idx">"{{ q }}"</li>
-        </ul>
-      </div>
-    </template>
-    <template v-else>
-      <div class="name">{{ p.user }}</div>
-    </template>
+        <!-- Hints / Quotes -->
+        <div class="extra" v-else>
+          <strong>Hints:</strong>
+          <ul class="item-list">
+            <li v-for="(h, idx) in p.hints" :key="idx">{{ h }}</li>
+          </ul>
+          <strong>(not actually) Quotes:</strong>
+          <ul class="item-list">
+            <li v-for="(q, idx) in p.quotes" :key="idx">"{{ q }}"</li>
+          </ul>
+        </div>
+      </template>
+      <template v-else>
+        <div class="name">{{ p.user }}</div>
+      </template>
 
-    
+
     </div>
   </div>
 </template>
@@ -290,17 +300,19 @@ onMounted(() => {
   flex-direction: column;
 
   &.minimized {
-    height: 80px;
+    height: 50px;
     width: 240px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     background-image: url('/gliddencup/name_badge.webp');
+    background-size: 100% 100%;
 
 
     .name {
-      margin:0;
+      margin: 0;
+      font-size:16px;
     }
 
     >.toggle-btn,
