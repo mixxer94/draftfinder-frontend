@@ -11,6 +11,8 @@ const zoomLevel = ref(1)
 const zCounter = ref(0)
 const gridMode = ref(false)
 const allFlipped = ref(false)
+const minimized = reactive({})
+
 
 function startDrag(p, e) {
   e.preventDefault()
@@ -68,6 +70,8 @@ watch(positions, (val) => {
     localStorage.setItem('cardPositions', JSON.stringify(val))
 }, { deep: true })
 
+// watch(minimized, val => localStorage.setItem('cardMinimized', JSON.stringify(val)), { deep: true })
+
 
 function statList(p) {
   const m = p.median || {}
@@ -88,8 +92,13 @@ function isShowingStats(name) {
   return showStats[name] !== false
 }
 
+// -- Card Button functions ----------------
 function toggle(name) {
   showStats[name] = !isShowingStats(name)
+}
+
+function toggleMinimized(name) {
+  minimized[name] = !minimized[name]
 }
 
 // -- Toolbar Button functions ----------------
@@ -144,22 +153,11 @@ function cardStyle(p, i) {
     zIndex: z
   }
 }
-/*
-function cardStyle(p, i) {
-  const pos = positions[p.user] || { top: 40 + i * 30, left: 40 + (i % 5) * 260 }
-  const z = pos.hoverZ || pos.zIndex || 10 + i
-  return {
-    top: pos.top + 'px',
-    left: pos.left + 'px',
-    transform: `scale(${zoomLevel.value})`,
-    zIndex: z,
-  }
-}
-*/
 
+// ---- init --------------------------------
 onMounted(() => {
   if (!document.getElementById('fa-6-6-0')) {
-    
+
     const link = document.createElement('link')
     link.id = 'fa-6-6-0'
     link.rel = 'stylesheet'
@@ -196,8 +194,13 @@ onMounted(() => {
     </div>
 
     <!-- Cards -->
-    <div v-for="(p, i) in players" :key="p.user" class="card" :style="cardStyle(p, i)"
+    <div v-for="(p, i) in players" :key="p.user" class="card" :class="{minimized: minimized[p.user]}" :style="cardStyle(p, i)"
       @pointerdown="startDrag(p, $event)" @mouseenter="onHoverStart(p)" @mouseleave="onHoverEnd(p)">
+      <div class="minimize-btn" @click.stop="toggleMinimized(p.user)">
+        <i class="fa-solid"
+          :class="minimized[p.user] ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
+      </div>
+      <template v-if="!minimized[p.user]">
       <div class="toggle-btn" :class="{ rotated: !isShowingStats(p.user) }" @click.stop="toggle(p.user)">
         <i class="fa-solid fa-angles-down"></i>
       </div>
@@ -206,7 +209,6 @@ onMounted(() => {
 
       <div class="stats-container" v-if="isShowingStats(p.user)">
         <div class="hint">{{ firstHint(p) }}</div>
-        <div class="flex-placeholder"></div>
 
         <div class="meta">
           <span>{{ (p.map || '???') }}</span>
@@ -215,6 +217,8 @@ onMounted(() => {
           <hr class="divider" />
           <span>{{ (p.unit || '???') }}</span>
         </div>
+
+        <div class="flex-placeholder"></div>
 
         <!-- Stats -->
         <div class="stats">
@@ -228,7 +232,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Extra -->
+      <!-- Hints / Quotes -->
       <div class="extra" v-else>
         <strong>Hints:</strong>
         <ul class="item-list">
@@ -239,6 +243,12 @@ onMounted(() => {
           <li v-for="(q, idx) in p.quotes" :key="idx">"{{ q }}"</li>
         </ul>
       </div>
+    </template>
+    <template v-else>
+      <div class="name">{{ p.user }}</div>
+    </template>
+
+    
     </div>
   </div>
 </template>
@@ -248,6 +258,9 @@ onMounted(() => {
 <style scoped>
 .pc-root {
   background-color: #0f0f0f;
+  background: url('/gliddencup/bracket.webp');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   height: calc(100vh - 98px);
   color: #fff;
   position: relative;
@@ -268,9 +281,36 @@ onMounted(() => {
   cursor: grab;
   padding: 15px 20px;
   box-sizing: border-box;
-  transition: transform 0.25s ease;
+  /* transition: transform 0.25s ease; */
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    height 0.3s ease;
   display: flex;
   flex-direction: column;
+
+  &.minimized {
+    height: 80px;
+    width: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-image: url('/gliddencup/name_badge.webp');
+
+
+    .name {
+      margin:0;
+    }
+
+    >.toggle-btn,
+    .meta,
+    .hint,
+    .stats-container,
+    .extra {
+      display: none !important;
+    }
+  }
 }
 
 .card:hover {
@@ -278,18 +318,11 @@ onMounted(() => {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
 }
 
-.card.dragging {
-  transform: scale(1.03);
-  cursor: grabbing;
-  transition: none;
-}
-
 .name {
   font-size: 20px;
   font-weight: bold;
   text-align: center;
   margin-top: 10px;
-  /* text-decoration: underline; */
 }
 
 .flex-placeholder {
@@ -370,34 +403,40 @@ onMounted(() => {
   border: 1px solid black;
 }
 
-.toggle-btn {
+.toggle-btn,
+.minimize-btn {
   position: absolute;
-  top: 10px;
-  right: 6px;
-  cursor: pointer;
+  top: 11px;
   background: rgb(117, 50, 50);
-  border-radius: 20%;
-  width: 28px;
-  height: 28px;
+  border-radius: 30%;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 10px;
+  cursor: pointer;
   color: #fff;
+  font-weight: bold;
   transition: background 0.2s;
+
+  & i {
+    transition: transform 0.3s ease;
+  }
 }
 
-.toggle-btn:hover {
+.minimize-btn {
+  right: 7px;
+}
+
+.toggle-btn {
+  right: 30px;
+}
+
+.toggle-btn:hover,
+.minimize-btn:hover {
   background: rgb(167, 50, 50);
   box-shadow: 2px 2px 2px rgba(102, 27, 27, 0.4);
-}
-
-.toolbar-btn.active {
-  background: #10e110;
-}
-
-.toggle-btn i {
-  transition: transform 0.3s ease;
 }
 
 .toggle-btn.rotated i {
@@ -443,5 +482,9 @@ onMounted(() => {
 .toolbar-btn:hover {
   background: rgb(100, 100, 100);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.toolbar-btn.active {
+  background: #10e110;
 }
 </style>
