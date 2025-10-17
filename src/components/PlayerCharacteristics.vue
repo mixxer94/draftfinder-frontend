@@ -175,12 +175,6 @@ function cardStyle(p, i) {
 onMounted(() => {
   if (!document.getElementById('fa-6-6-0')) {
 
-    const link = document.createElement('link')
-    link.id = 'fa-6-6-0'
-    link.rel = 'stylesheet'
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css'
-    document.head.appendChild(link)
-
     // load and apply saved z-indeces 
     const saved = Object.values(positions)
     const maxZ = saved.length ? Math.max(...saved.map(p => p.zIndex || 0)) : 0
