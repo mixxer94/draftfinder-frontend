@@ -220,16 +220,20 @@ onMounted(() => {
       </button>
       <button class="toolbar-btn" :class="{ active: gridMode }" @click="toggleGrid">
         <i class="fa-solid fa-table-cells-large"></i>
+        <span class="toolbar-btn-text">{{ gridMode ? 'Grid-Mode aus' : 'Grid-Mode an' }}</span>
       </button>
       <button class="toolbar-btn" @click="toggleAll">
         <i class="fa-solid" :class="allFlipped ? 'fa-angles-up' : 'fa-angles-down'"></i>
+        <span class="toolbar-btn-text">alle Infos {{ allFlipped ? 'ausblenden' : 'anzeigen'  }}</span>
       </button>
       <button class="toolbar-btn" :class="{ active: allMinimized }" @click="toggleMinimizeAll">
         <i class="fa-solid"
           :class="allMinimized ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
+          <span class="toolbar-btn-text">{{ allMinimized ? 'alle maximieren' : 'alle minimieren'  }}</span>
       </button>
       <button class="toolbar-btn" style="right: 15px" @click="reset">
-        <i class="fa-solid fa-rotate-left"></i> Reset
+        <i class="fa-solid fa-rotate-left"></i>
+        <span class="toolbar-btn-text">Positionen zurücksetzen</span>
       </button>
     </div>
 
@@ -276,7 +280,7 @@ onMounted(() => {
 
         <!-- Hints / Quotes -->
         <div class="extra" v-else>
-          <strong>Hints:</strong>
+          <strong>Charakter:</strong>
           <ul class="item-list">
             <li v-for="(h, idx) in p.hints" :key="idx">{{ h }}</li>
           </ul>
@@ -543,4 +547,10 @@ onMounted(() => {
 .toolbar-btn.active {
   background: #10e110;
 }
+.toolbar-btn-text {
+  font-weight: bold;
+  padding-left: 5px;
+  font-size: 14px;
+}
+
 </style>
