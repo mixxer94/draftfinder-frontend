@@ -573,9 +573,9 @@ onMounted(async () => {
                 <PlayerCharacteristics v-else/>
             </v-window-item>
 
-            <v-window-item value="bracket">
+            <!-- <v-window-item value="bracket" >
                 <Bracket/>
-            </v-window-item>
+            </v-window-item> -->
 
             <!-- TAB Tipps ansehen  -->
             <v-window-item value="alltips" v-if="showResults">
