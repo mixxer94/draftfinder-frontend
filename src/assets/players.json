@@ -501,6 +501,7 @@
     "user": "OIDA | Thorb0203",
     "elo":1515,
     "maxElo":1515,
+    "unit": "Archer",
     "median": {
       "micro": 4,
       "macro": 4,
