@@ -1,10 +1,19 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useDisplay } from 'vuetify'
 import AppBar from '../components/AppBar.vue'
+import Bracket from '../components/Bracket.vue'
 import PlayerCharacteristics from '../components/PlayerCharacteristics.vue'
+import PlayerCharacteristicsMobile from '../components/PlayerCharacteristicsMobile.vue'
+
 
 // --- API base ---
 const API = '/api/gliddencup';
+const { mobile } = useDisplay()
+
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
+const useMobileVersion = mobile.value || isTouchDevice
 
 // Auth state
 const tokenKey = 'gliddencup_token';
@@ -464,6 +473,7 @@ onMounted(async () => {
         <v-tabs v-model="tab" bg-color="primary" color="white">
             <v-tab value="mytips">Tippen</v-tab>
             <v-tab value="characteristics">Teilnehmer</v-tab>
+            <v-tab value="bracket" v-if="false">Turnierbaum</v-tab>
             <v-tab value="alltips" v-if="showResults">Tipps ansehen</v-tab>
             <v-tab value="analytics" v-if="showResults">Auswertungen</v-tab>
         </v-tabs>
@@ -559,7 +569,12 @@ onMounted(async () => {
             </v-window-item>
 
             <v-window-item value="characteristics">
-                <PlayerCharacteristics/>
+                <PlayerCharacteristicsMobile v-if="useMobileVersion"/>
+                <PlayerCharacteristics v-else/>
+            </v-window-item>
+
+            <v-window-item value="bracket">
+                <Bracket/>
             </v-window-item>
 
             <!-- TAB Tipps ansehen  -->
