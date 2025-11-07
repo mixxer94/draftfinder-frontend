@@ -6,8 +6,7 @@
             <template v-slot:item="{ item }">
                 <tr @click="toggleExpand(item)">
                     <td v-for="header in headers" :key="header.key" class="cursor-pointer">
-                        {{ header.key == 'draft_type' ? '' : item[header.key] }}
-                        <img v-if="header.key == 'formattedDate'" :src="getIconUrl(item)" class="icon-draft-type"/>
+                        {{ item[header.key] }}
                     </td>
                     <td class="cursor-pointer">
                         <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary"
@@ -22,16 +21,11 @@
                     </td>
                 </tr>
             </template>
-            <!-- <template v-slot:item.actions="{ item }">
-                <v-btn prepend-icon="mdi-open-in-new" variant="tonal" color="secondary" @click="openDraft(item)">
-                    öffnen
-                </v-btn>
-            </template> -->
 
             <template v-slot:expanded-row="{ item }">
                 <tr>
                     <td :colspan="headers.length + 2" class="pa-0">
-                        <DraftDetail :draftActions="item.actions" :draftType="getDraftType(item)" />
+                        <DraftDetail :draftActions="item.actions" />
                     </td>
                 </tr>
             </template>
@@ -48,10 +42,6 @@ export default {
             type: Object,
             required: true
         },
-        participants: {
-            type: Array,
-            required: true
-        }
     },
     methods: {
         toggleExpand(item) {
@@ -65,24 +55,11 @@ export default {
         isRowExpanded(item) {
             return this.expandedRows.includes(item.draftId);
         },
-        getNameByProfileId(profileId) {
-            return this.participants.filter(p => { return p.profileId == profileId })[0]?.name
-        },
-        getDraftType(draft) {
-            return draft.presetId === 'CuTUL' ? 'CIVS' : 'MAPS';
-        },
         openDraft(draft) {
             window.open(`https://aoe2cm.net/draft/${draft.draftId}`, '​_blank​');
         },
-        getIconUrl(item) {
-            let type = item.draft_type === 'MAPS' ? 'map' : 'civ';
-            return `../placeholder/${type}_placeholder.png`;
-        },
-        updateFilters(filters) {
-            this.localFilters = filters
-        },
-        loadDrafts() {
-            axios.get('/api/drafts', { params: { actions: true } })
+        loadDraftsByPresetId(presetId) {
+            axios.get('/api/drafts', { params: { actions: true, presetId } })
                 .then(response => {
                     this.drafts = response?.data; // Store the draft details
                 })
@@ -91,21 +68,15 @@ export default {
                 });
         }
     },
-    mounted() {
-        this.loadDrafts()
-    },
     watch: {
         filters: {
             handler() {
-                this.updateFilters(this.filters);
-            },
-            deep: true
-        },
-        participants: {
-            handler(participants) {
-                this.localParticipants = [...participants];
+                if (this.filters.presetId) {
+                    this.loadDraftsByPresetId(this.filters.presetId);
+                }
             },
             deep: true,
+            immediate: true
         },
     },
     computed: {
@@ -119,53 +90,32 @@ export default {
                     minute: '2-digit'
                 });
 
+                // debugger;
                 let date = new Date(element.created_at);
                 element.formattedDate = formatter.format(date);
-                element.liga = element.ligaHost;
-                element.draft_type = this.getDraftType(element);
-                element.hostName = this.getNameByProfileId(element.profileIdHost);
-                element.guestName = this.getNameByProfileId(element.profileIdGuest);
-
+                console.info(element)
                 return element;
             });
 
-            if (!this.localFilters.liga && !this.localFilters.presetId && !this.localFilters.profileId)
-                return filteredDrafts.sort((a, b) => new Date(b["created_at"]) - new Date(a["created_at"]));
-            else {
-                return filteredDrafts
-                    .filter(el => el.ligaHost === this.localFilters.liga || !this.localFilters.liga)
-                    .filter(el => el.profileIdHost === this.localFilters.profileId || el.profileIdGuest === this.localFilters.profileId || !this.localFilters.profileId)
-                    .filter(el => el.presetId === this.localFilters.presetId || !this.localFilters.presetId)
-                    .sort((a, b) => new Date(b["created_at"]) - new Date(a["created_at"]))
-            }
+            return filteredDrafts.sort((a, b) => new Date(b["created_at"]) - new Date(a["created_at"]))
         }
     },
     data() {
         return {
             drafts: [],
-            localParticipants: [],
             expandedRows: [],
-            localFilters: {},
 
             headers: [{
                 title: 'Datum',
                 key: 'formattedDate',
                 order: "desc"
             }, {
-                title: 'Liga',
-                key: 'liga'
-            }, {
                 title: 'Host',
-                key: 'hostName'
+                key: 'nameHost'
             }, {
                 title: 'Gast',
-                key: 'guestName'
+                key: 'nameGuest'
             }]
-            // , {
-            //     title: '',
-            //     key: 'actions',
-            //     sortable: false
-            // }]
         }
 
     }
@@ -173,10 +123,10 @@ export default {
 </script>
 
 <style>
- td {
+td {
     img.icon-draft-type {
-        width:20px;
-        vertical-align:bottom;
+        width: 20px;
+        vertical-align: bottom;
     }
 }
 </style>

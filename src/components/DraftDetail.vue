@@ -43,7 +43,7 @@
                 <!-- <h3 class="centered">Admin {{ this.draftType == 'MAPS' ? 'Picks' : 'Bans' }}</h3> -->
                 <div class="civ-selected centered">
                     <span class="civ-icon-wrapper"
-                        v-for="action in getFilteredActions(this.draftType == 'MAPS' ? 'pick' : 'ban', 'NONE')"
+                        v-for="action in getFilteredActions(  'pick' , 'NONE')"
                         :class="{ banned: action.actionType == 'ban' }">
                         <img class="civ-icon" :src="getImgUrl(action.chosenOptionId)" :alt="action.chosenOptionId" />
                         <div class="item-description">{{ capitalize(action.chosenOptionId) }}</div>
@@ -56,7 +56,7 @@
 
 <script>
 export default {
-    props: ['draftActions', 'draftType'],
+    props: ['draftActions'],
     methods: {
         formatTime(t) {
             let m = Math.floor(t / 60);
@@ -64,7 +64,7 @@ export default {
             return `${m} min ${s > 0 ? s + 's' : ''}`.trim();
         },
         getImgUrl(civ) {
-            let path = this.draftType === 'MAPS' ? 'maps' : 'civemblems';
+            let path = 'maps'; // : 'civemblems';
             if (!civ)
                 return
             return `./${path}/${civ.toLowerCase()}.png`;

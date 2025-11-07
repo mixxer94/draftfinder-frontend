@@ -3,15 +3,17 @@
 
   <v-row>
     <v-col cols="12" md="4" :class="{ 'sticky-filter': isMdAndUp }">
-      <FilterContainer :filters="filters" :participants="participants" @update-filters="updateFilters" />
+      <FilterContainer :filters="filters" :presets="presets" @update-filters="updateFilters" />
     </v-col>
     <v-col cols="12" md="8">
-      <DraftContainer :filters="filters" :participants="participants" />
-      
+      <DraftContainer :filters="filters" />
+
     </v-col>
   </v-row>
   <footer>
-    draftfinder.de was created under Microsoft's <a href="https://www.xbox.com/en-US/developers/rules">"Game Content Usage Rules"</a> using assets from Age of Empires II: Definitive Edition, and it is not endorsed by or affiliated with Microsoft.
+    draftfinder.de was created under Microsoft's <a href="https://www.xbox.com/en-US/developers/rules">"Game Content
+      Usage Rules"</a> using assets from Age of Empires II: Definitive Edition, and it is not endorsed by or affiliated
+    with Microsoft.
   </footer>
 </template>
 
@@ -36,17 +38,18 @@ export default {
         profileId: null,
         presetId: null
       },
-      participants: []
+      participants: [],
+      presets: []
     };
   },
   methods: {
-    loadParticipants() {
-      axios.get('/api/participants')
+    loadPresets() {
+      axios.get('/api/presets')
         .then(response => {
-          this.participants = response.data;
+          this.presets = response?.data; // Store the draft details
         })
         .catch(error => {
-          console.error('Error fetching message:', error);
+          console.error('Error fetching draft:', error);
         });
     },
     updateFilters(newFilters) {
@@ -61,7 +64,7 @@ export default {
     return { isMdAndUp: mdAndUp };
   },
   mounted() {
-    this.loadParticipants()
+    this.loadPresets()
   },
 };
 </script>
@@ -84,7 +87,7 @@ export default {
 
 footer {
   font-size: 14px;
-  color:grey;
-  padding:12px;
+  color: grey;
+  padding: 12px;
 }
 </style>
