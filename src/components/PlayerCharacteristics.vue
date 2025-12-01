@@ -183,11 +183,55 @@ function cardStyle(p, i) {
   }
 }
 
+// Sort Logic
+const currentSort = ref('elo')
+const showSortMenu = ref(false)
+
+const sortOptions = [
+  { label: 'ELO', value: 'elo' },
+  { label: 'Micro', value: 'micro' },
+  { label: 'Macro', value: 'macro' },
+  { label: 'Strategy', value: 'strategy' },
+  { label: 'Speed', value: 'speed' },
+  { label: 'Exp', value: 'experience' }
+]
+
+const currentSortLabel = computed(() => 
+  sortOptions.find(o => o.value === currentSort.value)?.label || 'ELO'
+)
+
+function toggleSortMenu() {
+  showSortMenu.value = !showSortMenu.value
+}
+
+function setSort(criteria) {
+  currentSort.value = criteria
+  showSortMenu.value = false
+  sortPlayers()
+}
+
+function sortPlayers() {
+  players.value.sort((a, b) => {
+    let valA, valB;
+
+    if (currentSort.value === 'elo') {
+      valA = a.elo || 0;
+      valB = b.elo || 0;
+    } else {
+      // Access nested median properties
+      valA = a.median?.[currentSort.value] ?? -Infinity;
+      valB = b.median?.[currentSort.value] ?? -Infinity;
+    }
+
+    return valB - valA; // Descending sort
+  });
+}
+
 // ---- init --------------------------------
 onMounted(() => {
   if (!document.getElementById('fa-6-6-0')) {
 
-    players.value.sort((a, b) => (b.elo || 0) - (a.elo || 0))
+    sortPlayers() // Initial sort
 
     // load and apply saved z-indeces 
     const saved = Object.values(positions)
@@ -222,6 +266,23 @@ onMounted(() => {
         <i class="fa-solid fa-table-cells-large"></i>
         <span class="toolbar-btn-text">{{ gridMode ? 'Grid-Mode aus' : 'Grid-Mode an' }}</span>
       </button>
+      
+      <!-- Sort Dropdown (only in Grid Mode) -->
+      <div class="toolbar-btn-wrapper" v-if="gridMode">
+        <button class="toolbar-btn" @click="toggleSortMenu">
+          <i class="fa-solid fa-sort"></i>
+          <span class="toolbar-btn-text">Sort: {{ currentSortLabel }}</span>
+        </button>
+        <div class="dropdown-menu" v-if="showSortMenu">
+          <div v-for="opt in sortOptions" :key="opt.value" 
+               class="dropdown-item" 
+               :class="{ active: currentSort === opt.value }"
+               @click="setSort(opt.value)">
+            {{ opt.label }}
+          </div>
+        </div>
+      </div>
+
       <button class="toolbar-btn" @click="toggleAll">
         <i class="fa-solid" :class="allFlipped ? 'fa-angles-up' : 'fa-angles-down'"></i>
         <span class="toolbar-btn-text">alle Infos {{ allFlipped ? 'ausblenden' : 'anzeigen'  }}</span>
@@ -551,6 +612,41 @@ onMounted(() => {
   font-weight: bold;
   padding-left: 5px;
   font-size: 14px;
+}
+
+.toolbar-btn-wrapper {
+  display: inline-block;
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 5px; /* Align with button */
+  background: #222;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  padding: 5px 0;
+  z-index: 1000;
+  min-width: 120px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.dropdown-item {
+  padding: 5px 15px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-item.active {
+  background: #10e110;
+  color: #000;
+  font-weight: bold;
 }
 
 </style>
