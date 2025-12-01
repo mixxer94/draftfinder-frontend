@@ -5,12 +5,12 @@
         <v-spacer></v-spacer>
 
         <!-- Toggle Button -->
-        <v-btn variant="outlined" color="secondary" class="mr-2" @click="toggleNav">
-            {{ isGliddencup ? 'Zum Draft Finder' : 'Zum Gliddencup' }}
+        <v-btn v-if="!isGliddencup" variant="outlined" color="secondary" class="mr-2" @click="toggleNav">
+            Zum Gliddencup
         </v-btn>
 
         <!-- Theme Button -->
-        <v-btn icon @click="toggleTheme">
+        <v-btn v-if="!isGliddencup" icon @click="toggleTheme">
             <v-icon>mdi-theme-light-dark</v-icon>
         </v-btn>
     </v-app-bar>
