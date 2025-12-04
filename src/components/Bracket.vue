@@ -37,7 +37,7 @@ async function fetchMatches() {
     }
 }
 
-async function toggleReveal(gameId) {
+async function setRevealLevel(gameId, level) {
     // Find match to get current state
     let currentMatch = null;
     for (const r of matchData.value.rounds) {
@@ -49,32 +49,32 @@ async function toggleReveal(gameId) {
     }
     if (!currentMatch) return;
 
-    const newState = !currentMatch.isRevealed;
+    const oldLevel = currentMatch.revealLevel;
 
     try {
         // Optimistic update
-        currentMatch.isRevealed = newState;
+        currentMatch.revealLevel = level;
         
         const token = localStorage.getItem('gliddencup_token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         await axios.post(`/api/gliddencup/matches/${gameId}/reveal`, 
-            { isRevealed: newState },
+            { level },
             { headers }
         );
     } catch (e) {
-        console.error("Failed to toggle reveal", e);
+        console.error("Failed to set reveal level", e);
         // Revert on error
-        currentMatch.isRevealed = !newState;
+        currentMatch.revealLevel = oldLevel;
     }
 }
 
-function isRevealed(gameId) {
+function getRevealLevel(gameId) {
     for (const r of matchData.value.rounds) {
         const m = r.matches.find(m => m.game === gameId);
-        if (m && m.game === gameId) return m.isRevealed;
+        if (m && m.game === gameId) return m.revealLevel ?? (m.game <= 8 ? 1 : 0);
     }
-    return false;
+    return 0;
 }
 
 function toggleTips(gameId) {
@@ -86,8 +86,8 @@ function toggleTips(gameId) {
 }
 
 function isTipsRevealed(gameId) {
-    // Tips are visible if match is revealed AND (global toggle is ON OR local toggle is ON)
-    if (!isRevealed(gameId)) return false;
+    // Tips are visible if match is revealed (Level 2) AND (global toggle is ON OR local toggle is ON)
+    if (getRevealLevel(gameId) < 2) return false;
     return globalTipsReveal.value || tipsRevealed.value.has(gameId);
 }
 
@@ -236,24 +236,23 @@ const segments = computed(() => {
                         <div class="match-header-row">
                              <div class="match-number">{{ rounds[ci][mi]?.game }}</div>
                              <div class="header-actions">
-                                 <!-- Tips Toggle (only if revealed) -->
-                                 <button v-if="isRevealed(rounds[ci][mi]?.game)" class="icon-btn" @click.stop="toggleTips(rounds[ci][mi]?.game)" title="Tipps anzeigen/verbergen">
+                                 <!-- Tips Toggle (only if Level 2) -->
+                                 <button v-if="getRevealLevel(rounds[ci][mi]?.game) >= 2" class="icon-btn" @click.stop="toggleTips(rounds[ci][mi]?.game)" title="Tipps anzeigen/verbergen">
                                      {{ isTipsRevealed(rounds[ci][mi]?.game) ? '🙈' : '👁️' }}
                                  </button>
-                                 <!-- Match Reveal Toggle 
-                                 <button class="match-reveal-btn" @click.stop="toggleReveal(rounds[ci][mi]?.game)">
-                                    <span v-if="!isRevealed(rounds[ci][mi]?.game)">Ergebnis anzeigen</span>
-                                    <span v-else>Verbergen</span>
-                                 </button>
-                                 -->
                              </div>
                         </div>
 
                         <!-- Player 1 -->
-                        <div class="player-row" :class="{ 'is-winner': isRevealed(rounds[ci][mi]?.game) && rounds[ci][mi]?.winner === rounds[ci][mi]?.player1.user }">
+                        <div class="player-row" :class="{ 'is-winner': getRevealLevel(rounds[ci][mi]?.game) >= 2 && rounds[ci][mi]?.winner === rounds[ci][mi]?.player1.user }">
                         
                             <div class="player-info">
-                                <span class="player-name">{{ rounds[ci][mi]?.player1.user }}</span>
+                                <span class="player-name">
+                                    <template v-if="getRevealLevel(rounds[ci][mi]?.game) >= 1">
+                                        {{ rounds[ci][mi]?.player1.user }}
+                                    </template>
+                                    <template v-else>???</template>
+                                </span>
                                 <div class="guess-reveal" v-if="isTipsRevealed(rounds[ci][mi]?.game)">
                                     <span class="revealed-text">
                                         Tipp: <strong>{{ rounds[ci][mi]?.player1.guessedPlayer }}</strong>
@@ -261,7 +260,7 @@ const segments = computed(() => {
                                 </div>
                             </div>
                             <div class="score">
-                                <span v-if="isRevealed(rounds[ci][mi]?.game)">{{ rounds[ci][mi]?.score?.split('-')[0] ?? '0' }}</span>
+                                <span v-if="getRevealLevel(rounds[ci][mi]?.game) >= 2">{{ rounds[ci][mi]?.score?.split('-')[0] ?? '0' }}</span>
                                 <span v-else>?</span>
                             </div>
                         </div>
@@ -269,9 +268,14 @@ const segments = computed(() => {
                         <v-divider class="my-1 border-opacity-25"></v-divider>
 
                         <!-- Player 2 -->
-                        <div class="player-row" :class="{ 'is-winner': isRevealed(rounds[ci][mi]?.game) && rounds[ci][mi]?.winner === rounds[ci][mi]?.player2.user }">
+                        <div class="player-row" :class="{ 'is-winner': getRevealLevel(rounds[ci][mi]?.game) >= 2 && rounds[ci][mi]?.winner === rounds[ci][mi]?.player2.user }">
                             <div class="player-info">
-                                <span class="player-name">{{ rounds[ci][mi]?.player2.user }}</span>
+                                <span class="player-name">
+                                    <template v-if="getRevealLevel(rounds[ci][mi]?.game) >= 1">
+                                        {{ rounds[ci][mi]?.player2.user }}
+                                    </template>
+                                    <template v-else>???</template>
+                                </span>
                                 <div class="guess-reveal" v-if="isTipsRevealed(rounds[ci][mi]?.game)">
                                     <span class="revealed-text">
                                         Tipp: <strong>{{ rounds[ci][mi]?.player2.guessedPlayer }}</strong>
@@ -279,7 +283,7 @@ const segments = computed(() => {
                                 </div>
                             </div>
                             <div class="score">
-                                <span v-if="isRevealed(rounds[ci][mi]?.game)">{{ rounds[ci][mi]?.score?.split('-')[1] ?? '0' }}</span>
+                                <span v-if="getRevealLevel(rounds[ci][mi]?.game) >= 2">{{ rounds[ci][mi]?.score?.split('-')[1] ?? '0' }}</span>
                                 <span v-else>?</span>
                             </div>
                         </div>
