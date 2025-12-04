@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from "vue";
-import matchData from '@/assets/matches.json'
+import { computed, ref, onMounted } from "vue";
+import axios from 'axios';
+// import matchData from '@/assets/matches.json' // Removed local import
 
 const props = defineProps({
     roundOrder: { type: Array, default: () => ["Achtelfinale", "Viertelfinale", "Halbfinale", "Finale"] },
@@ -16,25 +17,88 @@ const BH = props.boxHeight;
 const CG = props.colGap;
 const VG = props.baseVGap;
 
-// State for revealed matches (by gameId)
-const revealed = ref(new Set());
+// State
+const matchData = ref({ rounds: [] });
+const tipsRevealed = ref(new Set()); // Local state for showing tips of revealed matches
+const globalTipsReveal = ref(false); // Global toggle for tips
 
-function toggleReveal(gameId) {
-    if (revealed.value.has(gameId)) {
-        revealed.value.delete(gameId);
-    } else {
-        revealed.value.add(gameId);
+// Fetch matches on mount
+onMounted(async () => {
+    await fetchMatches();
+});
+
+async function fetchMatches() {
+    try {
+        // Assuming API is proxied or at same host
+        const response = await axios.get('/api/gliddencup/matches');
+        matchData.value = response.data;
+    } catch (e) {
+        console.error("Failed to fetch matches", e);
+    }
+}
+
+async function toggleReveal(gameId) {
+    // Find match to get current state
+    let currentMatch = null;
+    for (const r of matchData.value.rounds) {
+        const m = r.matches.find(m => m.game === gameId);
+        if (m) {
+            currentMatch = m;
+            break;
+        }
+    }
+    if (!currentMatch) return;
+
+    const newState = !currentMatch.isRevealed;
+
+    try {
+        // Optimistic update
+        currentMatch.isRevealed = newState;
+        
+        const token = localStorage.getItem('gliddencup_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        await axios.post(`/api/gliddencup/matches/${gameId}/reveal`, 
+            { isRevealed: newState },
+            { headers }
+        );
+    } catch (e) {
+        console.error("Failed to toggle reveal", e);
+        // Revert on error
+        currentMatch.isRevealed = !newState;
     }
 }
 
 function isRevealed(gameId) {
-    return revealed.value.has(gameId);
+    for (const r of matchData.value.rounds) {
+        const m = r.matches.find(m => m.game === gameId);
+        if (m && m.game === gameId) return m.isRevealed;
+    }
+    return false;
+}
+
+function toggleTips(gameId) {
+    if (tipsRevealed.value.has(gameId)) {
+        tipsRevealed.value.delete(gameId);
+    } else {
+        tipsRevealed.value.add(gameId);
+    }
+}
+
+function isTipsRevealed(gameId) {
+    // Tips are visible if match is revealed AND (global toggle is ON OR local toggle is ON)
+    if (!isRevealed(gameId)) return false;
+    return globalTipsReveal.value || tipsRevealed.value.has(gameId);
+}
+
+function toggleGlobalTips() {
+    globalTipsReveal.value = !globalTipsReveal.value;
 }
 
 // Sortiere Matches nach Runde & Spielnummer
 const rounds = computed(() => {
     return props.roundOrder.map((rName) => {
-        const roundData = matchData.rounds.find(r => r.name === rName);
+        const roundData = matchData.value.rounds?.find(r => r.name === rName);
         if (!roundData) return [];
         return roundData.matches.sort((a, b) => a.game - b.game);
     });
@@ -136,6 +200,11 @@ const segments = computed(() => {
 
 <template>
     <div class="bracket-scroll-container">
+        <div class="controls">
+            <button class="global-reveal-btn" @click="toggleGlobalTips">
+                {{ globalTipsReveal ? 'Alle Tipps verbergen' : 'Alle Tipps anzeigen' }}
+            </button>
+        </div>
         <div class="bracket-container" :style="{ width: totalWidth + 'px', height: totalHeight + 'px' }">
             <!-- SVG-Linien -->
             <svg class="bracket-lines" :width="totalWidth" :height="totalHeight">
@@ -166,10 +235,18 @@ const segments = computed(() => {
                         <!-- Header with Reveal Button -->
                         <div class="match-header-row">
                              <div class="match-number">{{ rounds[ci][mi]?.game }}</div>
-                             <button class="match-reveal-btn" @click.stop="toggleReveal(rounds[ci][mi]?.game)">
-                                <span v-if="!isRevealed(rounds[ci][mi]?.game)">Ergebnis anzeigen 👁️</span>
-                                <span v-else>Verbergen 🙈</span>
-                             </button>
+                             <div class="header-actions">
+                                 <!-- Tips Toggle (only if revealed) -->
+                                 <button v-if="isRevealed(rounds[ci][mi]?.game)" class="icon-btn" @click.stop="toggleTips(rounds[ci][mi]?.game)" title="Tipps anzeigen/verbergen">
+                                     {{ isTipsRevealed(rounds[ci][mi]?.game) ? '🙈' : '👁️' }}
+                                 </button>
+                                 <!-- Match Reveal Toggle 
+                                 <button class="match-reveal-btn" @click.stop="toggleReveal(rounds[ci][mi]?.game)">
+                                    <span v-if="!isRevealed(rounds[ci][mi]?.game)">Ergebnis anzeigen</span>
+                                    <span v-else>Verbergen</span>
+                                 </button>
+                                 -->
+                             </div>
                         </div>
 
                         <!-- Player 1 -->
@@ -177,7 +254,7 @@ const segments = computed(() => {
                         
                             <div class="player-info">
                                 <span class="player-name">{{ rounds[ci][mi]?.player1.user }}</span>
-                                <div class="guess-reveal" v-if="isRevealed(rounds[ci][mi]?.game)">
+                                <div class="guess-reveal" v-if="isTipsRevealed(rounds[ci][mi]?.game)">
                                     <span class="revealed-text">
                                         Tipp: <strong>{{ rounds[ci][mi]?.player1.guessedPlayer }}</strong>
                                     </span>
@@ -195,7 +272,7 @@ const segments = computed(() => {
                         <div class="player-row" :class="{ 'is-winner': isRevealed(rounds[ci][mi]?.game) && rounds[ci][mi]?.winner === rounds[ci][mi]?.player2.user }">
                             <div class="player-info">
                                 <span class="player-name">{{ rounds[ci][mi]?.player2.user }}</span>
-                                <div class="guess-reveal" v-if="isRevealed(rounds[ci][mi]?.game)">
+                                <div class="guess-reveal" v-if="isTipsRevealed(rounds[ci][mi]?.game)">
                                     <span class="revealed-text">
                                         Tipp: <strong>{{ rounds[ci][mi]?.player2.guessedPlayer }}</strong>
                                     </span>
@@ -287,6 +364,20 @@ const segments = computed(() => {
     color: #9d9d9d;
 }
 
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+}
+
 .match-reveal-btn {
     background: none;
     border: none;
@@ -299,6 +390,24 @@ const segments = computed(() => {
 
 .match-reveal-btn:hover {
     background: rgba(100, 181, 246, 0.1);
+}
+
+.controls {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.global-reveal-btn {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.global-reveal-btn:hover {
+    background: #444;
 }
 
 .winner-tag {
