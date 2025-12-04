@@ -16,20 +16,19 @@ const BH = props.boxHeight;
 const CG = props.colGap;
 const VG = props.baseVGap;
 
-// State for revealed guesses
+// State for revealed matches (by gameId)
 const revealed = ref(new Set());
 
-function toggleReveal(gameId, playerIdx) {
-    const key = `${gameId}-${playerIdx}`;
-    if (revealed.value.has(key)) {
-        revealed.value.delete(key);
+function toggleReveal(gameId) {
+    if (revealed.value.has(gameId)) {
+        revealed.value.delete(gameId);
     } else {
-        revealed.value.add(key);
+        revealed.value.add(gameId);
     }
 }
 
-function isRevealed(gameId, playerIdx) {
-    return revealed.value.has(`${gameId}-${playerIdx}`);
+function isRevealed(gameId) {
+    return revealed.value.has(gameId);
 }
 
 // Sortiere Matches nach Runde & Spielnummer
@@ -164,53 +163,48 @@ const segments = computed(() => {
                     -->
 
                     <div class="match-body">
+                        <!-- Header with Reveal Button -->
+                        <div class="match-header-row">
+                             <div class="match-number">{{ rounds[ci][mi]?.game }}</div>
+                             <button class="match-reveal-btn" @click.stop="toggleReveal(rounds[ci][mi]?.game)">
+                                <span v-if="!isRevealed(rounds[ci][mi]?.game)">Ergebnis anzeigen 👁️</span>
+                                <span v-else>Verbergen 🙈</span>
+                             </button>
+                        </div>
+
                         <!-- Player 1 -->
-                        <div class="match-header"> {{ rounds[ci][mi]?.game }} </div>
-                        <div class="player-row" :class="{ 'is-winner': rounds[ci][mi]?.winner === rounds[ci][mi]?.player1.user }">
+                        <div class="player-row" :class="{ 'is-winner': isRevealed(rounds[ci][mi]?.game) && rounds[ci][mi]?.winner === rounds[ci][mi]?.player1.user }">
                         
                             <div class="player-info">
                                 <span class="player-name">{{ rounds[ci][mi]?.player1.user }}</span>
-                                <div class="guess-reveal">
-                                    <button class="reveal-btn" @click.stop="toggleReveal(rounds[ci][mi]?.game, 1)">
-                                        <span v-if="!isRevealed(rounds[ci][mi]?.game, 1)">👁️</span>
-                                        <span v-else class="revealed-text">
-                                            Tipp des Gegners: <strong>{{ rounds[ci][mi]?.player1.guessedPlayer }}</strong>
-                                        </span>
-                                    </button>
+                                <div class="guess-reveal" v-if="isRevealed(rounds[ci][mi]?.game)">
+                                    <span class="revealed-text">
+                                        Tipp: <strong>{{ rounds[ci][mi]?.player1.guessedPlayer }}</strong>
+                                    </span>
                                 </div>
-                                <!--
-                                <div class="player-meta">
-                                    <span class="user-name">{{ rounds[ci][mi]?.player1.player }}</span>
-                                </div>
-                                -->
                             </div>
-                            <div class="score">{{ rounds[ci][mi]?.score?.split('-')[0] ?? '0' }}</div>
+                            <div class="score">
+                                <span v-if="isRevealed(rounds[ci][mi]?.game)">{{ rounds[ci][mi]?.score?.split('-')[0] ?? '0' }}</span>
+                                <span v-else>?</span>
+                            </div>
                         </div>
                         
-                        <!-- Guess Reveal P1 -->
-
                         <v-divider class="my-1 border-opacity-25"></v-divider>
 
                         <!-- Player 2 -->
-                        <div class="player-row" :class="{ 'is-winner': rounds[ci][mi]?.winner === rounds[ci][mi]?.player2.user }">
+                        <div class="player-row" :class="{ 'is-winner': isRevealed(rounds[ci][mi]?.game) && rounds[ci][mi]?.winner === rounds[ci][mi]?.player2.user }">
                             <div class="player-info">
                                 <span class="player-name">{{ rounds[ci][mi]?.player2.user }}</span>
-                                                         <!-- Guess Reveal P2 -->
-                         <div class="guess-reveal">
-                            <button class="reveal-btn" @click.stop="toggleReveal(rounds[ci][mi]?.game, 2)">
-                                <span v-if="!isRevealed(rounds[ci][mi]?.game, 2)">👁️</span>
-                                <span v-else class="revealed-text">
-                                    Tipp des Gegners: <strong>{{ rounds[ci][mi]?.player2.guessedPlayer }}</strong>
-                                </span>
-                            </button>
-                        </div>
-                                <!--
-                                <div class="player-meta">
-                                    <span class="user-name">{{ rounds[ci][mi]?.player2.player }}</span>
+                                <div class="guess-reveal" v-if="isRevealed(rounds[ci][mi]?.game)">
+                                    <span class="revealed-text">
+                                        Tipp: <strong>{{ rounds[ci][mi]?.player2.guessedPlayer }}</strong>
+                                    </span>
                                 </div>
-                                -->
                             </div>
-                            <div class="score">{{ rounds[ci][mi]?.score?.split('-')[1] ?? '0' }}</div>
+                            <div class="score">
+                                <span v-if="isRevealed(rounds[ci][mi]?.game)">{{ rounds[ci][mi]?.score?.split('-')[1] ?? '0' }}</span>
+                                <span v-else>?</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -279,12 +273,32 @@ const segments = computed(() => {
     border-color: #555;
 }
 
-.match-header {
-    position: absolute;
-    right: 4px;
-    top: 4px;
+.match-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #333;
+}
+
+.match-number {
     font-size: 12px;
     color: #9d9d9d;
+}
+
+.match-reveal-btn {
+    background: none;
+    border: none;
+    color: #64b5f6;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.match-reveal-btn:hover {
+    background: rgba(100, 181, 246, 0.1);
 }
 
 .winner-tag {
