@@ -1,125 +1,253 @@
 {
-    "matches": [
-      {
-        "round": "Achtelfinale",
-        "game": 1,
-        "player1": { "name": "Kelar", "profile": "Haydn" },
-        "player2": { "name": "Tropfzahn", "profile": "Gustav Klimt" },
-        "score": "2-0",
-        "winner": "Haydn"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 2,
-        "player1": { "name": "Blackrock", "profile": "Hans Moser" },
-        "player2": { "name": "CroZzby", "profile": "Conchita Wurst" },
-        "score": "1-2",
-        "winner": "Conchita Wurst"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 3,
-        "player1": { "name": "onkyox", "profile": "Mozart" },
-        "player2": { "name": "ovoin", "profile": "Hundertwasser" },
-        "score": "0-2",
-        "winner": "Hundertwasser"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 4,
-        "player1": { "name": "Gleipdonir", "profile": "DJ Ötzi" },
-        "player2": { "name": "Kloerb", "profile": "Falco" },
-        "score": "0-2",
-        "winner": "Falco"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 5,
-        "player1": { "name": "Tasty", "profile": "Sigmund Freud" },
-        "player2": { "name": "Koerbel", "profile": "Wittgenstein" },
-        "score": "1-2",
-        "winner": "Wittgenstein"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 6,
-        "player1": { "name": "Hansi", "profile": "SchubertFranzl" },
-        "player2": { "name": "Hannesthemenace", "profile": "David Alaba" },
-        "score": "2-1",
-        "winner": "SchubertFranz"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 7,
-        "player1": { "name": "Atomfritz", "profile": "Christoph Waltz" },
-        "player2": { "name": "Thorbo", "profile": "Romy Schneider" },
-        "score": "2-0",
-        "winner": "Christoph Waltz"
-      },
-      {
-        "round": "Achtelfinale",
-        "game": 8,
-        "player1": { "name": "Peter_Pahn", "profile": "Niki Lauda" },
-        "player2": { "name": "Makro", "profile": "Johann Strauss" },
-        "score": "2-0",
-        "winner": "Niki Lauda"
-      },
-      {
-        "round": "Viertelfinale",
-        "game": 9,
-        "player1": { "name": "Kelar", "profile": "Haydn" },
-        "player2": { "name": "CroZzby", "profile": "Conchita Wurst" },
-        "score": "2-1",
-        "winner": "Haydn"
-      },
-      {
-        "round": "Viertelfinale",
-        "game": 10,
-        "player1": { "name": "ovoin", "profile": "Hundertwasser" },
-        "player2": { "name": "Kloerb", "profile": "Falco" },
-        "score": "2-0",
-        "winner": "Hundertwasser"
-      },
-      {
-        "round": "Viertelfinale",
-        "game": 11,
-        "player1": { "name": "Koerbel", "profile": "Wittgenstein" },
-        "player2": { "name": "Hansi", "profile": "SchubertFranz" },
-        "score": "2-1",
-        "winner": "Wittgenstein"
-      },
-      {
-        "round": "Viertelfinale",
-        "game": 12,
-        "player1": { "name": "Atomfritz", "profile": "Christoph Waltz" },
-        "player2": { "name": "Peter_Pahn", "profile": "Niki Lauda" },
-        "score": "0-2",
-        "winner": "Niki Lauda"
-      },
-      {
-        "round": "Halbfinale",
-        "game": 13,
-        "player1": { "name": "Kelar", "profile": "Haydn" },
-        "player2": { "name": "ovoin", "profile": "Hundertwasser" },
-        "score": "2-1",
-        "winner": "Haydn"
-      },
-      {
-        "round": "Halbfinale",
-        "game": 14,
-        "player1": { "name": "Koerbel", "profile": "Wittgenstein" },
-        "player2": { "name": "Peter_Pahn", "profile": "Niki Lauda" },
-        "score": "2-1",
-        "winner": "Wittgenstein"
-      },
-      {
-        "round": "Finale",
-        "game": 15,
-        "player1": { "name": "Kelar", "profile": "Haydn" },
-        "player2": { "name": "Koerbel", "profile": "Wittgenstein" },
-        "score": "2-0",
-        "winner": "Haydn"
-      }
-    ]
-  }
-  
+  "rounds": [
+    {
+      "round": 1,
+      "name": "Achtelfinale",
+      "matches": [
+        {
+          "game": 1,
+          "score": "2-0",
+          "winner": "Haydn",
+          "player1": {
+            "player": "Kelar",
+            "user": "Haydn",
+            "guessedPlayer": "ovoin"
+          },
+          "player2": {
+            "player": "Tropfzahn",
+            "user": "Gustav Klimt",
+            "guessedPlayer": "Tropfzahn"
+          }
+        },
+        {
+          "game": 2,
+          "score": "1-2",
+          "winner": "Conchita Wurst",
+          "player1": {
+            "player": "Blackrock",
+            "user": "Hans Moser",
+            "guessedPlayer": "Makrobean"
+          },
+          "player2": {
+            "player": "CroZzby",
+            "user": "Conchita Wurst",
+            "guessedPlayer": "Makrobean"
+          }
+        },
+        {
+          "game": 3,
+          "score": "2-0",
+          "winner": "Hundertwasser",
+          "player1": {
+            "player": "ovoin",
+            "user": "Hundertwasser",
+            "guessedPlayer": "Tasty"
+          },
+          "player2": {
+            "player": "onkyox",
+            "user": "Mozart",
+            "guessedPlayer": "Thorb0"
+          }
+        },
+        {
+          "game": 4,
+          "score": "0-2",
+          "winner": "Falco",
+          "player1": {
+            "player": "Gleipdonir",
+            "user": "DJ Ötzi",
+            "guessedPlayer": "Gleipdonir"
+          },
+          "player2": {
+            "player": "Kloerb",
+            "user": "Falco",
+            "guessedPlayer": "Kloerb"
+          }
+        },
+        {
+          "game": 5,
+          "score": "1-2",
+          "winner": "Wittgenstein",
+          "player1": {
+            "player": "Tasty",
+            "user": "Sigmund Freud",
+            "guessedPlayer": "Tasty"
+          },
+          "player2": {
+            "player": "Koerbel",
+            "user": "Wittgenstein",
+            "guessedPlayer": "Koerbel"
+          }
+        },
+        {
+          "game": 6,
+          "score": "2-1",
+          "winner": "SchubertFranzl",
+          "player1": {
+            "player": "Hansi",
+            "user": "SchubertFranzl",
+            "guessedPlayer": "Hansdampf"
+          },
+          "player2": {
+            "player": "Hannesthemenace",
+            "user": "David Alaba",
+            "guessedPlayer": "CroZzby"
+          }
+        },
+        {
+          "game": 7,
+          "score": "2-0",
+          "winner": "Christoph Waltz",
+          "player1": {
+            "player": "Atomfritz",
+            "user": "Christoph Waltz",
+            "guessedPlayer": "Peter_Pahn"
+          },
+          "player2": {
+            "player": "Thorb0",
+            "user": "Romy Schneider",
+            "guessedPlayer": "Tropfzahn"
+          }
+        },
+        {
+          "game": 8,
+          "score": "2-0",
+          "winner": "Niki Lauda",
+          "player1": {
+            "player": "Peter_Pahn",
+            "user": "Niki Lauda",
+            "guessedPlayer": "CroZzby"
+          },
+          "player2": {
+            "player": "Makro",
+            "user": "Johann Strauss",
+            "guessedPlayer": "Kloerb"
+          }
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "name": "Viertelfinale",
+      "matches": [
+        {
+          "game": 9,
+          "score": "2-1",
+          "winner": "Haydn",
+          "player1": {
+            "player": "Kelar",
+            "user": "Haydn",
+            "guessedPlayer": "Onkyox"
+          },
+          "player2": {
+            "player": "CroZzby",
+            "user": "Conchita Wurst",
+            "guessedPlayer": "Blackrock"
+          }
+        },
+        {
+          "game": 10,
+          "score": "2-0",
+          "winner": "Hundertwasser",
+          "player1": {
+            "player": "ovoin",
+            "user": "Hundertwasser",
+            "guessedPlayer": "Koerbel"
+          },
+          "player2": {
+            "player": "Kloerb",
+            "user": "Falco",
+            "guessedPlayer": "Blackrock"
+          }
+        },
+        {
+          "game": 11,
+          "score": "2-1",
+          "winner": "Wittgenstein",
+          "player1": {
+            "player": "Koerbel",
+            "user": "Wittgenstein",
+            "guessedPlayer": "Tasty"
+          },
+          "player2": {
+            "player": "Hansi",
+            "user": "SchubertFranzl",
+            "guessedPlayer": "Hansdampf"
+          }
+        },
+        {
+          "game": 12,
+          "score": "2-0",
+          "winner": "Niki Lauda",
+          "player1": {
+            "player": "Peter_Pahn",
+            "user": "Niki Lauda",
+            "guessedPlayer": "Makrobean"
+          },
+          "player2": {
+            "player": "Atomfritz",
+            "user": "Christoph Waltz",
+            "guessedPlayer": "Makrobean"
+          }
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "name": "Halbfinale",
+      "matches": [
+        {
+          "game": 13,
+          "score": "2-1",
+          "winner": "Haydn",
+          "player1": {
+            "player": "Kelar",
+            "user": "Haydn",
+            "guessedPlayer": "Koerbel"
+          },
+          "player2": {
+            "player": "ovoin",
+            "user": "Hundertwasser",
+            "guessedPlayer": "ovoin"
+          }
+        },
+        {
+          "game": 14,
+          "score": "1-2",
+          "winner": "Wittgenstein",
+          "player1": {
+            "player": "Peter_Pahn",
+            "user": "Niki Lauda",
+            "guessedPlayer": "Peter_Pahn"
+          },
+          "player2": {
+            "player": "Koerbel",
+            "user": "Wittgenstein",
+            "guessedPlayer": "Koerbel"
+          }
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "name": "Finale",
+      "matches": [
+        {
+          "game": 15,
+          "score": "3-0",
+          "winner": "Haydn",
+          "player1": {
+            "player": "Kelar",
+            "user": "Haydn",
+            "guessedPlayer": "Kelar"
+          },
+          "player2": {
+            "player": "Koerbel",
+            "user": "Wittgenstein",
+            "guessedPlayer": "Koerbel"
+          }
+        }
+      ]
+    }
+  ]
+}

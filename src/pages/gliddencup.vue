@@ -473,7 +473,7 @@ onMounted(async () => {
         <v-tabs v-model="tab" bg-color="primary" color="white">
             <v-tab value="mytips">Tippen</v-tab>
             <v-tab value="characteristics">Teilnehmer</v-tab>
-            <v-tab value="bracket" v-if="false">Turnierbaum</v-tab>
+            <v-tab value="bracket">Turnierbaum</v-tab>
             <v-tab value="alltips" v-if="showResults">Tipps ansehen</v-tab>
             <v-tab value="analytics" v-if="showResults">Auswertungen</v-tab>
         </v-tabs>
@@ -573,9 +573,9 @@ onMounted(async () => {
                 <PlayerCharacteristics v-else/>
             </v-window-item>
 
-            <!-- <v-window-item value="bracket" >
+            <v-window-item value="bracket" >
                 <Bracket/>
-            </v-window-item> -->
+            </v-window-item>
 
             <!-- TAB Tipps ansehen  -->
             <v-window-item value="alltips" v-if="showResults">
