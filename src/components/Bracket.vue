@@ -7,7 +7,7 @@ const props = defineProps({
     roundOrder: { type: Array, default: () => ["Achtelfinale", "Viertelfinale", "Halbfinale", "Finale"] },
     boxWidth: { type: Number, default: 220 },
     boxHeight: { type: Number, default: 100 },
-    colGap: { type: Number, default: 60 },
+    colGap: { type: Number, default: 140 },
     baseVGap: { type: Number, default: 20 },
 });
 
@@ -25,8 +25,136 @@ const globalTipsReveal = ref(false); // Global toggle for tips
 // Fetch matches on mount
 onMounted(async () => {
     await fetchMatches();
+    initPlayers();
 });
 
+const players = ref([]);
+const draggingPlayer = ref(null);
+const dragOffset = ref({ x: 0, y: 0 });
+let nextId = 1; // Counter for unique IDs
+
+function initPlayers() {
+    // 1. Extract players from first round
+    const firstRound = matchData.value.rounds.find(r => r.name === props.roundOrder[0]);
+    if (!firstRound) return;
+
+    let playerNames = [];
+    // Default order from matches - using 'player' field
+    firstRound.matches.sort((a, b) => a.game - b.game).forEach(m => {
+        playerNames.push(m.player1.player);
+        playerNames.push(m.player2.player);
+    });
+
+    // 2. Check localStorage for saved positions
+    const savedPositions = localStorage.getItem('gliddencup_bracket_positions');
+    if (savedPositions) {
+        try {
+            const saved = JSON.parse(savedPositions);
+            // Use saved positions if available
+            players.value = saved;
+            
+            // Update nextId to be higher than any existing ID
+            const maxId = Math.max(...saved.map(p => p.id || 0), 0);
+            nextId = maxId + 1;
+            
+            // Add any new players that aren't in saved data (check by name only, not ID)
+            const existingNames = new Set(saved.map(p => p.name));
+            let yOffset = 90;
+            playerNames.forEach(name => {
+                // Only add if no instance of this name exists yet
+                const hasOriginal = saved.some(p => p.name === name && !p.isDuplicate);
+                if (!hasOriginal) {
+                    players.value.push({ id: nextId++, name: name, x: 50, y: yOffset, isDuplicate: false });
+                    yOffset += 45;
+                }
+            });
+        } catch (e) {
+            console.error("Failed to parse saved positions", e);
+            setDefaultPositions(playerNames);
+        }
+    } else {
+        setDefaultPositions(playerNames);
+    }
+}
+
+function setDefaultPositions(playerNames) {
+    players.value = playerNames.map((name, index) => ({
+        id: nextId++,
+        name: name,
+        x: 50,
+        y: 90 + index * 45,
+        isDuplicate: false
+    }));
+}
+
+function onMouseDown(event, player) {
+    // Don't start dragging if clicking on action buttons
+    if (event.target.classList.contains('player-action-btn') || 
+        event.target.closest('.player-action-btn')) {
+        return;
+    }
+    
+    draggingPlayer.value = player;
+    
+    // Get the draggable-player element, not the child element that was clicked
+    const playerElement = event.target.closest('.draggable-player');
+    const rect = playerElement.getBoundingClientRect();
+    const container = playerElement.closest('.bracket-view');
+    const containerRect = container.getBoundingClientRect();
+    
+    dragOffset.value = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+    };
+    
+    event.preventDefault();
+}
+
+function onMouseMove(event) {
+    if (!draggingPlayer.value) return;
+    
+    const container = document.querySelector('.bracket-view');
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    
+    draggingPlayer.value.x = event.clientX - containerRect.left - dragOffset.value.x;
+    draggingPlayer.value.y = event.clientY - containerRect.top - dragOffset.value.y;
+}
+
+function onMouseUp() {
+    if (draggingPlayer.value) {
+        draggingPlayer.value = null;
+        savePositions();
+    }
+}
+
+function savePositions() {
+    localStorage.setItem('gliddencup_bracket_positions', JSON.stringify(players.value));
+}
+
+function duplicatePlayer(player) {
+    const newPlayer = {
+        id: nextId++,
+        name: player.name,
+        x: player.x + 20, // Offset slightly
+        y: player.y + 20,
+        isDuplicate: true
+    };
+    players.value.push(newPlayer);
+    savePositions();
+}
+
+function deletePlayer(player) {
+    // Only allow deletion of duplicates
+    if (player.isDuplicate) {
+        const index = players.value.findIndex(p => p.id === player.id);
+        if (index !== -1) {
+            players.value.splice(index, 1);
+            savePositions();
+        }
+    }
+}
 async function fetchMatches() {
     try {
         // Assuming API is proxied or at same host
@@ -199,7 +327,8 @@ const segments = computed(() => {
 </script>
 
 <template>
-    <div class="bracket-scroll-container">
+    <div class="bracket-view" @mousemove="onMouseMove" @mouseup="onMouseUp">
+        <div class="bracket-scroll-container">
         <div class="controls">
             <button class="global-reveal-btn" @click="toggleGlobalTips">
                 {{ globalTipsReveal ? 'Alle Tipps verbergen' : 'Alle Tipps anzeigen' }}
@@ -291,13 +420,132 @@ const segments = computed(() => {
                 </div>
             </div>
         </div>
+        </div>
+        
+        <!-- Draggable player overlay -->
+        <div class="player-overlay">
+            <div 
+                v-for="player in players" 
+                :key="player.id"
+                class="draggable-player"
+                :style="{ left: player.x + 'px', top: player.y + 'px' }"
+                @mousedown="onMouseDown($event, player)"
+            >
+                <span class="player-name-text">{{ player.name }}</span>
+                <div class="player-actions">
+                    <button 
+                        class="player-action-btn duplicate-btn" 
+                        @mousedown.stop
+                        @click.stop="duplicatePlayer(player)"
+                        title="Duplicate"
+                    >
+                        +
+                    </button>
+                    <button 
+                        v-if="player.isDuplicate"
+                        class="player-action-btn delete-btn" 
+                        @mousedown.stop
+                        @click.stop="deletePlayer(player)"
+                        title="Delete"
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
+.bracket-view {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.player-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.draggable-player {
+    position: absolute;
+    background: rgba(51, 51, 51, 0.95);
+    color: orange;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: grab;
+    user-select: none;
+    font-size: 0.9rem;
+    pointer-events: auto;
+    border: 1px solid #555;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.player-name-text {
+    flex: 1;
+}
+
+.player-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.draggable-player:hover .player-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.player-action-btn {
+    background: rgba(68, 68, 68, 0.9);
+    border: 1px solid #666;
+    color: #eee;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-action-btn:hover {
+    background: rgba(85, 85, 85, 0.9);
+}
+
+.duplicate-btn:hover {
+    color: #4caf50;
+}
+
+.delete-btn:hover {
+    color: #f44336;
+}
+
+.draggable-player:active {
+    cursor: grabbing;
+    background: rgba(68, 68, 68, 0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
 .bracket-scroll-container {
     overflow: auto;
-    padding: 30px 10px;
+    padding: 30px 10px 30px 10px;
     background: #121212; /* Dark background */
     border-radius: 8px;
     color: #e0e0e0;
@@ -428,8 +676,6 @@ const segments = computed(() => {
 
 .player-row.is-winner .player-name {
     color: #4caf50;
-    font-weight: 700;
-    font-size:16px;
     padding-top:4px;
 }
 
@@ -440,7 +686,8 @@ const segments = computed(() => {
 }
 
 .player-name {
-    font-size: 13px;
+    font-weight: 700;
+    font-size:16px;
     font-weight: 500;
     color: #eee;
 }
