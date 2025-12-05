@@ -444,7 +444,9 @@ const allTips = ref({}); // { [username]: Pick[] }
 
 async function loadOverview() {
     try {
-        const data = await api(`/overview?mode=${showResults.value ? 'private' : 'public'}`);
+        // Always load in private mode to get player names for autocomplete
+        // The tabsVisible setting controls tab visibility, not data access
+        const data = await api(`/overview?mode=private`);
         profiles.value = Array.isArray(data?.profiles) ? data.profiles : [];
         users.value = Array.isArray(data?.users) ? data.users : [];
         allTips.value = data?.picksByUser || {};
@@ -455,13 +457,7 @@ async function loadOverview() {
     }
 }
 
-// Watch showResults and reload overview when it changes to get full profile data
-watch(showResults, async (newVal, oldVal) => {
-    // Reload when switching from public to private mode to get player names
-    if (newVal && !oldVal) {
-        await loadOverview();
-    }
-});
+// Removed watcher - we now always load in private mode to ensure player names are available
 
 
 function selectUser(username) {
