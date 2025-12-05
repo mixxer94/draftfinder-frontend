@@ -66,7 +66,8 @@ function normName(s) { return (s || '').trim().toLowerCase() }
 
 // computed values
 const hasDuplicates = computed(() => duplicateNames.value.length > 0)
-const showResults = computed(() => (me.value || '').trim() === 'silvuur')
+const tabsVisible = ref(false) // Global state from API
+const showResults = computed(() => tabsVisible.value)
 const playerOptions = computed(() => profiles.value.map(p => p.player).sort())
 
 // ---------------------------
@@ -447,6 +448,7 @@ async function loadOverview() {
         profiles.value = Array.isArray(data?.profiles) ? data.profiles : [];
         users.value = Array.isArray(data?.users) ? data.users : [];
         allTips.value = data?.picksByUser || {};
+        tabsVisible.value = data?.tabsVisible ?? false; // Update global state
         buildPicksFromProfiles(); // keep your editor state consistent
     } catch (e) {
         publicError.value = e.message || 'Fehler beim Laden';
