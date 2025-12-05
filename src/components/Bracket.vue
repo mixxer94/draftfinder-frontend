@@ -44,6 +44,9 @@ function initPlayers() {
         playerNames.push(m.player1.player);
         playerNames.push(m.player2.player);
     });
+    
+    // Sort alphabetically for initial display
+    playerNames.sort();
 
     // 2. Check localStorage for saved positions
     const savedPositions = localStorage.getItem('gliddencup_bracket_positions');
