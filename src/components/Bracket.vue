@@ -6,7 +6,7 @@ import axios from 'axios';
 const props = defineProps({
     roundOrder: { type: Array, default: () => ["Achtelfinale", "Viertelfinale", "Halbfinale", "Finale"] },
     boxWidth: { type: Number, default: 220 },
-    boxHeight: { type: Number, default: 120 },
+    boxHeight: { type: Number, default: 140 },
     colGap: { type: Number, default: 160 },
     baseVGap: { type: Number, default: 20 },
 });
@@ -33,6 +33,7 @@ onMounted(async () => {
 const currentUsername = ref(localStorage.getItem('gliddencup_username') || '');
 const isAdmin = computed(() => currentUsername.value === 'silvuur');
 const tabsVisible = ref(false);
+const playerIdentityRevealed = ref(false);
 const adminPanelExpanded = ref(true);
 
 
@@ -239,6 +240,7 @@ async function fetchTabsVisible() {
     try {
         const response = await axios.get('/api/gliddencup/settings');
         tabsVisible.value = response.data.tabsVisible ?? false;
+        playerIdentityRevealed.value = response.data.playerIdentityRevealed ?? false;
     } catch (e) {
         console.error("Failed to fetch tabs visible state", e);
     }
@@ -255,11 +257,32 @@ async function toggleTabsVisibility() {
         
         const response = await axios.post('/api/gliddencup/settings/toggle-tabs', {}, { headers });
         tabsVisible.value = response.data.tabsVisible;
+        playerIdentityRevealed.value = response.data.playerIdentityRevealed;
     } catch (e) {
         console.error("Failed to toggle tabs visibility", e);
         // Revert on error
         tabsVisible.value = oldValue;
         alert('Failed to toggle tabs visibility: ' + (e.response?.data?.error || e.message));
+    }
+}
+
+async function togglePlayerIdentity() {
+    const oldValue = playerIdentityRevealed.value;
+    try {
+        // Optimistic update
+        playerIdentityRevealed.value = !playerIdentityRevealed.value;
+        
+        const token = localStorage.getItem('gliddencup_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        const response = await axios.post('/api/gliddencup/settings/toggle-player-identity', {}, { headers });
+        tabsVisible.value = response.data.tabsVisible;
+        playerIdentityRevealed.value = response.data.playerIdentityRevealed;
+    } catch (e) {
+        console.error("Failed to toggle player identity", e);
+        // Revert on error
+        playerIdentityRevealed.value = oldValue;
+        alert('Failed to toggle player identity: ' + (e.response?.data?.error || e.message));
     }
 }
 
@@ -422,6 +445,19 @@ const segments = computed(() => {
                     </div>
                 </div>
 
+                <!-- Player Identity Toggle -->
+                <div class="admin-section">
+                    <h4>Spieler-Identität</h4>
+                    <div class="admin-control">
+                        <button class="admin-btn" @click="togglePlayerIdentity">
+                            {{ playerIdentityRevealed ? 'Identität verbergen' : 'Identität anzeigen' }}
+                        </button>
+                        <span class="status-indicator" :class="{ active: playerIdentityRevealed }">
+                            {{ playerIdentityRevealed ? '✓ Enthüllt' : '✗ Verborgen' }}
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Match Reveal Controls -->
                 <div class="admin-section">
                     <h4>Match Reveal Levels</h4>
@@ -490,7 +526,13 @@ const segments = computed(() => {
                             <div class="player-info">
                                 <span class="player-name">
                                     <template v-if="getRevealLevel(rounds[ci][mi]?.game) >= 1">
-                                        {{ rounds[ci][mi]?.player1.user }}
+                                        <template v-if="playerIdentityRevealed">
+                                            <div>{{ rounds[ci][mi]?.player1.user }}</div>
+                                            <div class="actual-player">{{ rounds[ci][mi]?.player1.player }}</div>
+                                        </template>
+                                        <template v-else>
+                                            {{ rounds[ci][mi]?.player1.user }}
+                                        </template>
                                     </template>
                                     <template v-else>???</template>
                                 </span>
@@ -513,7 +555,13 @@ const segments = computed(() => {
                             <div class="player-info">
                                 <span class="player-name">
                                     <template v-if="getRevealLevel(rounds[ci][mi]?.game) >= 1">
-                                        {{ rounds[ci][mi]?.player2.user }}
+                                        <template v-if="playerIdentityRevealed">
+                                            <div>{{ rounds[ci][mi]?.player2.user }}</div>
+                                            <div class="actual-player">{{ rounds[ci][mi]?.player2.player }}</div>
+                                        </template>
+                                        <template v-else>
+                                            {{ rounds[ci][mi]?.player2.user }}
+                                        </template>
                                     </template>
                                     <template v-else>???</template>
                                 </span>
@@ -826,6 +874,13 @@ const segments = computed(() => {
     font-size:16px;
     font-weight: 500;
     color: #eee;
+}
+
+.actual-player {
+    font-size: 12px;
+    color: #ffa726;
+    font-weight: 400;
+    margin-top: 2px;
 }
 
 .user-name {
