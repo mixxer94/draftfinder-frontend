@@ -171,7 +171,13 @@ function cardStyle(p, i) {
   }
 
   // Standard: freie Positionierung
-  const pos = positions[p.user] || { top: 40 + i * 30, left: 40 + (i % 5) * 260 }
+  const savedPos = positions[p.user]
+  // Only use saved position if it has valid top/left coordinates
+  const hasValidPosition = savedPos && typeof savedPos.top === 'number' && typeof savedPos.left === 'number'
+  const pos = hasValidPosition 
+    ? savedPos 
+    : { top: 40 + i * 30, left: 40 + (i % 5) * 260 }
+  
   const z = dragging.value?.name === p.user
     ? zCounter.value + 1
     : pos.hoverZ || pos.zIndex || 10 + i

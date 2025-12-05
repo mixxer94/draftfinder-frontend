@@ -6,8 +6,8 @@ import axios from 'axios';
 const props = defineProps({
     roundOrder: { type: Array, default: () => ["Achtelfinale", "Viertelfinale", "Halbfinale", "Finale"] },
     boxWidth: { type: Number, default: 220 },
-    boxHeight: { type: Number, default: 100 },
-    colGap: { type: Number, default: 140 },
+    boxHeight: { type: Number, default: 120 },
+    colGap: { type: Number, default: 160 },
     baseVGap: { type: Number, default: 20 },
 });
 
@@ -26,7 +26,15 @@ const globalTipsReveal = ref(false); // Global toggle for tips
 onMounted(async () => {
     await fetchMatches();
     initPlayers();
+    await fetchTabsVisible();
 });
+
+// Admin state
+const currentUsername = ref(localStorage.getItem('gliddencup_username') || '');
+const isAdmin = computed(() => currentUsername.value === 'silvuur');
+const tabsVisible = ref(false);
+const adminPanelExpanded = ref(true);
+
 
 const players = ref([]);
 const draggingPlayer = ref(null);
@@ -226,6 +234,58 @@ function toggleGlobalTips() {
     globalTipsReveal.value = !globalTipsReveal.value;
 }
 
+// Admin functions
+async function fetchTabsVisible() {
+    try {
+        const response = await axios.get('/api/gliddencup/settings');
+        tabsVisible.value = response.data.tabsVisible ?? false;
+    } catch (e) {
+        console.error("Failed to fetch tabs visible state", e);
+    }
+}
+
+async function toggleTabsVisibility() {
+    const oldValue = tabsVisible.value;
+    try {
+        // Optimistic update
+        tabsVisible.value = !tabsVisible.value;
+        
+        const token = localStorage.getItem('gliddencup_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        const response = await axios.post('/api/gliddencup/settings/toggle-tabs', {}, { headers });
+        tabsVisible.value = response.data.tabsVisible;
+    } catch (e) {
+        console.error("Failed to toggle tabs visibility", e);
+        // Revert on error
+        tabsVisible.value = oldValue;
+        alert('Failed to toggle tabs visibility: ' + (e.response?.data?.error || e.message));
+    }
+}
+
+async function cycleMatchRevealLevel(gameId) {
+    const currentLevel = getRevealLevel(gameId);
+    const nextLevel = (currentLevel + 1) % 3; // Cycle 0 -> 1 -> 2 -> 0
+    await setRevealLevel(gameId, nextLevel);
+}
+
+function getAllMatches() {
+    const allMatches = [];
+    matchData.value.rounds?.forEach(round => {
+        round.matches?.forEach(match => {
+            allMatches.push({
+                game: match.game,
+                roundName: round.name,
+                player1: match.player1?.user || '???',
+                player2: match.player2?.user || '???',
+                revealLevel: match.revealLevel ?? 0
+            });
+        });
+    });
+    return allMatches.sort((a, b) => a.game - b.game);
+}
+
+
 // Sortiere Matches nach Runde & Spielnummer
 const rounds = computed(() => {
     return props.roundOrder.map((rName) => {
@@ -331,12 +391,61 @@ const segments = computed(() => {
 
 <template>
     <div class="bracket-view" @mousemove="onMouseMove" @mouseup="onMouseUp">
-        <div class="bracket-scroll-container">
+        <!-- Controls and Admin Panel (outside scroll container) -->
         <div class="controls">
             <button class="global-reveal-btn" @click="toggleGlobalTips">
                 {{ globalTipsReveal ? 'Alle Tipps verbergen' : 'Alle Tipps anzeigen' }}
             </button>
+            <button class="reload-btn" @click="fetchMatches" title="Matches neu laden">
+                🔄 Neu laden
+            </button>
         </div>
+
+        <!-- Admin Panel (only visible for silvuur) -->
+        <div v-if="isAdmin" class="admin-panel">
+            <div class="admin-header" @click="adminPanelExpanded = !adminPanelExpanded">
+                <span class="admin-title">⚙️ Admin Tools</span>
+                <span class="expand-icon">{{ adminPanelExpanded ? '▼' : '▶' }}</span>
+            </div>
+            
+            <div v-if="adminPanelExpanded" class="admin-content">
+                <!-- Tab Visibility Toggle -->
+                <div class="admin-section">
+                    <h4>Tab Sichtbarkeit</h4>
+                    <div class="admin-control">
+                        <button class="admin-btn" @click="toggleTabsVisibility">
+                            {{ tabsVisible ? 'Tabs verbergen' : 'Tabs anzeigen' }}
+                        </button>
+                        <span class="status-indicator" :class="{ active: tabsVisible }">
+                            {{ tabsVisible ? '✓ Sichtbar' : '✗ Versteckt' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Match Reveal Controls -->
+                <div class="admin-section">
+                    <h4>Match Reveal Levels</h4>
+                    <div class="matches-grid">
+                        <div v-for="match in getAllMatches()" :key="match.game" class="match-control">
+                            <div class="match-info">
+                                <span class="match-number">Spiel {{ match.game }}</span>
+                                <span class="match-round">{{ match.roundName }}</span>
+                            </div>
+                            <div class="match-actions">
+                                <span class="reveal-status" :class="`level-${match.revealLevel}`">
+                                    Level {{ match.revealLevel }}
+                                </span>
+                                <button class="cycle-btn" @click="cycleMatchRevealLevel(match.game)" title="Cycle reveal level">
+                                    ⟳
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bracket-scroll-container">
         <div class="bracket-container" :style="{ width: totalWidth + 'px', height: totalHeight + 'px' }">
             <!-- SVG-Linien -->
             <svg class="bracket-lines" :width="totalWidth" :height="totalHeight">
@@ -465,6 +574,8 @@ const segments = computed(() => {
     width: 100%;
     height: 100vh;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .player-overlay {
@@ -547,6 +658,7 @@ const segments = computed(() => {
 }
 
 .bracket-scroll-container {
+    flex: 1;
     overflow: auto;
     padding: 30px 10px 30px 10px;
     background: #121212; /* Dark background */
@@ -648,8 +760,12 @@ const segments = computed(() => {
 }
 
 .controls {
-    margin-bottom: 20px;
+    margin: 20px 20px 16px 20px;
     text-align: center;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
 }
 
 .global-reveal-btn {
@@ -663,6 +779,24 @@ const segments = computed(() => {
 
 .global-reveal-btn:hover {
     background: #444;
+}
+
+.reload-btn {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.reload-btn:hover {
+    background: #444;
+}
+
+.reload-btn:active {
+    transform: scale(0.95);
 }
 
 .winner-tag {
@@ -679,7 +813,6 @@ const segments = computed(() => {
 
 .player-row.is-winner .player-name {
     color: #4caf50;
-    padding-top:4px;
 }
 
 .player-info {
@@ -710,9 +843,8 @@ const segments = computed(() => {
 }
 
 .guess-reveal {
-    font-size: 10px;
+    font-size: 12px;
     margin-top: 1px;
-    margin-bottom: 1px;
 }
 
 .reveal-btn {
@@ -742,5 +874,193 @@ const segments = computed(() => {
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+/* Admin Panel Styles */
+.admin-panel {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    margin: 0 20px 16px 20px;
+    overflow: hidden;
+}
+
+.admin-header {
+    background: #252525;
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.admin-header:hover {
+    background: #2a2a2a;
+}
+
+.admin-title {
+    font-weight: 600;
+    color: #ffa726;
+    font-size: 14px;
+}
+
+.expand-icon {
+    color: #888;
+    font-size: 12px;
+}
+
+.admin-content {
+    padding: 16px;
+}
+
+.admin-section {
+    margin-bottom: 20px;
+}
+
+.admin-section:last-child {
+    margin-bottom: 0;
+}
+
+.admin-section h4 {
+    color: #aaa;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.admin-control {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.admin-btn {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.admin-btn:hover {
+    background: #444;
+}
+
+.status-indicator {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #2a2a2a;
+    color: #f44336;
+    border: 1px solid #3a3a3a;
+}
+
+.status-indicator.active {
+    color: #4caf50;
+}
+
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.match-control {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.match-control:hover {
+    background: #2a2a2a;
+    border-color: #444;
+}
+
+.match-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.match-number {
+    font-weight: 600;
+    color: #eee;
+    font-size: 12px;
+}
+
+.match-round {
+    font-size: 10px;
+    color: #888;
+}
+
+.match-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.reveal-status {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid;
+}
+
+.reveal-status.level-0 {
+    background: #3a1f1f;
+    color: #f44336;
+    border-color: #5a2f2f;
+}
+
+.reveal-status.level-1 {
+    background: #3a3a1f;
+    color: #ffa726;
+    border-color: #5a5a2f;
+}
+
+.reveal-status.level-2 {
+    background: #1f3a1f;
+    color: #4caf50;
+    border-color: #2f5a2f;
+}
+
+.cycle-btn {
+    background: #333;
+    border: 1px solid #555;
+    color: #64b5f6;
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.cycle-btn:hover {
+    background: #444;
+    transform: rotate(90deg);
+}
+
+.cycle-btn:active {
+    transform: rotate(90deg) scale(0.9);
 }
 </style>

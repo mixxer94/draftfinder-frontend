@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import AppBar from '../components/AppBar.vue'
 import Bracket from '../components/Bracket.vue'
@@ -454,6 +454,14 @@ async function loadOverview() {
         publicError.value = e.message || 'Fehler beim Laden';
     }
 }
+
+// Watch showResults and reload overview when it changes to get full profile data
+watch(showResults, async (newVal, oldVal) => {
+    // Reload when switching from public to private mode to get player names
+    if (newVal && !oldVal) {
+        await loadOverview();
+    }
+});
 
 
 function selectUser(username) {
