@@ -125,7 +125,7 @@ function onMouseDown(event, player) {
 function onMouseMove(event) {
     if (!draggingPlayer.value) return;
     
-    const container = document.querySelector('.bracket-view');
+    const container = document.querySelector('.bracket-container');
     if (!container) return;
     
     const containerRect = container.getBoundingClientRect();
@@ -579,39 +579,39 @@ const segments = computed(() => {
                     </div>
                 </div>
             </div>
-        </div>
-        </div>
-        
-        <!-- Draggable player overlay -->
-        <div class="player-overlay">
-            <div 
-                v-for="player in players" 
-                :key="player.id"
-                class="draggable-player"
-                :style="{ left: player.x + 'px', top: player.y + 'px' }"
-                @mousedown="onMouseDown($event, player)"
-            >
-                <span class="player-name-text">{{ player.name }}</span>
-                <div class="player-actions">
-                    <button 
-                        class="player-action-btn duplicate-btn" 
-                        @mousedown.stop
-                        @click.stop="duplicatePlayer(player)"
-                        title="Duplicate"
-                    >
-                        +
-                    </button>
-                    <button 
-                        v-if="player.isDuplicate"
-                        class="player-action-btn delete-btn" 
-                        @mousedown.stop
-                        @click.stop="deletePlayer(player)"
-                        title="Delete"
-                    >
-                        ×
-                    </button>
+            
+            <!-- Draggable player overlay (moved inside bracket-container) -->
+            <div class="player-overlay">
+                <div 
+                    v-for="player in players" 
+                    :key="player.id"
+                    class="draggable-player"
+                    :style="{ left: player.x + 'px', top: player.y + 'px' }"
+                    @mousedown="onMouseDown($event, player)"
+                >
+                    <span class="player-name-text">{{ player.name }}</span>
+                    <div class="player-actions">
+                        <button 
+                            class="player-action-btn duplicate-btn" 
+                            @mousedown.stop
+                            @click.stop="duplicatePlayer(player)"
+                            title="Duplicate"
+                        >
+                            +
+                        </button>
+                        <button 
+                            v-if="player.isDuplicate"
+                            class="player-action-btn delete-btn" 
+                            @mousedown.stop
+                            @click.stop="deletePlayer(player)"
+                            title="Delete"
+                        >
+                            ×
+                        </button>
+                    </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 </template>
