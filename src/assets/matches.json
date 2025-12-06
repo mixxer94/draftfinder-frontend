@@ -41,12 +41,12 @@
           "player1": {
             "player": "ovoin",
             "user": "Hundertwasser",
-            "guessedPlayer": "Tasty"
+            "guessedPlayer": "Thorb0"
           },
           "player2": {
             "player": "onkyox",
             "user": "Mozart",
-            "guessedPlayer": "Thorb0"
+            "guessedPlayer": "Tasty"
           }
         },
         {
@@ -71,12 +71,12 @@
           "player1": {
             "player": "Tasty",
             "user": "Sigmund Freud",
-            "guessedPlayer": "Tasty"
+            "guessedPlayer": "Koerbel"
           },
           "player2": {
             "player": "Koerbel",
             "user": "Wittgenstein",
-            "guessedPlayer": "Koerbel"
+            "guessedPlayer": "Tasty"
           }
         },
         {
