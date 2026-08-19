@@ -1,11 +1,16 @@
 <template>
     <v-app-bar :elevation="2" density="compact" color="app-bar" class="sticky-app-bar">
-        <v-app-bar-title>{{ isGliddencup ? 'GliddenCup' : 'Draft Finder' }}</v-app-bar-title>
+        <v-app-bar-title>{{ title }}</v-app-bar-title>
 
         <v-spacer></v-spacer>
 
+        <!-- Zurueck zum Draft Finder -->
+        <v-btn v-if="isBillyTracker" variant="outlined" color="secondary" class="mr-2" @click="$router.push('/')">
+            Zum Draft Finder
+        </v-btn>
+
         <!-- Toggle Button -->
-        <v-btn v-if="!isGliddencup" variant="outlined" color="secondary" class="mr-2" @click="toggleNav">
+        <v-btn v-if="!isGliddencup && !isBillyTracker" variant="outlined" color="secondary" class="mr-2" @click="toggleNav">
             Zum Gliddencup
         </v-btn>
 
@@ -29,6 +34,14 @@ export default {
     computed: {
         isGliddencup() {
             return this.$route.path.startsWith('/gliddencup')
+        },
+        isBillyTracker() {
+            return this.$route.path.startsWith('/billy-tracker')
+        },
+        title() {
+            if (this.isGliddencup) return 'GliddenCup'
+            if (this.isBillyTracker) return 'Billy Tracker'
+            return 'Draft Finder'
         }
     },
     methods: {
