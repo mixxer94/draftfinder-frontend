@@ -20,9 +20,9 @@
     </div>
 
     <!-- Kennzahlen -->
-    <v-row dense class="mb-2">
-      <v-col v-for="stat in stats" :key="stat.label" cols="6" sm="4" md="2">
-        <v-card variant="tonal" :color="stat.color">
+    <v-row dense>
+      <v-col v-for="stat in stats" :key="stat.label" cols="6" sm="4" md="3">
+        <v-card variant="tonal" :color="stat.color" :title="stat.hint">
           <v-card-text class="py-3">
             <div class="text-h6">{{ stat.value }}</div>
             <div class="text-caption">{{ stat.label }}</div>
@@ -30,6 +30,14 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <p class="text-caption text-medium-emphasis mb-4">
+      Twitch entfernt VODs nach {{ retentionDays }} Tagen von selbst. Diese zählen als
+      <em>abgelaufen</em> und bleiben aus der Löschquote heraus — die zeigt nur, was Billy
+      selbst gelöscht hat, gemessen an den Aufzeichnungen, über die sich das sagen lässt.
+      Wie viele Streams unterm Strich nicht mehr anzusehen sind, steht daneben unter
+      <em>Kein VOD verfügbar</em> — dort zählt jeder Grund mit.
+    </p>
 
     <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
 
@@ -106,6 +114,7 @@ import AppBar from '../components/AppBar.vue'
 const { mobile } = useDisplay()
 
 const channel = ref('aoe2_billybadbeat')
+const retentionDays = ref(7)
 const streams = ref([])
 const summary = ref(null)
 const loading = ref(false)
@@ -132,9 +141,31 @@ const stats = computed(() => {
     { label: 'Streams', value: s.total, color: 'primary' },
     { label: 'Stunden gesendet', value: s.totalHours, color: 'primary' },
     { label: 'VOD vorhanden', value: s.available, color: 'success' },
-    { label: 'VOD gelöscht', value: s.deleted, color: 'error' },
-    { label: 'Nie ein VOD', value: s.never, color: 'warning' },
-    { label: 'Löschquote', value: `${Math.round(s.deletionRate * 100)} %`, color: 'error' }
+    {
+      label: 'Von Billy gelöscht',
+      value: s.deleted,
+      color: 'error',
+      hint: `Vor Ablauf der ${retentionDays.value} Tage verschwunden`
+    },
+    {
+      label: 'Automatisch abgelaufen',
+      value: s.expired,
+      color: 'warning',
+      hint: `Von Twitch nach ${retentionDays.value} Tagen entfernt - zählt nicht als Löschung`
+    },
+    { label: 'Nie ein VOD', value: s.never, color: 'grey', hint: 'Es ist nie eine Aufzeichnung erschienen' },
+    {
+      label: 'Löschquote',
+      value: `${Math.round(s.deletionRate * 100)} %`,
+      color: 'error',
+      hint: 'Anteil der von Billy gelöschten an den beurteilbaren VODs (ohne abgelaufene)'
+    },
+    {
+      label: 'Kein VOD verfügbar',
+      value: `${Math.round(s.missingRate * 100)} %`,
+      color: 'error',
+      hint: `${s.withoutVod} von ${s.total} Streams sind nicht mehr abrufbar - gelöscht, abgelaufen oder nie aufgezeichnet`
+    }
   ]
 })
 
@@ -158,6 +189,7 @@ const VodChip = (props) => {
     size: 'small',
     color: config.color,
     variant: 'flat',
+    prependIcon: config.icon,
     href: link || undefined,
     target: link ? '_blank' : undefined,
     rel: link ? 'noopener' : undefined,
@@ -167,27 +199,29 @@ const VodChip = (props) => {
 VodChip.props = ['stream']
 
 function vodChipConfig (stream) {
-  if (stream.isLive) return { color: 'red', text: 'läuft gerade' }
+  if (stream.isLive) return { color: 'red', icon: 'mdi-record', text: 'läuft gerade' }
   if (stream.expired) {
     return {
       color: 'warning',
+      icon: 'mdi-timer-sand-complete',
       text: 'abgelaufen',
-      title: 'Erst nach Twitchs Aufbewahrungsfrist verschwunden - vermutlich automatisch gelöscht'
+      title: `Hat die ${retentionDays.value} Tage überstanden und wurde dann von Twitch automatisch entfernt - keine Löschung durch Billy`
     }
   }
   switch (stream.vodStatus) {
     case 'available':
-      return { color: 'success', text: 'verfügbar' }
+      return { color: 'success', icon: 'mdi-play-circle', text: 'verfügbar' }
     case 'deleted':
       return {
         color: 'error',
+        icon: 'mdi-delete',
         text: 'gelöscht',
-        title: `Bemerkt am ${formatDateTime(stream.vodDeletedAt)}`
+        title: `Vor Ablauf der Frist verschwunden, bemerkt am ${formatDateTime(stream.vodDeletedAt)}`
       }
     case 'never':
-      return { color: 'grey', text: 'nie erschienen', title: 'Es wurde nie ein VOD veröffentlicht' }
+      return { color: 'grey', icon: 'mdi-cancel', text: 'nie erschienen', title: 'Es wurde nie ein VOD veröffentlicht' }
     default:
-      return { color: 'blue-grey', text: 'wird geprüft', title: 'Stream gerade beendet, VOD noch nicht aufgetaucht' }
+      return { color: 'blue-grey', icon: 'mdi-progress-clock', text: 'wird geprüft', title: 'Stream gerade beendet, VOD noch nicht aufgetaucht' }
   }
 }
 
@@ -224,6 +258,7 @@ async function load () {
     streams.value = data.streams
     summary.value = data.summary
     channel.value = data.channel
+    retentionDays.value = data.vodRetentionDays ?? retentionDays.value
     error.value = ''
   } catch (e) {
     error.value = 'Die Streamliste konnte nicht geladen werden.'
