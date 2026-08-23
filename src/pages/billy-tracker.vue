@@ -22,10 +22,10 @@
     <!-- Kennzahlen -->
     <v-row dense>
       <v-col v-for="stat in stats" :key="stat.label" cols="6" sm="4" md="3">
-        <v-card variant="tonal" :color="stat.color" :title="stat.hint">
+        <v-card variant="tonal" :color="stat.color" :title="stat.label">
           <v-card-text class="py-3">
             <div class="text-h6">{{ stat.value }}</div>
-            <div class="text-caption">{{ stat.label }}</div>
+            <div class="text-caption">{{ stat.hint }}</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -158,13 +158,13 @@ const stats = computed(() => {
       label: 'Löschquote',
       value: `${Math.round(s.deletionRate * 100)} %`,
       color: 'error',
-      hint: 'Anteil der von Billy gelöschten an den beurteilbaren VODs (ohne abgelaufene)'
+      hint: 'von Billy gelöscht (ohne abgelaufene VODs)'
     },
     {
       label: 'Kein VOD verfügbar',
       value: `${Math.round(s.missingRate * 100)} %`,
       color: 'error',
-      hint: `${s.withoutVod} von ${s.total} Streams sind nicht mehr abrufbar - gelöscht, abgelaufen oder nie aufgezeichnet`
+      hint: `${s.withoutVod} von ${s.total} gelöscht, abgelaufen oder nie aufgezeichnet`
     }
   ]
 })
