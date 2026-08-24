@@ -349,8 +349,8 @@ function matchChipConfig (stream) {
         color: 'grey',
         variant: 'tonal',
         icon: 'mdi-sleep',
-        text: 'nicht gespielt',
-        title: 'Im Zeitraum des Streams lag keine Partie'
+        text: 'nicht gefunden',
+        title: 'Kein passendes Match ermittelt'
       }
     case 'no_replay':
       return {
