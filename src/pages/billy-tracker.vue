@@ -77,6 +77,9 @@
       <template #item.durationSeconds="{ item }">
         {{ formatDuration(item) }}
       </template>
+      <template #item.match="{ item }">
+        <MatchChip :stream="item" />
+      </template>
       <template #item.vodStatus="{ item }">
         <VodChip :stream="item" />
       </template>
@@ -92,6 +95,7 @@
               <div class="text-caption text-medium-emphasis">
                 {{ formatDateTime(stream.startedAt) }} · {{ formatDuration(stream) }}
               </div>
+              <MatchChip :stream="stream" class="mt-2" />
             </div>
             <VodChip :stream="stream" />
           </div>
@@ -101,6 +105,84 @@
         Noch keine Streams erfasst
       </div>
     </div>
+
+    <!-- Die Partie, bei der der Stream endete, samt Chatverlauf -->
+    <v-dialog v-model="matchDialogOpen" max-width="760" scrollable>
+      <v-card>
+        <v-card-title class="text-subtitle-1">
+          {{ match?.mapName || 'Letzte Partie' }}
+          <span class="text-caption text-medium-emphasis ml-2">{{ match?.label }}</span>
+        </v-card-title>
+
+        <v-card-text>
+          <v-progress-linear v-if="chatLoading" indeterminate class="mb-4" />
+          <v-alert v-if="chatError" type="error" variant="tonal" density="compact">
+            {{ chatError }}
+          </v-alert>
+
+          <template v-if="match">
+            <div class="text-caption text-medium-emphasis mb-3">
+              {{ formatDateTime(match.startedAt) }} · {{ formatSeconds(match.durationSeconds) }}
+            </div>
+
+            <div class="d-flex flex-wrap ga-2 mb-3">
+              <v-chip
+                v-for="player in match.players"
+                :key="player.profileId"
+                size="small"
+                variant="tonal"
+                :color="player.outcome === 1 ? 'success' : 'error'"
+                :href="`https://www.aoe2companion.com/players/${player.profileId}`"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ player.alias || player.profileId }}
+                <span class="text-caption ml-1">{{ player.oldRating }} → {{ player.newRating }}</span>
+              </v-chip>
+            </div>
+
+            <div class="d-flex flex-wrap ga-2 mb-4">
+              <v-chip size="small" variant="tonal" :href="companionUrl" target="_blank" rel="noopener">
+                <v-icon start size="small">mdi-open-in-new</v-icon>
+                Partie auf aoe2companion
+              </v-chip>
+              <v-chip size="small" variant="tonal" :href="replayUrl" target="_blank" rel="noopener">
+                <v-icon start size="small">mdi-download</v-icon>
+                Replay herunterladen
+              </v-chip>
+            </div>
+
+            <v-divider class="mb-3" />
+
+            <div v-if="!match.chat.length" class="text-caption text-medium-emphasis">
+              In dieser Partie wurde nichts geschrieben.
+            </div>
+            <div v-for="(line, index) in match.chat" :key="index" class="mb-2">
+              <v-chip
+                size="x-small"
+                variant="tonal"
+                :color="line.channel === 1 ? 'info' : undefined"
+                class="mr-2"
+              >
+                {{ line.channel === 1 ? 'Team' : 'Alle' }}
+              </v-chip>
+              <span class="font-weight-medium">{{ line.name || `Spieler ${line.player}` }}:</span>
+              <span class="ml-1">{{ line.message }}</span>
+            </div>
+
+            <p class="text-caption text-medium-emphasis mt-4 mb-0">
+              Aufgezeichnet aus Sicht von
+              {{ replayPlayer?.alias || match.replayProfileId }} — nur dessen Teamchat ist zu sehen.
+            </p>
+          </template>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="matchDialogOpen = false">Schließen</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -131,6 +213,7 @@ const headers = [
   { title: 'Titel', key: 'title' },
   { title: 'Spiel', key: 'game', width: 170 },
   { title: 'Dauer', key: 'durationSeconds', width: 110 },
+  { title: 'Letzte Partie', key: 'match', width: 200, sortable: false },
   { title: 'VOD', key: 'vodStatus', width: 190, sortable: false }
 ]
 
@@ -225,6 +308,109 @@ function vodChipConfig (stream) {
   }
 }
 
+/**
+ * Die Partie, bei der der Stream endete. Ist eine erfasst, oeffnet der Chip
+ * den Chatverlauf; sonst sagt er, warum keine da ist.
+ */
+const MatchChip = (props) => {
+  const s = props.stream
+  const config = matchChipConfig(s)
+  if (!config) return h('span', { class: 'text-medium-emphasis' }, '—')
+
+  return h(VChip, {
+    size: 'small',
+    color: config.color,
+    variant: config.variant || 'flat',
+    prependIcon: config.icon,
+    title: config.title,
+    style: config.clickable ? 'cursor: pointer' : undefined,
+    onClick: config.clickable ? () => openMatch(s) : undefined
+  }, () => config.text)
+}
+MatchChip.props = ['stream']
+
+function matchChipConfig (stream) {
+  if (stream.match) {
+    const won = stream.match.outcome === 1
+    return {
+      color: won ? 'success' : 'error',
+      icon: won ? 'mdi-trophy-variant' : 'mdi-skull-outline',
+      text: stream.match.mapName || 'Partie',
+      title: `${stream.match.label || 'Partie'} - ${won ? 'gewonnen' : 'verloren'}, `
+        + `${stream.match.chatCount} Chatnachrichten`,
+      clickable: true
+    }
+  }
+  switch (stream.matchStatus) {
+    case 'pending':
+      return { color: 'blue-grey', variant: 'tonal', icon: 'mdi-magnify', text: 'wird gesucht' }
+    case 'no_match':
+      return {
+        color: 'grey',
+        variant: 'tonal',
+        icon: 'mdi-sleep',
+        text: 'nicht gespielt',
+        title: 'Im Zeitraum des Streams lag keine Partie'
+      }
+    case 'no_replay':
+      return {
+        color: 'grey',
+        variant: 'tonal',
+        icon: 'mdi-file-hidden',
+        text: 'kein Replay',
+        title: 'Partie gefunden, aber niemand hat sein Replay hochgeladen'
+      }
+    case 'failed':
+      return {
+        color: 'grey',
+        variant: 'tonal',
+        icon: 'mdi-alert-outline',
+        text: 'fehlgeschlagen',
+        title: 'Die Suche nach der Partie ist wiederholt gescheitert'
+      }
+    default:
+      return null
+  }
+}
+
+const matchDialogOpen = ref(false)
+const match = ref(null)
+const chatLoading = ref(false)
+const chatError = ref('')
+
+const companionUrl = computed(() =>
+  match.value ? `https://www.aoe2companion.com/matches/${match.value.matchId}` : undefined
+)
+const replayUrl = computed(() =>
+  match.value
+    ? 'https://api.ageofempires.com/api/GameStats/AgeII/GetMatchReplay/'
+      + `?matchId=${match.value.matchId}&profileId=${match.value.replayProfileId}`
+    : undefined
+)
+const replayPlayer = computed(() =>
+  match.value?.players?.find(p => p.profileId === match.value.replayProfileId)
+)
+
+/**
+ * Der Chatverlauf haengt nicht an der Streamliste, sondern wird erst beim
+ * Oeffnen geholt - sonst traegt die Liste die Chats aller Streams mit.
+ */
+async function openMatch (stream) {
+  match.value = null
+  chatError.value = ''
+  chatLoading.value = true
+  matchDialogOpen.value = true
+  try {
+    const { data } = await axios.get(`/api/billy/streams/${stream.streamId}/chat`)
+    match.value = data
+  } catch (e) {
+    chatError.value = 'Der Chatverlauf konnte nicht geladen werden.'
+    console.error('Error fetching billy chat:', e)
+  } finally {
+    chatLoading.value = false
+  }
+}
+
 function formatDateTime (value) {
   if (!value) return '—'
   return new Date(value).toLocaleString('de-DE', {
@@ -237,18 +423,20 @@ function formatDateTime (value) {
   })
 }
 
-/**
- * Laufende Streams werden bis jetzt gerechnet, damit die Dauer mitwaechst.
- */
-function formatDuration (stream) {
-  const seconds = stream.isLive
-    ? Math.round((Date.now() - new Date(stream.startedAt)) / 1000)
-    : stream.durationSeconds
-
+function formatSeconds (seconds) {
   if (seconds === null || seconds === undefined) return '—'
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+}
+
+/**
+ * Laufende Streams werden bis jetzt gerechnet, damit die Dauer mitwaechst.
+ */
+function formatDuration (stream) {
+  return formatSeconds(stream.isLive
+    ? Math.round((Date.now() - new Date(stream.startedAt)) / 1000)
+    : stream.durationSeconds)
 }
 
 async function load () {
