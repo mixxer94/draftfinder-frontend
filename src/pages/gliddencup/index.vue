@@ -1,10 +1,10 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import AppBar from '../components/AppBar.vue'
-import Bracket from '../components/Bracket.vue'
-import PlayerCharacteristics from '../components/PlayerCharacteristics.vue'
-import PlayerCharacteristicsMobile from '../components/PlayerCharacteristicsMobile.vue'
+import AppBar from '../../components/AppBar.vue'
+import Bracket from '../../components/Bracket.vue'
+import PlayerCharacteristics from '../../components/PlayerCharacteristics.vue'
+import PlayerCharacteristicsMobile from '../../components/PlayerCharacteristicsMobile.vue'
 
 
 // --- API base ---

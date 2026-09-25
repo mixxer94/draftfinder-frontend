@@ -22,9 +22,9 @@ const router = createRouter({
  * die API — das hier erspart nur den Umweg über ein 403.
  */
 router.beforeEach(async to => {
-  if (!to.path.startsWith('/hidden-cup/admin')) return
+  if (!to.path.startsWith('/gliddencup/admin')) return
   const user = await loadSession().catch(() => null)
-  if (user && !isAdmin() && !helperMayOpen(to.path)) return '/hidden-cup/admin'
+  if (user && !isAdmin() && !helperMayOpen(to.path)) return '/gliddencup/admin'
 })
 
 // Workaround for https://github.com/vitejs/vite/issues/11804

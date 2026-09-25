@@ -16,7 +16,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { errorMessage, hcApi } from '@/services/hcApi'
-import MatchTable from '@/components/hidden-cup/MatchTable.vue'
+import MatchTable from '@/components/gliddencup/MatchTable.vue'
 
 const data = ref(null)
 const error = ref('')

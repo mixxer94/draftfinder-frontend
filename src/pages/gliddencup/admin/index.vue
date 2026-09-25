@@ -64,7 +64,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { errorMessage, hcApi, isAdmin } from '@/services/hcApi'
-import MatchTable from '@/components/hidden-cup/MatchTable.vue'
+import MatchTable from '@/components/gliddencup/MatchTable.vue'
 
 const data = ref(null)
 const error = ref('')
@@ -87,13 +87,13 @@ const tiles = computed(() => {
   const admin = isAdmin()
   const warn = (n, color = 'warning') => (n > 0 ? color : undefined)
   return [
-    { label: 'Bereit zur Aktivierung', value: c.ready, color: warn(c.ready), to: admin ? '/hidden-cup/admin/activation' : undefined },
+    { label: 'Bereit zur Aktivierung', value: c.ready, color: warn(c.ready), to: admin ? '/gliddencup/admin/activation' : undefined },
     { label: 'Replay-Pack fehlt', value: c.awaitingReplay, color: warn(c.awaitingReplay), hint: c.awaitingReplay ? 'blockiert Folgematches' : '' },
     { label: 'Blockiert (DM)', value: c.blocked, color: warn(c.blocked, 'error'), hint: c.blocked ? 'Timer pausiert' : '' },
     { label: 'Eskaliert', value: c.escalated, color: warn(c.escalated, 'error') },
     { label: 'In Verhandlung', value: c.negotiating },
-    { label: 'Terminiert', value: c.scheduled, to: '/hidden-cup/admin/schedule' },
-    { label: 'Ohne Pseudonym', value: c.pendingPseudonym, color: warn(c.pendingPseudonym), to: admin ? '/hidden-cup/admin/registrations' : undefined },
+    { label: 'Terminiert', value: c.scheduled, to: '/gliddencup/admin/schedule' },
+    { label: 'Ohne Pseudonym', value: c.pendingPseudonym, color: warn(c.pendingPseudonym), to: admin ? '/gliddencup/admin/registrations' : undefined },
     { label: 'DM unerreichbar', value: c.dmBlocked, color: warn(c.dmBlocked, 'error') },
   ]
 })

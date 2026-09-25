@@ -20,7 +20,7 @@
           </td>
           <td class="text-medium-emphasis">{{ s.dependentSlotCount }}</td>
           <td v-if="admin">
-            <v-btn v-if="s.match" size="small" variant="text" :to="`/hidden-cup/admin/matches/${s.match.id}`">Detail</v-btn>
+            <v-btn v-if="s.match" size="small" variant="text" :to="`/gliddencup/admin/matches/${s.match.id}`">Detail</v-btn>
           </td>
         </tr>
       </tbody>
@@ -31,7 +31,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { errorMessage, hcApi, isAdmin } from '@/services/hcApi'
-import MatchStateChip from '@/components/hidden-cup/MatchStateChip.vue'
+import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
 
 const slots = ref([])
 const error = ref('')

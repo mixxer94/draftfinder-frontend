@@ -84,7 +84,7 @@ function toggleTheme () {
 
 async function doLogout () {
   await logout()
-  router.replace('/hidden-cup/admin')
+  router.replace('/gliddencup/admin')
 }
 
 /*

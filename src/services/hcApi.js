@@ -80,16 +80,16 @@ export function formatDate (iso, timeZone, withWeekday = false) {
   }).format(new Date(iso))
 }
 
-/** Seiten, die auch Helfer sehen; alles andere unter /hidden-cup/admin ist Admin. */
+/** Seiten, die auch Helfer sehen; alles andere unter /gliddencup/admin ist Admin. */
 export const HC_NAV = [
-  { to: '/hidden-cup/admin', title: 'Übersicht', icon: 'mdi-view-dashboard', helper: true },
-  { to: '/hidden-cup/admin/registrations', title: 'Anmeldungen', icon: 'mdi-account-multiple' },
-  { to: '/hidden-cup/admin/rounds', title: 'Runden', icon: 'mdi-format-list-numbered' },
-  { to: '/hidden-cup/admin/draw', title: 'Auslosung', icon: 'mdi-dice-multiple' },
-  { to: '/hidden-cup/admin/activation', title: 'Aktivierung', icon: 'mdi-play-circle' },
-  { to: '/hidden-cup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', helper: true },
-  { to: '/hidden-cup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', helper: true },
-  { to: '/hidden-cup/admin/audit', title: 'Audit-Log', icon: 'mdi-shield-search' },
+  { to: '/gliddencup/admin', title: 'Übersicht', icon: 'mdi-view-dashboard', helper: true },
+  { to: '/gliddencup/admin/registrations', title: 'Anmeldungen', icon: 'mdi-account-multiple' },
+  { to: '/gliddencup/admin/rounds', title: 'Runden', icon: 'mdi-format-list-numbered' },
+  { to: '/gliddencup/admin/draw', title: 'Auslosung', icon: 'mdi-dice-multiple' },
+  { to: '/gliddencup/admin/activation', title: 'Aktivierung', icon: 'mdi-play-circle' },
+  { to: '/gliddencup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', helper: true },
+  { to: '/gliddencup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', helper: true },
+  { to: '/gliddencup/admin/audit', title: 'Audit-Log', icon: 'mdi-shield-search' },
 ]
 
 export function helperMayOpen (path) {

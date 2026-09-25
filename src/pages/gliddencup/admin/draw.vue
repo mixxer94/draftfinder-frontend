@@ -105,7 +105,7 @@ async function submit () {
   error.value = ''
   try {
     await hcApi.post('/draw', { assignments: picks })
-    router.push('/hidden-cup/admin/bracket')
+    router.push('/gliddencup/admin/bracket')
   } catch (e) {
     error.value = errorMessage(e)
   } finally {

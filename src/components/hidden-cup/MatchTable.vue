@@ -25,7 +25,7 @@
         </td>
         <td v-if="has('score')">{{ m.score ?? '—' }}</td>
         <td v-if="admin">
-          <v-btn size="small" variant="text" :to="`/hidden-cup/admin/matches/${m.id}`">Detail</v-btn>
+          <v-btn size="small" variant="text" :to="`/gliddencup/admin/matches/${m.id}`">Detail</v-btn>
         </td>
       </tr>
     </tbody>
