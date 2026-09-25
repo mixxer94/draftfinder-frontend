@@ -13,7 +13,7 @@ export const hcApi = axios.create({ baseURL: '/api/hc' })
 /** Angemeldete Person; `loaded` erst nach dem ersten /me. */
 export const hcSession = reactive({
   loaded: false,
-  user: null, // { username, roles, csrf, storageWarning }
+  user: null, // { username, roles, csrf }
 })
 
 export const isAdmin = () => hcSession.user?.roles?.includes('ADMIN') ?? false

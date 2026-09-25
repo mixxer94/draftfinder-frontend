@@ -50,9 +50,6 @@
     </v-card>
 
     <template v-else>
-      <v-alert v-if="hcSession.user.storageWarning" type="warning" variant="tonal" density="compact" class="mb-4">
-        {{ hcSession.user.storageWarning }}
-      </v-alert>
       <router-view />
     </template>
   </v-container>
