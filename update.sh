@@ -2,7 +2,12 @@
 
 git pull
 
-npm run build
+# Bricht bei einem fehlgeschlagenen Build ab - sonst würde unten der alte
+# dist-Stand kopiert und das Update sähe erfolgreich aus.
+if ! npm run build; then
+    echo "Build fehlgeschlagen - draftfinder/dist bleibt unverändert."
+    exit 1
+fi
 
 # Copy the draftfinder directory
 cd  ../draftfinder 
