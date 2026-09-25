@@ -32,8 +32,8 @@ fi
 cp -r ../draftfinder-frontend/dist dist
 echo "dist directory copied from draftfinder-frontend"
 
-# git pull
+git pull
 
-# pm2 restart draftfinder
+pm2 restart draftfinder
 
 echo "Script execution completed."
