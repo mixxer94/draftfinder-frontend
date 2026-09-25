@@ -39,6 +39,9 @@
     </v-card-text>
     <v-card-actions>
       <v-btn color="secondary" variant="flat" :loading="busy === r.code" @click="activate(r)">Match aktivieren</v-btn>
+      <v-btn variant="tonal" :loading="busy === `${r.code}-now`" @click="activate(r, true)">
+        <v-icon start>mdi-play</v-icon>Aktivieren und sofort starten
+      </v-btn>
     </v-card-actions>
   </v-card>
 </template>
@@ -65,12 +68,15 @@ async function load () {
   }
 }
 
-async function activate (r) {
-  busy.value = r.code
+async function activate (r, startNow = false) {
+  if (startNow && !confirm(`${r.code} (${r.a} vs. ${r.b}) aktivieren und sofort starten?\n\nDie Terminfindung entfällt, beide bekommen direkt die Draft-Presets.`)) return
+  busy.value = startNow ? `${r.code}-now` : r.code
   error.value = ''
   try {
-    await hcApi.post(`/activation/${r.code}`, forms[r.code])
-    info.value = `${r.code} aktiviert — die Eröffnungs-DMs sind unterwegs.`
+    await hcApi.post(`/activation/${r.code}`, { ...forms[r.code], startNow })
+    info.value = startNow
+      ? `${r.code} gestartet — Eröffnung und Draft-Presets sind unterwegs.`
+      : `${r.code} aktiviert — die Eröffnungs-DMs sind unterwegs.`
     delete forms[r.code]
     await load()
   } catch (e) {

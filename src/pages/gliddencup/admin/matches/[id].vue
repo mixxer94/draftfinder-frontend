@@ -15,6 +15,9 @@
       </v-chip>
       <template v-if="m.scheduledAt"> · Termin: {{ fmt(m.scheduledAt, true) }}</template>
     </p>
+    <v-btn v-if="STARTABLE.includes(m.state) && !m.blocked" class="mb-4" color="secondary" variant="tonal" :loading="busy === 'start'" @click="startNow">
+      <v-icon start>mdi-play</v-icon>Jetzt starten
+    </v-btn>
 
     <!-- Draft-Links -->
     <h3 class="text-subtitle-1 mt-4 mb-1">Draft-Links</h3>
@@ -154,6 +157,8 @@ const info = ref('')
 const busy = ref('')
 const correction = reactive({ winner: null, score: null })
 const MAX_MB = 64
+// Wie STARTABLE im Backend; die API prüft ohnehin selbst.
+const STARTABLE = ['INVITED', 'COLLECTING', 'PROPOSED', 'HALF_CONFIRMED', 'CONFIRMED', 'ESCALATED']
 const upload = reactive({ file: null, progress: 0 })
 // v-file-input liefert je nach Vuetify-Version eine Datei oder ein Array.
 const uploadFile = computed(() => (Array.isArray(upload.file) ? upload.file[0] : upload.file) ?? null)
@@ -189,6 +194,13 @@ async function run (key, fn) {
   } finally {
     busy.value = ''
   }
+}
+
+async function startNow () {
+  const termin = m.value.scheduledAt ? ` Der vereinbarte Termin (${fmt(m.value.scheduledAt, true)}) entfällt.` : ''
+  if (!confirm(`Match jetzt starten?\n\nBeide bekommen sofort die Draft-Presets.${termin}`)) return
+  const res = await run('start', () => hcApi.post(`/matches/${m.value.id}/start`))
+  if (res) info.value = 'Gestartet — die Presets sind unterwegs.'
 }
 
 function classify (d, kind) {

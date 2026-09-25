@@ -46,6 +46,32 @@
       </v-col>
     </v-row>
 
+    <v-alert v-if="info" type="success" variant="tonal" closable class="mb-4" @click:close="info = ''">{{ info }}</v-alert>
+
+    <template v-if="data.running.length">
+      <h3 class="text-subtitle-1 mt-4 mb-2">Laufende Matches</h3>
+      <v-table density="compact">
+        <thead>
+          <tr><th>Slot</th><th>Runde</th><th>Paarung</th><th>Termin</th><th>Status</th><th v-if="admin" /></tr>
+        </thead>
+        <tbody>
+          <tr v-for="m in data.running" :key="m.id">
+            <td class="font-weight-medium text-no-wrap">{{ m.slotCode }}</td>
+            <td>{{ m.roundLabel }}</td>
+            <td>{{ m.a }} vs. {{ m.b }}</td>
+            <td class="text-no-wrap">{{ m.scheduledAt ? formatDate(m.scheduledAt, t.timezone, true) : '—' }}</td>
+            <td><MatchStateChip :match="m" /></td>
+            <td v-if="admin" class="text-no-wrap">
+              <v-btn v-if="m.startable" size="small" color="secondary" variant="tonal" :loading="starting === m.id" @click="start(m)">
+                <v-icon start>mdi-play</v-icon>Jetzt starten
+              </v-btn>
+              <v-btn size="small" variant="text" :to="`/gliddencup/admin/matches/${m.id}`">Detail</v-btn>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </template>
+
     <template v-for="section in sections" :key="section.title">
       <template v-if="section.items.length">
         <h3 class="text-subtitle-1 mt-4 mb-2">{{ section.title }}</h3>
@@ -63,12 +89,33 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { errorMessage, hcApi, isAdmin } from '@/services/hcApi'
+import { errorMessage, formatDate, hcApi, isAdmin } from '@/services/hcApi'
 import MatchTable from '@/components/gliddencup/MatchTable.vue'
+import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
 
 const data = ref(null)
 const error = ref('')
 const loading = ref(false)
+const info = ref('')
+const starting = ref('')
+const admin = computed(() => isAdmin())
+
+/** Sofortstart: Termin = jetzt, beide bekommen sofort die Draft-Presets. */
+async function start (m) {
+  const termin = m.scheduledAt ? ` Der vereinbarte Termin (${formatDate(m.scheduledAt, t.value.timezone, true)}) entfällt.` : ''
+  if (!confirm(`${m.slotCode} (${m.a} vs. ${m.b}) jetzt starten?\n\nBeide bekommen sofort die Draft-Presets.${termin}`)) return
+  starting.value = m.id
+  error.value = ''
+  try {
+    await hcApi.post(`/matches/${m.id}/start`)
+    info.value = `${m.slotCode} gestartet — die Presets sind unterwegs.`
+    await load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    starting.value = ''
+  }
+}
 
 const t = computed(() => data.value?.tournament)
 const s = computed(() => data.value?.stand)
