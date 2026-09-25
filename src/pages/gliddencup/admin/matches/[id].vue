@@ -66,9 +66,27 @@
         · {{ (m.replayPack.bytes / 1048576).toFixed(2) }} MB · {{ m.replayPack.source }} · {{ fmt(m.replayPack.uploadedAt) }}
       </span>
     </p>
-    <v-alert v-else type="warning" variant="tonal" density="compact">
-      Replay-Pack fehlt — die Aktivierung nachgelagerter Matches ist gesperrt.
-    </v-alert>
+    <template v-else>
+      <v-alert type="warning" variant="tonal" density="compact" class="mb-3">
+        Replay-Pack fehlt — die Aktivierung nachgelagerter Matches ist gesperrt.
+        Für Packs, die Discord ablehnt (über 10 MB): hier hochladen, höchstens {{ MAX_MB }} MB.
+      </v-alert>
+      <div class="d-flex flex-wrap align-center ga-2">
+        <v-file-input
+          v-model="upload.file"
+          accept=".zip,application/zip"
+          label="Replay-Pack (.zip)"
+          density="compact"
+          hide-details
+          show-size
+          style="max-width: 360px"
+        />
+        <v-btn color="secondary" variant="flat" :loading="busy === 'upload'" :disabled="!uploadFile" @click="uploadReplay">
+          Hochladen
+        </v-btn>
+      </div>
+      <v-progress-linear v-if="busy === 'upload'" :model-value="upload.progress" class="mt-2" style="max-width: 480px" />
+    </template>
 
     <!-- Chat -->
     <h3 class="text-subtitle-1 mt-6 mb-1">Chatverlauf</h3>
@@ -135,6 +153,10 @@ const error = ref('')
 const info = ref('')
 const busy = ref('')
 const correction = reactive({ winner: null, score: null })
+const MAX_MB = 64
+const upload = reactive({ file: null, progress: 0 })
+// v-file-input liefert je nach Vuetify-Version eine Datei oder ein Array.
+const uploadFile = computed(() => (Array.isArray(upload.file) ? upload.file[0] : upload.file) ?? null)
 const compose = reactive({ text: '', to: 'BOTH' })
 
 const name = computed(() => ({ A: m.value?.players.A.pseudonym, B: m.value?.players.B.pseudonym }))
@@ -186,6 +208,33 @@ async function send () {
   // Blockierte DM ist kein Fehlschlag, aber die Orga muss es wissen.
   info.value = unreachable ? `Zugestellt: ${delivered}. Nicht erreichbar: ${unreachable}.` : `Nachricht zugestellt (${delivered}).`
   compose.text = ''
+}
+
+/*
+ * Die Datei geht als roher Body hinaus, der Name als Query-Parameter — so
+ * erwartet es POST /api/hc/matches/:id/replay.
+ */
+async function uploadReplay () {
+  const file = uploadFile.value
+  if (!/\.zip$/i.test(file.name)) {
+    error.value = 'Bitte ein .zip-Archiv wählen.'
+    return
+  }
+  if (file.size > MAX_MB * 1048576) {
+    error.value = `Die Datei ist größer als ${MAX_MB} MB.`
+    return
+  }
+  upload.progress = 0
+  const res = await run('upload', () =>
+    hcApi.post(`/matches/${m.value.id}/replay`, file, {
+      params: { filename: file.name },
+      headers: { 'Content-Type': 'application/octet-stream' },
+      onUploadProgress: e => { upload.progress = e.total ? (100 * e.loaded) / e.total : 0 },
+    }))
+  if (res) {
+    upload.file = null
+    info.value = 'Replay-Pack gespeichert.'
+  }
 }
 
 onMounted(load)

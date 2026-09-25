@@ -89,6 +89,7 @@ export const HC_NAV = [
   { to: '/gliddencup/admin/activation', title: 'Aktivierung', icon: 'mdi-play-circle' },
   { to: '/gliddencup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', helper: true },
   { to: '/gliddencup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', helper: true },
+  { to: '/gliddencup/admin/replays', title: 'Replays', icon: 'mdi-folder-zip' },
   { to: '/gliddencup/admin/audit', title: 'Audit-Log', icon: 'mdi-shield-search' },
 ]
 
