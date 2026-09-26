@@ -25,7 +25,7 @@
         </td>
         <td v-if="has('score')">{{ m.score ?? '—' }}</td>
         <td v-if="admin" class="text-right">
-          <DetailButton :id="m.id" />
+          <DetailButton :id="m.id" :slot-code="m.slotCode" />
         </td>
       </tr>
     </tbody>

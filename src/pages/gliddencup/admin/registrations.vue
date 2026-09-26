@@ -11,7 +11,7 @@
       <tr><th>Pseudonym</th><th>Discord</th><th>Status</th><th>Aktionen</th></tr>
     </thead>
     <tbody>
-      <tr v-for="p in players" :key="p.id">
+      <tr v-for="(p, i) in players" :key="p.id">
         <td class="font-weight-bold">{{ p.pseudonym || '—' }}</td>
         <td class="text-no-wrap">
           <template v-if="revealed[p.id]">
@@ -19,7 +19,7 @@
           </template>
           <template v-else>
             <span class="text-medium-emphasis">••••••••</span>
-            <v-btn size="small" variant="text" :loading="busy === `reveal-${p.id}`" @click="reveal(p)">Aufdecken</v-btn>
+            <v-btn size="small" variant="text" :loading="busy === `reveal-${p.id}`" :aria-label="`Aufdecken: ${rowName(p, i)}`" @click="reveal(p)">Aufdecken</v-btn>
           </template>
         </td>
         <td>
@@ -31,17 +31,18 @@
             <template v-if="!p.pseudonym && !isOut(p)">
               <v-text-field
                 v-model="pseudonymInput[p.id]"
+                label="Pseudonym"
                 placeholder="Leer = Vorschlag"
                 density="compact"
                 hide-details
                 style="max-width: 220px"
               />
-              <v-btn size="small" color="secondary" variant="flat" :loading="busy === `ps-${p.id}`" @click="assign(p)">
+              <v-btn size="small" color="secondary" variant="flat" :loading="busy === `ps-${p.id}`" :aria-label="`Vergeben: ${rowName(p, i)}`" @click="assign(p)">
                 Vergeben
               </v-btn>
             </template>
-            <v-btn v-if="!isOut(p)" size="small" color="error" variant="text" @click="openRemove(p)">Entfernen</v-btn>
-            <v-btn v-else size="small" variant="tonal" :loading="busy === `re-${p.id}`" @click="readmit(p)">
+            <v-btn v-if="!isOut(p)" size="small" color="error" variant="text" :aria-label="`Entfernen: ${rowName(p, i)}`" @click="openRemove(p)">Entfernen</v-btn>
+            <v-btn v-else size="small" variant="tonal" :loading="busy === `re-${p.id}`" :aria-label="`Wieder aufnehmen: ${rowName(p, i)}`" @click="readmit(p)">
               Wieder aufnehmen
             </v-btn>
           </div>
@@ -94,6 +95,8 @@ const timers = []
 const removeDialog = reactive({ open: false, player: null, reason: '', permanent: false })
 
 const isOut = p => p.status === 'ENTFERNT' || p.status === 'GESPERRT'
+// Zeilenname für Screenreader; ohne Pseudonym bleibt nur die Position, der Discord-Name ist verdeckt.
+const rowName = (p, i) => p.pseudonym || `Anmeldung ${i + 1}`
 const statusColor = s =>
   s === 'VERIFIED' ? 'success' : s === 'DM_BLOCKED' || s === 'GESPERRT' ? 'error' : s === 'ENTFERNT' ? 'grey' : 'warning'
 

@@ -4,7 +4,7 @@
   </PageHeader>
 
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
-  <p v-if="data && !data.matches.length" class="text-medium-emphasis">Noch keine Termine.</p>
+  <p v-if="data && !data.matches.length" class="text-medium-emphasis">Noch keine Termine. Ein Termin steht, sobald sich beide Spieler eines freigegebenen Matches einigen oder es sofort gestartet wird.</p>
   <MatchTable v-else-if="data" :matches="data.matches" :timezone="data.tournament.timezone" :columns="['scheduledAt', 'state']" />
 </template>
 

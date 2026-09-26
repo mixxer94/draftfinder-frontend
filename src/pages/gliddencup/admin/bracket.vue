@@ -26,7 +26,7 @@
             <td>{{ s.match?.score ?? '' }}</td>
             <td><MatchStateChip :match="s.match ?? { state: s.a && s.b ? 'READY' : 'PENDING' }" /></td>
             <td v-if="admin" class="text-right">
-              <DetailButton v-if="s.match" :id="s.match.id" />
+              <DetailButton v-if="s.match" :id="s.match.id" :slot-code="s.code" />
             </td>
           </tr>
         </tbody>

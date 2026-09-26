@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { formatDate } from '@/services/hcApi'
 
 /** Zustand des einen Bestätigungsdialogs; gerendert von ConfirmDialog.vue in admin.vue. */
 export const confirmState = reactive({
@@ -30,4 +31,18 @@ export function settleConfirm (confirmed) {
   confirmState.resolve?.(answer || false)
   confirmState.resolve = null
   confirmState.open = false
+}
+
+/**
+ * Rückfrage vor „Sofort starten“, überall mit demselben Wortlaut.
+ * `scheduledAt` nur übergeben, wenn schon ein Termin steht, der dann entfällt.
+ */
+export function confirmStartNow ({ code, a, b, scheduledAt = null, timezone }) {
+  const termin = scheduledAt ? `
+Der Termin am ${formatDate(scheduledAt, timezone, true)} entfällt.` : ''
+  return confirmAction({
+    title: `${code} sofort starten?`,
+    text: `${a} vs. ${b}: Der Bot schickt beiden jetzt die Draft-Links, das Spiel beginnt sofort.${termin}`,
+    confirmText: 'Sofort starten',
+  })
 }

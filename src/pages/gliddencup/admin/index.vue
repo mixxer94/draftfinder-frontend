@@ -26,12 +26,15 @@
     <!-- Nur was ohne die Turnierleitung nicht weitergeht. -->
     <section class="mb-8">
       <h2 class="hc-h2">Offene Punkte</h2>
-      <p v-if="!todos.length" class="text-medium-emphasis">Nichts offen.</p>
+      <p v-if="!todos.length" class="text-medium-emphasis">
+        Nichts offen. Blockierte und eskalierte Matches, fehlende Replays und anstehende Freigaben erscheinen hier.
+      </p>
       <v-list v-else density="compact" class="hc-todos py-0" bg-color="transparent">
         <v-list-item
           v-for="todo in todos"
           :key="todo.label"
           :to="todo.to"
+          :href="todo.href"
           :base-color="todo.color"
           class="px-0"
         >
@@ -40,7 +43,7 @@
           </template>
           <v-list-item-title>{{ todo.label }}</v-list-item-title>
           <v-list-item-subtitle v-if="todo.hint">{{ todo.hint }}</v-list-item-subtitle>
-          <template v-if="todo.to" #append><v-icon>mdi-chevron-right</v-icon></template>
+          <template v-if="todo.to || todo.href" #append><v-icon>mdi-chevron-right</v-icon></template>
         </v-list-item>
       </v-list>
     </section>
@@ -62,16 +65,15 @@
               <v-btn
                 v-if="m.startable"
                 size="small"
-                color="secondary"
-                variant="flat"
-                prepend-icon="mdi-play"
+                variant="text"
                 class="mr-2"
                 :loading="starting === m.id"
+                :aria-label="`${m.slotCode} sofort starten`"
                 @click="start(m)"
               >
-                Starten
+                Sofort starten
               </v-btn>
-              <DetailButton :id="m.id" />
+              <DetailButton :id="m.id" :slot-code="m.slotCode" />
             </td>
           </tr>
         </tbody>
@@ -79,7 +81,7 @@
     </section>
 
     <template v-for="section in sections" :key="section.title">
-      <section v-if="section.items.length" class="mb-8">
+      <section v-if="section.items.length" :id="section.id" class="hc-section mb-8">
         <h2 class="hc-h2">{{ section.title }}</h2>
         <MatchTable :matches="section.items" :timezone="t.timezone" :columns="section.columns" />
       </section>
@@ -96,7 +98,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { errorMessage, formatDate, hcApi, isAdmin } from '@/services/hcApi'
-import { confirmAction } from '@/services/confirm'
+import { confirmStartNow } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import MatchTable from '@/components/gliddencup/MatchTable.vue'
 import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
@@ -111,12 +113,7 @@ const admin = computed(() => isAdmin())
 
 /** Sofortstart: Termin = jetzt, beide bekommen sofort die Draft-Presets. */
 async function start (m) {
-  const termin = m.scheduledAt ? `\nDer Termin am ${formatDate(m.scheduledAt, t.value.timezone, true)} entfällt.` : ''
-  const ok = await confirmAction({
-    title: `${m.slotCode} jetzt starten?`,
-    text: `${m.a} vs. ${m.b}. Der Bot schickt beiden sofort die Draft-Links.${termin}`,
-    confirmText: 'Starten',
-  })
+  const ok = await confirmStartNow({ code: m.slotCode, a: m.a, b: m.b, scheduledAt: m.scheduledAt, timezone: t.value.timezone })
   if (!ok) return
   starting.value = m.id
   error.value = ''
@@ -146,20 +143,25 @@ const phase = computed(() => PHASES[t.value?.state] ?? { text: t.value?.state })
 const todos = computed(() => {
   const c = data.value.counts
   const link = to => (admin.value ? to : undefined)
+  // Bei genau einem Match gleich in dessen Details, sonst zum Abschnitt weiter unten.
+  // Helfer sehen keine Match-Details und landen immer im Abschnitt.
+  const jump = (items, id) => items.length === 1 && admin.value
+    ? { to: `/gliddencup/admin/matches/${items[0].id}` }
+    : { href: `#${id}` }
   return [
-    { label: 'Blockiert', value: c.blocked, color: 'error', hint: 'Timer pausiert' },
-    { label: 'Eskaliert', value: c.escalated, color: 'error' },
+    { label: 'Blockiert', value: c.blocked, color: 'error', hint: 'Timer pausiert', ...jump(data.value.blocked, 'blockiert') },
+    { label: 'Eskaliert', value: c.escalated, color: 'error', ...jump(data.value.escalated, 'eskaliert') },
     { label: 'Spieler per DM nicht erreichbar', value: c.dmBlocked, color: 'error', to: link('/gliddencup/admin/registrations') },
     { label: 'Bereit zur Freigabe', value: c.ready, color: 'warning', to: link('/gliddencup/admin/activation') },
-    { label: 'Replay fehlt', value: c.awaitingReplay, color: 'warning', hint: 'Blockiert Folgematches' },
+    { label: 'Replay fehlt', value: c.awaitingReplay, color: 'warning', hint: 'Blockiert Folgematches', ...jump(data.value.awaitingReplay, 'replay-fehlt') },
     { label: 'Ohne Pseudonym', value: c.pendingPseudonym, color: 'warning', to: link('/gliddencup/admin/registrations') },
   ].filter(todo => todo.value > 0)
 })
 
 const sections = computed(() => [
-  { title: 'Blockiert', items: data.value.blocked, columns: ['blocked'] },
-  { title: 'Eskaliert', items: data.value.escalated, columns: ['state'] },
-  { title: 'Replay fehlt', items: data.value.awaitingReplay, columns: ['score'] },
+  { id: 'blockiert', title: 'Blockiert', items: data.value.blocked, columns: ['blocked'] },
+  { id: 'eskaliert', title: 'Eskaliert', items: data.value.escalated, columns: ['state'] },
+  { id: 'replay-fehlt', title: 'Replay fehlt', items: data.value.awaitingReplay, columns: ['score'] },
 ])
 
 async function load () {
@@ -178,6 +180,11 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* Sprungziel der offenen Punkte; hält die Überschrift unter der fixen App-Leiste frei. */
+.hc-section {
+  scroll-margin-top: 64px;
+}
+
 .hc-count {
   min-width: 2.5rem;
   font-size: 1.25rem;

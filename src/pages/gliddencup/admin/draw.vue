@@ -49,6 +49,7 @@
               density="compact"
               hide-details
               placeholder="Spieler wählen"
+              :aria-label="`${slot.code}, Spieler ${side.toUpperCase()}`"
               @update:model-value="id => pick(slot.code, side, id)"
             />
           </td>

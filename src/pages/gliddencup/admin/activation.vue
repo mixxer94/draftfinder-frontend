@@ -11,7 +11,13 @@
   <v-alert v-if="info" type="success" variant="tonal" closable class="mb-4" @click:close="info = ''">{{ info }}</v-alert>
 
   <template v-if="data">
-    <p v-if="!data.ready.length" class="text-medium-emphasis">Kein Match bereit.</p>
+    <p v-if="!data.ready.length" class="text-medium-emphasis">
+      <template v-if="data.tournament.state === 'SETUP'">
+        Kein Match bereit, weil noch nicht ausgelost ist. Nach der <router-link to="/gliddencup/admin/draw">Auslosung</router-link> erscheint hier die erste Runde.
+      </template>
+      <template v-else-if="data.tournament.state === 'FINISHED'">Kein Match bereit. Das Turnier ist abgeschlossen.</template>
+      <template v-else>Kein Match bereit. Ein Match lässt sich freigeben, sobald beide Gegner feststehen, also wenn die Matches davor gewertet sind.</template>
+    </p>
 
     <template v-else>
       <div class="d-flex flex-wrap align-center ga-4 mb-6">
@@ -39,6 +45,7 @@
                   prepend-icon="mdi-play"
                   :disabled="!validWindow || !!busy"
                   :loading="busy === r.code"
+                  :aria-label="`${r.code} freigeben`"
                   @click="activate(r)"
                 >
                   Freigeben
@@ -49,6 +56,7 @@
                   variant="text"
                   :disabled="!validWindow || !!busy"
                   :loading="busy === `${r.code}-now`"
+                  :aria-label="`${r.code} sofort starten`"
                   @click="activate(r, true)"
                 >
                   Sofort starten
@@ -66,7 +74,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { errorMessage, hcApi, hcSession } from '@/services/hcApi'
-import { confirmAction } from '@/services/confirm'
+import { confirmAction, confirmStartNow } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 // Sperren, die sich mit Begründung übergehen lassen (Audit-Log).
@@ -100,11 +108,7 @@ function body (startNow, override) {
 
 async function activate (r, startNow = false) {
   if (startNow) {
-    const ok = await confirmAction({
-      title: `${r.code} sofort starten?`,
-      text: `Bist du wirklich sicher? Der Bot schickt ${r.a} und ${r.b} direkt die Draft-Links und das Spiel startet.`,
-      confirmText: 'Sofort starten',
-    })
+    const ok = await confirmStartNow({ code: r.code, a: r.a, b: r.b })
     if (!ok) return
   }
   busy.value = startNow ? `${r.code}-now` : r.code

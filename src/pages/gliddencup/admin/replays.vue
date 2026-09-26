@@ -9,7 +9,7 @@
     <strong>Backup auf GitHub:</strong> {{ mirrorAlert.text }}
   </v-alert>
 
-  <p v-if="data && !data.packs.length" class="text-medium-emphasis">Noch keine Replay-Packs.</p>
+  <p v-if="data && !data.packs.length" class="text-medium-emphasis">Noch keine Replay-Packs. Sie kommen per DM von einem der beiden Spieler oder über den Upload in den Match-Details.</p>
   <v-table v-else-if="data" density="compact">
     <thead>
       <tr><th>Slot</th><th>Runde</th><th>Paarung</th><th>Ergebnis</th><th>Datei</th><th>Größe</th><th>Quelle</th><th>Eingang</th></tr>

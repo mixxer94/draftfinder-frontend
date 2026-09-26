@@ -14,7 +14,7 @@
         <v-icon start>mdi-logout</v-icon>Abmelden
       </v-btn>
     </template>
-    <v-btn icon @click="toggleTheme"><v-icon>mdi-theme-light-dark</v-icon></v-btn>
+    <v-btn icon aria-label="Hell oder dunkel" @click="toggleTheme"><v-icon>mdi-theme-light-dark</v-icon></v-btn>
   </v-app-bar>
 
   <v-navigation-drawer v-if="hcSession.user" v-model="drawer" :permanent="!mobile">
