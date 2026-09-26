@@ -16,7 +16,7 @@ const router = createRouter({
 })
 
 /*
- * Hidden-Cup-Admin: /me einmal abfragen, bevor eine Seite darunter öffnet.
+ * Gliddencup-Admin: /me einmal abfragen, bevor eine Seite darunter öffnet.
  * Ohne Login zeigt die Elternseite den Anmeldebildschirm; Helfer landen auf
  * einer Admin-Seite wieder auf der Übersicht. Die eigentliche Prüfung macht
  * die API — das hier erspart nur den Umweg über ein 403.

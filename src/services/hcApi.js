@@ -1,5 +1,5 @@
 /**
- * API-Client für den Hidden Cup (hidden-communicator, eigener Dienst).
+ * API-Client für den Gliddencup (hidden-communicator, eigener Dienst).
  *
  * Apache leitet /api/hc/* an hc-web weiter; alles liegt unter derselben
  * Origin, das Session-Cookie reist ohne CORS mit. Schreibende Anfragen

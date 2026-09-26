@@ -1,6 +1,6 @@
 <template>
   <v-app-bar :elevation="2" density="compact" color="app-bar">
-    <v-app-bar-title>{{ vm?.tournamentName ?? 'Hidden Cup' }}</v-app-bar-title>
+    <v-app-bar-title>{{ vm?.tournamentName ?? 'Gliddencup' }}</v-app-bar-title>
     <v-spacer />
     <v-btn variant="outlined" color="secondary" class="mr-2" to="/">Zum Draft Finder</v-btn>
   </v-app-bar>

@@ -3,7 +3,7 @@
 
   <template v-if="data && !data.tournament">
     <PageHeader title="Noch kein Turnier" text="Das Turnier wird einmalig auf dem Server angelegt." />
-    <pre class="pa-3 bg-surface rounded">npm run seed -- --name "Hidden Cup #4" --slug hc4 --format RO16_DE --bo 3</pre>
+    <pre class="pa-3 bg-surface rounded">npm run seed -- --name "Gliddencup #4" --slug hc4 --format RO16_DE --bo 3</pre>
   </template>
 
   <template v-else-if="data">

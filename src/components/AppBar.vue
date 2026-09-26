@@ -39,7 +39,7 @@ export default {
             return this.$route.path.startsWith('/billy-tracker')
         },
         title() {
-            if (this.isGliddencup) return 'GliddenCup'
+            if (this.isGliddencup) return 'Gliddencup'
             if (this.isBillyTracker) return 'Billy Tracker'
             return 'Draft Finder'
         }

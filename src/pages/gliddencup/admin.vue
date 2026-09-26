@@ -1,7 +1,7 @@
 <template>
   <v-app-bar :elevation="2" density="compact" color="app-bar" class="hc-appbar">
     <v-app-bar-nav-icon v-if="hcSession.user && mobile" @click="drawer = !drawer" />
-    <v-app-bar-title>Hidden Cup · Turnierleitung</v-app-bar-title>
+    <v-app-bar-title>Gliddencup · Turnierleitung</v-app-bar-title>
     <v-spacer />
     <template v-if="hcSession.user">
       <span class="text-body-2 mr-2 d-none d-sm-inline">
@@ -121,7 +121,7 @@ onMounted(() => {
   robots.name = 'robots'
   robots.content = 'noindex, nofollow'
   document.head.appendChild(robots)
-  document.title = 'Hidden Cup · Turnierleitung'
+  document.title = 'Gliddencup · Turnierleitung'
 })
 onUnmounted(() => {
   robots?.remove()

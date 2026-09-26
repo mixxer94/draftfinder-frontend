@@ -64,7 +64,7 @@ export default defineConfig({
   server: {
     port: 3001,
     proxy: {
-      // Hidden Cup (hidden-communicator, eigener Dienst) — muss vor /api stehen
+      // Gliddencup (hidden-communicator, eigener Dienst) — muss vor /api stehen
       '/api/hc': { target: 'http://localhost:3100' },
       '/api': {
         target: 'http://localhost:3000/',
