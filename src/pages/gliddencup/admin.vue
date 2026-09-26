@@ -1,12 +1,12 @@
 <template>
-  <v-app-bar :elevation="2" density="compact" color="app-bar">
+  <v-app-bar :elevation="2" density="compact" color="app-bar" class="hc-appbar">
     <v-app-bar-nav-icon v-if="hcSession.user && mobile" @click="drawer = !drawer" />
     <v-app-bar-title>Hidden Cup · Turnierleitung</v-app-bar-title>
     <v-spacer />
     <template v-if="hcSession.user">
       <span class="text-body-2 mr-2 d-none d-sm-inline">
         {{ hcSession.user.username }}
-        <v-chip size="x-small" class="ml-1" variant="flat" :color="admin ? 'secondary' : 'grey'">
+        <v-chip size="small" class="ml-1" variant="tonal">
           {{ admin ? 'Admin' : 'Helfer' }}
         </v-chip>
       </span>
@@ -26,11 +26,21 @@
         :prepend-icon="item.icon"
         :title="item.title"
         exact
-      />
+      >
+        <template v-if="item.doneAfterDraw && drawn" #append>
+          <!-- Vuetify blendet Icons im Append auf 60 % ab; voll deckend erst erreicht der Haken 3:1. -->
+          <v-icon color="success" size="small" aria-label="erledigt" style="opacity: 1">mdi-check-circle</v-icon>
+        </template>
+        <template v-else-if="item.showReady && hcSession.readyCount" #append>
+          <v-chip size="small" color="warning" variant="flat" :aria-label="`${hcSession.readyCount} Matches warten auf Freigabe`">
+            {{ hcSession.readyCount }}
+          </v-chip>
+        </template>
+      </v-list-item>
     </v-list>
   </v-navigation-drawer>
 
-  <v-container fluid class="pa-4">
+  <v-container fluid class="hc-admin pa-4 pa-md-6">
     <div v-if="!hcSession.loaded" class="d-flex justify-center pa-8">
       <v-progress-circular indeterminate />
     </div>
@@ -39,8 +49,7 @@
       <v-card-title>Anmeldung</v-card-title>
       <v-card-text>
         <v-alert v-if="loginError" type="error" variant="tonal" class="mb-4">{{ loginError }}</v-alert>
-        Nur für die Turnierleitung des Hidden Cup. Die Anmeldung läuft über Discord;
-        berechtigt sind die Rollen Turnierleitung und Helfer auf dem Turnierserver.
+        Nur für Turnierleitung und Helfer. Die Anmeldung läuft über Discord.
       </v-card-text>
       <v-card-actions>
         <v-btn color="secondary" variant="flat" @click="login">
@@ -53,13 +62,16 @@
       <router-view />
     </template>
   </v-container>
+
+  <ConfirmDialog />
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay, useTheme } from 'vuetify'
-import { HC_NAV, hcSession, isAdmin, login, logout } from '@/services/hcApi'
+import { HC_NAV, hcApi, hcSession, isAdmin, login, logout } from '@/services/hcApi'
+import ConfirmDialog from '@/components/gliddencup/ConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,9 +81,24 @@ const drawer = ref(!mobile.value)
 
 const admin = computed(() => isAdmin())
 const nav = computed(() => HC_NAV.filter(n => admin.value || n.helper))
+const drawn = computed(() => !!hcSession.tournamentState && hcSession.tournamentState !== 'SETUP')
+
+/*
+ * Haken und Zähler der Navigation: nach dem Login und bei jedem Seitenwechsel,
+ * weil Ergebnisse über den Bot jederzeit neue Matches freigabebereit machen.
+ */
+watch([() => hcSession.user, () => route.path], ([user]) => {
+  if (!user) return
+  hcApi.get('/dashboard')
+    .then(res => {
+      hcSession.tournamentState = res.data.tournament?.state ?? null
+      hcSession.readyCount = res.data.counts?.ready ?? 0
+    })
+    .catch(() => {})
+}, { immediate: true })
 
 const loginError = computed(() => ({
-  denied: 'Kein Zugriff — dir fehlt die Rolle Turnierleitung oder Helfer auf dem Turnierserver.',
+  denied: 'Kein Zugriff. Dir fehlt die Rolle Turnierleitung oder Helfer.',
   failed: 'Die Anmeldung ist fehlgeschlagen. Bitte noch einmal versuchen.',
 })[route.query.login] ?? '')
 
@@ -101,3 +128,11 @@ onUnmounted(() => {
   document.title = 'Draft Finder'
 })
 </script>
+
+<style>
+/* Ziffern in Tabellen und Zeitangaben gleich breit, damit Spalten nicht springen. */
+.hc-admin .v-table td { font-variant-numeric: tabular-nums; }
+/* Satzschreibung statt Versalien auf Buttons; Dialoge hängen außerhalb von .hc-admin. */
+.hc-admin .v-btn, .hc-appbar .v-btn, .hc-dialog .v-btn { text-transform: none; letter-spacing: normal; }
+.hc-admin .hc-h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem; }
+</style>

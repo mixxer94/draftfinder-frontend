@@ -2,54 +2,51 @@
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
 
   <template v-if="data && !data.tournament">
-    <h2 class="text-h6 mb-2">Noch kein Turnier angelegt</h2>
-    <p>Das Turnier wird einmalig auf dem Server angelegt:</p>
-    <pre class="pa-3 my-2 bg-surface rounded">npm run seed -- --name "Hidden Cup #4" --slug hc4 --format RO16_DE --bo 3</pre>
-    <p class="text-medium-emphasis">
-      Danach: Runden konfigurieren, Anmeldungen freigeben, Pseudonyme vergeben, Auslosung eintragen.
-    </p>
+    <PageHeader title="Noch kein Turnier" text="Das Turnier wird einmalig auf dem Server angelegt." />
+    <pre class="pa-3 bg-surface rounded">npm run seed -- --name "Hidden Cup #4" --slug hc4 --format RO16_DE --bo 3</pre>
   </template>
 
   <template v-else-if="data">
-    <div class="d-flex align-center flex-wrap ga-2 mb-2">
-      <h2 class="text-h6">{{ t.name }}</h2>
-      <v-chip size="small" :color="phase.color" variant="flat">{{ phase.text }}</v-chip>
-      <span class="text-medium-emphasis">· {{ t.format }}</span>
-      <v-spacer />
-      <v-btn variant="text" size="small" :loading="loading" @click="load">
-        <v-icon start>mdi-refresh</v-icon>Aktualisieren
-      </v-btn>
-    </div>
-
-    <p class="text-medium-emphasis mb-4">
-      Anmeldung <strong>{{ s.anmeldungOffen ? 'offen' : 'geschlossen' }}</strong> ·
-      <strong>{{ s.angemeldet }} / {{ s.plaetze }}</strong> Plätze belegt
-      <template v-if="s.fehlend > 0">— es fehlen noch <strong>{{ s.fehlend }}</strong></template>
-      <template v-else-if="s.fehlend < 0">— <strong>{{ -s.fehlend }} zu viel</strong> (überbucht)</template>
-      <template v-else>— vollständig</template>
-      · <strong>{{ s.verifiziert }}</strong> startklar
-      <template v-if="s.matchesGewertet > 0 || s.phase === 'RUNNING'">
-        · <strong>{{ s.matchesGewertet }} / {{ s.matchesGesamt }}</strong> Matches gewertet
+    <PageHeader :title="t.name">
+      <template #meta>
+        <v-chip size="small" variant="tonal" :color="phase.color">{{ phase.text }}</v-chip>
       </template>
-    </p>
+      <v-btn variant="text" :loading="loading" prepend-icon="mdi-refresh" @click="load">Aktualisieren</v-btn>
+    </PageHeader>
 
-    <!-- Handlungsbedarf zuerst: dort kommt das System ohne die Orga nicht weiter. -->
-    <v-row dense class="mb-4">
-      <v-col v-for="tile in tiles" :key="tile.label" cols="6" sm="4" md="3">
-        <v-card variant="tonal" :color="tile.color" :to="tile.to">
-          <v-card-text class="py-3">
-            <div class="text-caption">{{ tile.label }}</div>
-            <div class="text-h5">{{ tile.value }}</div>
-            <div v-if="tile.hint" class="text-caption">{{ tile.hint }}</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+    <p class="mb-6">
+      {{ t.format }} · Anmeldung {{ s.anmeldungOffen ? 'offen' : 'geschlossen' }} ·
+      {{ s.angemeldet }}/{{ s.plaetze }} Plätze<template v-if="s.fehlend > 0"> ({{ s.fehlend }} frei)</template><template v-else-if="s.fehlend < 0"> ({{ -s.fehlend }} überbucht)</template> ·
+      {{ s.verifiziert }} startklar ·
+      {{ s.matchesGewertet }}/{{ s.matchesGesamt }} Matches gewertet
+    </p>
 
     <v-alert v-if="info" type="success" variant="tonal" closable class="mb-4" @click:close="info = ''">{{ info }}</v-alert>
 
-    <template v-if="data.running.length">
-      <h3 class="text-subtitle-1 mt-4 mb-2">Laufende Matches</h3>
+    <!-- Nur was ohne die Turnierleitung nicht weitergeht. -->
+    <section class="mb-8">
+      <h2 class="hc-h2">Offene Punkte</h2>
+      <p v-if="!todos.length" class="text-medium-emphasis">Nichts offen.</p>
+      <v-list v-else density="compact" class="hc-todos py-0" bg-color="transparent">
+        <v-list-item
+          v-for="todo in todos"
+          :key="todo.label"
+          :to="todo.to"
+          :base-color="todo.color"
+          class="px-0"
+        >
+          <template #prepend>
+            <span class="hc-count">{{ todo.value }}</span>
+          </template>
+          <v-list-item-title>{{ todo.label }}</v-list-item-title>
+          <v-list-item-subtitle v-if="todo.hint">{{ todo.hint }}</v-list-item-subtitle>
+          <template v-if="todo.to" #append><v-icon>mdi-chevron-right</v-icon></template>
+        </v-list-item>
+      </v-list>
+    </section>
+
+    <section v-if="data.running.length" class="mb-8">
+      <h2 class="hc-h2">Laufende Matches</h2>
       <v-table density="compact">
         <thead>
           <tr><th>Slot</th><th>Runde</th><th>Paarung</th><th>Termin</th><th>Status</th><th v-if="admin" /></tr>
@@ -61,37 +58,49 @@
             <td>{{ m.a }} vs. {{ m.b }}</td>
             <td class="text-no-wrap">{{ m.scheduledAt ? formatDate(m.scheduledAt, t.timezone, true) : '—' }}</td>
             <td><MatchStateChip :match="m" /></td>
-            <td v-if="admin" class="text-no-wrap">
-              <v-btn v-if="m.startable" size="small" color="secondary" variant="tonal" :loading="starting === m.id" @click="start(m)">
-                <v-icon start>mdi-play</v-icon>Jetzt starten
+            <td v-if="admin" class="text-right text-no-wrap">
+              <v-btn
+                v-if="m.startable"
+                size="small"
+                color="secondary"
+                variant="flat"
+                prepend-icon="mdi-play"
+                class="mr-2"
+                :loading="starting === m.id"
+                @click="start(m)"
+              >
+                Starten
               </v-btn>
-              <v-btn size="small" variant="text" :to="`/gliddencup/admin/matches/${m.id}`">Detail</v-btn>
+              <DetailButton :id="m.id" />
             </td>
           </tr>
         </tbody>
       </v-table>
-    </template>
+    </section>
 
     <template v-for="section in sections" :key="section.title">
-      <template v-if="section.items.length">
-        <h3 class="text-subtitle-1 mt-4 mb-2">{{ section.title }}</h3>
+      <section v-if="section.items.length" class="mb-8">
+        <h2 class="hc-h2">{{ section.title }}</h2>
         <MatchTable :matches="section.items" :timezone="t.timezone" :columns="section.columns" />
-      </template>
+      </section>
     </template>
 
-    <template v-if="data.publicPath">
-      <h3 class="text-subtitle-1 mt-6 mb-1">Öffentliches Bracket</h3>
+    <section v-if="data.publicPath">
+      <h2 class="hc-h2">Öffentliches Bracket</h2>
       <router-link :to="data.publicPath" target="_blank">{{ publicUrl }}</router-link>
-      <span class="text-medium-emphasis"> — zeigt nur Pseudonyme und Ergebnisse</span>
-    </template>
+      <p class="text-medium-emphasis">Zeigt nur Pseudonyme und Ergebnisse.</p>
+    </section>
   </template>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { errorMessage, formatDate, hcApi, isAdmin } from '@/services/hcApi'
+import { confirmAction } from '@/services/confirm'
+import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import MatchTable from '@/components/gliddencup/MatchTable.vue'
 import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
+import DetailButton from '@/components/gliddencup/DetailButton.vue'
 
 const data = ref(null)
 const error = ref('')
@@ -102,13 +111,18 @@ const admin = computed(() => isAdmin())
 
 /** Sofortstart: Termin = jetzt, beide bekommen sofort die Draft-Presets. */
 async function start (m) {
-  const termin = m.scheduledAt ? ` Der vereinbarte Termin (${formatDate(m.scheduledAt, t.value.timezone, true)}) entfällt.` : ''
-  if (!confirm(`${m.slotCode} (${m.a} vs. ${m.b}) jetzt starten?\n\nBeide bekommen sofort die Draft-Presets.${termin}`)) return
+  const termin = m.scheduledAt ? `\nDer Termin am ${formatDate(m.scheduledAt, t.value.timezone, true)} entfällt.` : ''
+  const ok = await confirmAction({
+    title: `${m.slotCode} jetzt starten?`,
+    text: `${m.a} vs. ${m.b}. Der Bot schickt beiden sofort die Draft-Links.${termin}`,
+    confirmText: 'Starten',
+  })
+  if (!ok) return
   starting.value = m.id
   error.value = ''
   try {
     await hcApi.post(`/matches/${m.id}/start`)
-    info.value = `${m.slotCode} gestartet — die Presets sind unterwegs.`
+    info.value = `${m.slotCode} gestartet.`
     await load()
   } catch (e) {
     error.value = errorMessage(e)
@@ -123,32 +137,29 @@ const publicUrl = computed(() => `${window.location.origin}${data.value?.publicP
 
 const PHASES = {
   SETUP: { text: 'In Planung', color: 'warning' },
-  DRAWN: { text: 'Ausgelost', color: 'success' },
+  DRAWN: { text: 'Ausgelost', color: 'secondary' },
   RUNNING: { text: 'Läuft', color: 'success' },
-  FINISHED: { text: 'Abgeschlossen', color: 'grey' },
+  FINISHED: { text: 'Abgeschlossen', color: undefined },
 }
-const phase = computed(() => PHASES[t.value?.state] ?? { text: t.value?.state, color: 'grey' })
+const phase = computed(() => PHASES[t.value?.state] ?? { text: t.value?.state })
 
-const tiles = computed(() => {
+const todos = computed(() => {
   const c = data.value.counts
-  const admin = isAdmin()
-  const warn = (n, color = 'warning') => (n > 0 ? color : undefined)
+  const link = to => (admin.value ? to : undefined)
   return [
-    { label: 'Bereit zur Aktivierung', value: c.ready, color: warn(c.ready), to: admin ? '/gliddencup/admin/activation' : undefined },
-    { label: 'Replay-Pack fehlt', value: c.awaitingReplay, color: warn(c.awaitingReplay), hint: c.awaitingReplay ? 'blockiert Folgematches' : '' },
-    { label: 'Blockiert (DM)', value: c.blocked, color: warn(c.blocked, 'error'), hint: c.blocked ? 'Timer pausiert' : '' },
-    { label: 'Eskaliert', value: c.escalated, color: warn(c.escalated, 'error') },
-    { label: 'In Verhandlung', value: c.negotiating },
-    { label: 'Terminiert', value: c.scheduled, to: '/gliddencup/admin/schedule' },
-    { label: 'Ohne Pseudonym', value: c.pendingPseudonym, color: warn(c.pendingPseudonym), to: admin ? '/gliddencup/admin/registrations' : undefined },
-    { label: 'DM unerreichbar', value: c.dmBlocked, color: warn(c.dmBlocked, 'error') },
-  ]
+    { label: 'Blockiert', value: c.blocked, color: 'error', hint: 'Timer pausiert' },
+    { label: 'Eskaliert', value: c.escalated, color: 'error' },
+    { label: 'Spieler per DM nicht erreichbar', value: c.dmBlocked, color: 'error', to: link('/gliddencup/admin/registrations') },
+    { label: 'Bereit zur Freigabe', value: c.ready, color: 'warning', to: link('/gliddencup/admin/activation') },
+    { label: 'Replay fehlt', value: c.awaitingReplay, color: 'warning', hint: 'Blockiert Folgematches' },
+    { label: 'Ohne Pseudonym', value: c.pendingPseudonym, color: 'warning', to: link('/gliddencup/admin/registrations') },
+  ].filter(todo => todo.value > 0)
 })
 
 const sections = computed(() => [
-  { title: 'Blockierte Matches — Eingriff nötig', items: data.value.blocked, columns: ['blocked'] },
+  { title: 'Blockiert', items: data.value.blocked, columns: ['blocked'] },
   { title: 'Eskaliert', items: data.value.escalated, columns: ['state'] },
-  { title: 'Replay-Pack ausstehend', items: data.value.awaitingReplay, columns: ['score'] },
+  { title: 'Replay fehlt', items: data.value.awaitingReplay, columns: ['score'] },
 ])
 
 async function load () {
@@ -165,3 +176,12 @@ async function load () {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.hc-count {
+  min-width: 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+</style>

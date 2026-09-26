@@ -1,5 +1,5 @@
 <template>
-  <v-table density="compact">
+  <v-table density="compact" class="hc-table">
     <thead>
       <tr>
         <th>Slot</th>
@@ -24,8 +24,8 @@
           <span class="text-medium-emphasis">seit {{ formatDate(m.blocked?.since, timezone) }}</span>
         </td>
         <td v-if="has('score')">{{ m.score ?? '—' }}</td>
-        <td v-if="admin">
-          <v-btn size="small" variant="text" :to="`/gliddencup/admin/matches/${m.id}`">Detail</v-btn>
+        <td v-if="admin" class="text-right">
+          <DetailButton :id="m.id" />
         </td>
       </tr>
     </tbody>
@@ -36,6 +36,7 @@
 import { computed } from 'vue'
 import { formatDate, isAdmin } from '@/services/hcApi'
 import MatchStateChip from './MatchStateChip.vue'
+import DetailButton from './DetailButton.vue'
 
 const props = defineProps({
   matches: { type: Array, required: true },

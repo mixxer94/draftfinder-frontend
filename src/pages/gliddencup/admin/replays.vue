@@ -1,20 +1,12 @@
 <template>
-  <div class="d-flex align-center flex-wrap ga-2 mb-2">
-    <h2 class="text-h6">Replay-Packs</h2>
-    <v-spacer />
-    <v-btn variant="text" size="small" :loading="loading" @click="load">
-      <v-icon start>mdi-refresh</v-icon>Aktualisieren
-    </v-btn>
-  </div>
-  <p class="text-medium-emphasis mb-4">
-    Alle Packs dieses Turniers, ob per DM eingeschickt oder hier hochgeladen. Hochladen lässt sich
-    im Match-Detail. Die Packs enthalten die Spielernamen aus dem Spiel — nicht weitergeben.
-  </p>
+  <PageHeader title="Replays" text="Hochladen geht in den Match-Details. Die Packs enthalten die echten Spielernamen, also nicht weitergeben.">
+    <v-btn variant="text" prepend-icon="mdi-refresh" :loading="loading" @click="load">Aktualisieren</v-btn>
+  </PageHeader>
 
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
 
   <v-alert v-if="data" :type="mirrorAlert.type" variant="tonal" density="compact" class="mb-4">
-    <strong>Backup (GitHub):</strong> {{ mirrorAlert.text }}
+    <strong>Backup auf GitHub:</strong> {{ mirrorAlert.text }}
   </v-alert>
 
   <p v-if="data && !data.packs.length" class="text-medium-emphasis">Noch keine Replay-Packs.</p>
@@ -44,6 +36,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { errorMessage, formatDate, hcApi } from '@/services/hcApi'
+import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 const data = ref(null)
 const error = ref('')
@@ -51,13 +44,13 @@ const loading = ref(false)
 
 const mirrorAlert = computed(() => {
   const mirror = data.value?.mirror
-  if (!mirror) return { type: 'warning', text: 'nicht eingerichtet — die Packs liegen nur auf dem Server.' }
+  if (!mirror) return { type: 'warning', text: 'nicht eingerichtet. Die Packs liegen nur auf dem Server.' }
   const s = mirror.status
-  if (!s) return { type: 'info', text: 'eingerichtet, noch kein Abgleich gelaufen.' }
+  if (!s) return { type: 'info', text: 'eingerichtet, noch nicht gelaufen.' }
   const when = formatDate(s.at, data.value.tournament.timezone)
   return s.ok
     ? { type: 'success', text: `zuletzt gespiegelt ${when}${s.head ? ` (Commit ${s.head})` : ''}.` }
-    : { type: 'error', text: `letzter Abgleich ${when} fehlgeschlagen — wird stündlich und beim nächsten Upload wiederholt. ${s.message}` }
+    : { type: 'error', text: `${when} fehlgeschlagen: ${s.message} Neuer Versuch stündlich und beim nächsten Upload.` }
 })
 
 async function load () {

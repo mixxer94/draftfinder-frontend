@@ -3,25 +3,32 @@
   <v-alert v-if="info" type="info" variant="tonal" closable class="mb-4" @click:close="info = ''">{{ info }}</v-alert>
 
   <template v-if="m">
-    <div class="d-flex align-center flex-wrap ga-2 mb-1">
-      <v-btn icon="mdi-arrow-left" variant="text" size="small" @click="$router.back()" />
-      <h2 class="text-h6">{{ m.slotCode }}</h2>
-      <span class="text-medium-emphasis">· {{ m.roundLabel }} · Best of {{ m.bestOf }}</span>
-    </div>
-    <p class="mb-4">
-      <strong>{{ name.A }}</strong> vs. <strong>{{ name.B }}</strong> ·
-      <v-chip size="small" variant="flat" :color="m.blocked ? 'error' : undefined">
-        {{ m.blocked ? `BLOCKED — ${m.blocked.reason}` : m.state }}
-      </v-chip>
-      <template v-if="m.scheduledAt"> · Termin: {{ fmt(m.scheduledAt, true) }}</template>
+    <PageHeader :title="`${m.slotCode}: ${name.A} vs. ${name.B}`">
+      <template #before>
+        <v-btn icon="mdi-arrow-left" variant="text" size="small" aria-label="Zurück" @click="$router.back()" />
+      </template>
+      <template #meta>
+        <MatchStateChip :match="m" />
+      </template>
+      <v-btn
+        v-if="STARTABLE.includes(m.state) && !m.blocked"
+        color="secondary"
+        variant="flat"
+        prepend-icon="mdi-play"
+        :loading="busy === 'start'"
+        @click="startNow"
+      >
+        Starten
+      </v-btn>
+    </PageHeader>
+    <p class="mb-8">
+      {{ m.roundLabel }} · Best of {{ m.bestOf }}
+      <template v-if="m.scheduledAt"> · Termin {{ fmt(m.scheduledAt, true) }}</template>
+      <template v-if="m.blocked"><br><span class="text-error">Blockiert: {{ m.blocked.reason }}</span></template>
     </p>
-    <v-btn v-if="STARTABLE.includes(m.state) && !m.blocked" class="mb-4" color="secondary" variant="tonal" :loading="busy === 'start'" @click="startNow">
-      <v-icon start>mdi-play</v-icon>Jetzt starten
-    </v-btn>
 
-    <!-- Draft-Links -->
-    <h3 class="text-subtitle-1 mt-4 mb-1">Draft-Links</h3>
-    <p v-if="!m.drafts.length" class="text-medium-emphasis">Noch keine Draft-Links erfasst.</p>
+    <h2 class="hc-h2">Draft-Links</h2>
+    <p v-if="!m.drafts.length" class="text-medium-emphasis">Noch keine.</p>
     <v-table v-else density="compact">
       <thead><tr><th>Zeit</th><th>Von</th><th>Link</th><th>Einordnung</th></tr></thead>
       <tbody>
@@ -40,29 +47,27 @@
       </tbody>
     </v-table>
 
-    <!-- Ergebnis -->
-    <h3 class="text-subtitle-1 mt-6 mb-1">Ergebnis</h3>
-    <p v-if="!m.result" class="text-medium-emphasis">Noch kein Ergebnis gemeldet.</p>
+    <h2 class="hc-h2 mt-8">Ergebnis</h2>
+    <p v-if="!m.result" class="text-medium-emphasis">Noch nicht gemeldet.</p>
     <template v-else>
       <p>
         <strong>{{ name[m.result.winner] }}</strong> gewinnt {{ m.result.score }}
         <span class="text-medium-emphasis">· gemeldet {{ fmt(m.result.reportedAt) }}</span>
-        <v-chip v-if="m.result.lockedAt" size="x-small" class="ml-1">gesperrt: {{ m.result.lockReason }}</v-chip>
+        <v-chip v-if="m.result.lockedAt" size="small" variant="tonal" class="ml-1">gesperrt: {{ m.result.lockReason }}</v-chip>
       </p>
       <ul v-if="m.result.corrections.length" class="text-medium-emphasis ml-6 mb-2">
         <li v-for="c in m.result.corrections" :key="c.at">{{ fmt(c.at) }}: {{ c.from }} → {{ c.to }} ({{ c.by }})</li>
       </ul>
-      <div class="d-flex flex-wrap align-center ga-2">
+      <div class="d-flex flex-wrap align-center ga-2 mt-3">
         <v-select v-model="correction.winner" :items="[{ title: name.A, value: 'A' }, { title: name.B, value: 'B' }]" label="Sieger" density="compact" hide-details style="max-width: 220px" />
         <v-select v-model="correction.score" :items="m.validScores" label="Ergebnis" density="compact" hide-details style="max-width: 140px" />
-        <v-btn color="error" variant="tonal" :loading="busy === 'result'" :disabled="!correction.winner || !correction.score" @click="correctResult">
-          Ergebnis korrigieren
+        <v-btn color="error" variant="text" :loading="busy === 'result'" :disabled="!correction.winner || !correction.score" @click="correctResult">
+          Korrigieren
         </v-btn>
       </div>
     </template>
 
-    <!-- Replay-Pack -->
-    <h3 class="text-subtitle-1 mt-6 mb-1">Replay-Pack</h3>
+    <h2 class="hc-h2 mt-8">Replay-Pack</h2>
     <p v-if="m.replayPack">
       <a :href="`/api/hc/matches/${m.id}/replay`">{{ m.replayPack.filename }}</a>
       <span class="text-medium-emphasis">
@@ -71,8 +76,8 @@
     </p>
     <template v-else>
       <v-alert type="warning" variant="tonal" density="compact" class="mb-3">
-        Replay-Pack fehlt — die Aktivierung nachgelagerter Matches ist gesperrt.
-        Für Packs, die Discord ablehnt (über 10 MB): hier hochladen, höchstens {{ MAX_MB }} MB.
+        Replay fehlt. Folgematches lassen sich erst danach freigeben.
+        Packs über 10 MB lehnt Discord ab. Sie gehen hier hoch, bis {{ MAX_MB }} MB.
       </v-alert>
       <div class="d-flex flex-wrap align-center ga-2">
         <v-file-input
@@ -91,14 +96,13 @@
       <v-progress-linear v-if="busy === 'upload'" :model-value="upload.progress" class="mt-2" style="max-width: 480px" />
     </template>
 
-    <!-- Chat -->
-    <h3 class="text-subtitle-1 mt-6 mb-1">Chatverlauf</h3>
-    <p class="text-caption text-medium-emphasis mb-2">Links {{ name.A }}, rechts {{ name.B }}, mittig die Turnierleitung. Jeder Aufruf steht im Audit-Log.</p>
+    <h2 class="hc-h2 mt-8">Chatverlauf</h2>
+    <p class="text-body-2 text-medium-emphasis mb-3">Links {{ name.A }}, rechts {{ name.B }}, mittig die Turnierleitung. Jeder Aufruf steht im Audit-Log.</p>
     <div class="hc-chat">
       <p v-if="!m.messages.length" class="text-medium-emphasis">Noch keine Nachrichten.</p>
       <div v-for="msg in m.messages" :key="msg.id" :class="['hc-bubble', side(msg), { discarded: msg.direction === 'DISCARDED' }]">
         <div class="text-caption font-weight-bold">
-          <template v-if="msg.direction === 'ADMIN_TO_PLAYER'">ADMIN-NACHRICHT{{ msg.to ? ` → ${name[msg.to]}` : '' }}</template>
+          <template v-if="msg.direction === 'ADMIN_TO_PLAYER'">Turnierleitung{{ msg.to ? ` an ${name[msg.to]}` : '' }}</template>
           <template v-else>{{ name[msg.from] ?? '?' }}</template>
         </div>
         <div class="hc-text">{{ msg.text }}</div>
@@ -112,32 +116,32 @@
       </div>
     </div>
 
-    <h3 class="text-subtitle-1 mt-6 mb-1">Nachricht der Turnierleitung</h3>
-    <v-textarea v-model="compose.text" rows="3" counter="1500" maxlength="1500" placeholder="Geht als ADMIN-NACHRICHT hinaus — nicht unter einem Pseudonym." />
+    <h2 class="hc-h2 mt-8">Nachricht senden</h2>
+    <v-textarea v-model="compose.text" rows="3" counter="1500" maxlength="1500" placeholder="Kommt bei den Spielern als Nachricht der Turnierleitung an." />
     <div class="d-flex flex-wrap align-center ga-2">
       <v-select v-model="compose.to" :items="recipients" density="compact" hide-details style="max-width: 240px" />
       <v-btn color="secondary" variant="flat" :loading="busy === 'message'" :disabled="!compose.text.trim()" @click="send">Senden</v-btn>
     </div>
 
-    <h3 class="text-subtitle-1 mt-6 mb-1">Verlauf</h3>
+    <h2 class="hc-h2 mt-8">Verlauf</h2>
     <v-table density="compact">
       <thead><tr><th>Zeit</th><th>Ereignis</th><th>Akteur</th></tr></thead>
       <tbody>
         <tr v-for="(e, i) in m.timeline" :key="i">
           <td class="text-no-wrap text-medium-emphasis">{{ fmt(e.at) }}</td>
-          <td>{{ e.event }}</td>
-          <td class="text-caption">{{ e.actor }}</td>
+          <td>{{ EVENTS[e.event] ?? e.event }}</td>
+          <td>{{ e.actor }}</td>
         </tr>
       </tbody>
     </v-table>
 
     <template v-if="m.overrides.length">
-      <h3 class="text-subtitle-1 mt-6 mb-1">Übersteuerte Sperren</h3>
+      <h2 class="hc-h2 mt-8">Übergangene Sperren</h2>
       <v-table density="compact">
         <thead><tr><th>Zeit</th><th>Sperre</th><th>Grund</th><th>Von</th></tr></thead>
         <tbody>
           <tr v-for="(o, i) in m.overrides" :key="i">
-            <td class="text-medium-emphasis">{{ fmt(o.at) }}</td><td>{{ o.kind }}</td><td>{{ o.reason }}</td><td class="text-caption">{{ o.by }}</td>
+            <td class="text-medium-emphasis">{{ fmt(o.at) }}</td><td>{{ o.kind }}</td><td>{{ o.reason }}</td><td>{{ o.by }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -148,7 +152,10 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { errorMessage, formatDate, hcApi } from '@/services/hcApi'
+import { errorMessage, formatDate, hcApi, MATCH_STATES } from '@/services/hcApi'
+import { confirmAction } from '@/services/confirm'
+import PageHeader from '@/components/gliddencup/PageHeader.vue'
+import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
 
 const route = useRoute()
 const m = ref(null)
@@ -157,6 +164,7 @@ const info = ref('')
 const busy = ref('')
 const correction = reactive({ winner: null, score: null })
 const MAX_MB = 64
+const EVENTS = { ...MATCH_STATES, ACTIVATED: 'Freigegeben' }
 // Wie STARTABLE im Backend; die API prüft ohnehin selbst.
 const STARTABLE = ['INVITED', 'COLLECTING', 'PROPOSED', 'HALF_CONFIRMED', 'CONFIRMED', 'ESCALATED']
 const upload = reactive({ file: null, progress: 0 })
@@ -197,10 +205,15 @@ async function run (key, fn) {
 }
 
 async function startNow () {
-  const termin = m.value.scheduledAt ? ` Der vereinbarte Termin (${fmt(m.value.scheduledAt, true)}) entfällt.` : ''
-  if (!confirm(`Match jetzt starten?\n\nBeide bekommen sofort die Draft-Presets.${termin}`)) return
+  const termin = m.value.scheduledAt ? `\nDer Termin am ${fmt(m.value.scheduledAt, true)} entfällt.` : ''
+  const ok = await confirmAction({
+    title: `${m.value.slotCode} jetzt starten?`,
+    text: `Der Bot schickt beiden sofort die Draft-Links.${termin}`,
+    confirmText: 'Starten',
+  })
+  if (!ok) return
   const res = await run('start', () => hcApi.post(`/matches/${m.value.id}/start`))
-  if (res) info.value = 'Gestartet — die Presets sind unterwegs.'
+  if (res) info.value = 'Gestartet.'
 }
 
 function classify (d, kind) {
@@ -209,7 +222,13 @@ function classify (d, kind) {
 }
 
 async function correctResult () {
-  if (!confirm(`Ergebnis auf ${name.value[correction.winner]} ${correction.score} korrigieren?`)) return
+  const ok = await confirmAction({
+    title: 'Ergebnis korrigieren?',
+    text: `Neu: ${name.value[correction.winner]} gewinnt ${correction.score}.`,
+    confirmText: 'Korrigieren',
+    color: 'error',
+  })
+  if (!ok) return
   await run('result', () => hcApi.post(`/matches/${m.value.id}/result`, correction))
 }
 

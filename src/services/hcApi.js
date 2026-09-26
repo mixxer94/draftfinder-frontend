@@ -14,6 +14,10 @@ export const hcApi = axios.create({ baseURL: '/api/hc' })
 export const hcSession = reactive({
   loaded: false,
   user: null, // { username, roles, csrf }
+  // Turnierzustand für die Navigation (SETUP, DRAWN, …); null = noch nicht geladen.
+  tournamentState: null,
+  // Matches, die auf Freigabe warten; Zähler in der Navigation.
+  readyCount: 0,
 })
 
 export const isAdmin = () => hcSession.user?.roles?.includes('ADMIN') ?? false
@@ -80,13 +84,45 @@ export function formatDate (iso, timeZone, withWeekday = false) {
   }).format(new Date(iso))
 }
 
+/** Deutsche Bezeichnungen für die Zustände aus der API. */
+export const MATCH_STATES = {
+  PENDING: 'Offen',
+  READY: 'Bereit',
+  INVITED: 'Eingeladen',
+  COLLECTING: 'Terminsuche',
+  PROPOSED: 'Termin vorgeschlagen',
+  HALF_CONFIRMED: 'Halb bestätigt',
+  CONFIRMED: 'Termin steht',
+  AWAITING_RESULT: 'Wartet auf Ergebnis',
+  RESULT_REPORTED: 'Replay fehlt',
+  PLAYED: 'Gespielt',
+  ESCALATED: 'Eskaliert',
+  BLOCKED: 'Blockiert',
+}
+
+export const PLAYER_STATUS = {
+  ANGEMELDET: 'Angemeldet',
+  VERIFIED: 'Verifiziert',
+  DM_BLOCKED: 'DM gesperrt',
+  ENTFERNT: 'Entfernt',
+  GESPERRT: 'Gesperrt',
+  AUSGESCHIEDEN: 'Ausgeschieden',
+}
+
+export const BRACKETS = {
+  MAIN: 'Bracket',
+  WINNERS: 'Winner Bracket',
+  LOSERS: 'Loser Bracket',
+  GRAND_FINAL: 'Grand Final',
+}
+
 /** Seiten, die auch Helfer sehen; alles andere unter /gliddencup/admin ist Admin. */
 export const HC_NAV = [
   { to: '/gliddencup/admin', title: 'Übersicht', icon: 'mdi-view-dashboard', helper: true },
   { to: '/gliddencup/admin/registrations', title: 'Anmeldungen', icon: 'mdi-account-multiple' },
   { to: '/gliddencup/admin/rounds', title: 'Runden', icon: 'mdi-format-list-numbered' },
-  { to: '/gliddencup/admin/draw', title: 'Auslosung', icon: 'mdi-dice-multiple' },
-  { to: '/gliddencup/admin/activation', title: 'Aktivierung', icon: 'mdi-play-circle' },
+  { to: '/gliddencup/admin/draw', title: 'Auslosung', icon: 'mdi-dice-multiple', doneAfterDraw: true },
+  { to: '/gliddencup/admin/activation', title: 'Matches freigeben', icon: 'mdi-play-circle', showReady: true },
   { to: '/gliddencup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', helper: true },
   { to: '/gliddencup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', helper: true },
   { to: '/gliddencup/admin/replays', title: 'Replays', icon: 'mdi-folder-zip' },

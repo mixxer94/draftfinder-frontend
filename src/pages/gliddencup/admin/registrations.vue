@@ -1,16 +1,7 @@
 <template>
-  <div class="d-flex align-center flex-wrap ga-2 mb-2">
-    <h2 class="text-h6">Anmeldungen &amp; Spieler</h2>
-    <v-spacer />
-    <v-btn variant="tonal" :loading="busy === 'rebuild'" @click="rebuild">
-      <v-icon start>mdi-repeat</v-icon>Anmeldeliste neu posten
-    </v-btn>
-  </div>
-  <p class="text-medium-emphasis mb-4">
-    Discord-Namen sind verdeckt. „Aufdecken" zeigt sie für zwei Minuten und wird im Audit-Log
-    protokolliert. „Neu posten" löscht die Liste im Kanal und schreibt sie unten neu — laufende
-    Änderungen aktualisieren sie ohnehin von selbst.
-  </p>
+  <PageHeader title="Anmeldungen" text="Discord-Namen sind verdeckt. Aufdecken zeigt sie zwei Minuten lang und steht im Audit-Log.">
+    <v-btn variant="tonal" prepend-icon="mdi-repeat" :loading="busy === 'rebuild'" @click="rebuild">Liste im Kanal neu posten</v-btn>
+  </PageHeader>
 
   <v-alert v-if="error" type="error" variant="tonal" closable class="mb-4" @click:close="error = ''">{{ error }}</v-alert>
   <v-alert v-if="info" type="success" variant="tonal" closable class="mb-4" @click:close="info = ''">{{ info }}</v-alert>
@@ -28,28 +19,28 @@
           </template>
           <template v-else>
             <span class="text-medium-emphasis">••••••••</span>
-            <v-btn size="x-small" variant="text" :loading="busy === `reveal-${p.id}`" @click="reveal(p)">Aufdecken</v-btn>
+            <v-btn size="small" variant="text" :loading="busy === `reveal-${p.id}`" @click="reveal(p)">Aufdecken</v-btn>
           </template>
         </td>
         <td>
-          <v-chip size="small" variant="flat" :color="statusColor(p.status)">{{ p.status }}</v-chip>
-          <div v-if="p.removal?.reason" class="text-caption text-medium-emphasis">{{ p.removal.reason }}</div>
+          <v-chip size="small" variant="tonal" :color="statusColor(p.status)">{{ PLAYER_STATUS[p.status] ?? p.status }}</v-chip>
+          <div v-if="p.removal?.reason" class="text-body-2 text-medium-emphasis">{{ p.removal.reason }}</div>
         </td>
         <td>
           <div class="d-flex flex-wrap align-center ga-2 py-1">
             <template v-if="!p.pseudonym && !isOut(p)">
               <v-text-field
                 v-model="pseudonymInput[p.id]"
-                placeholder="leer = Vorschlag"
+                placeholder="Leer = Vorschlag"
                 density="compact"
                 hide-details
-                style="max-width: 180px"
+                style="max-width: 220px"
               />
-              <v-btn size="small" color="secondary" :loading="busy === `ps-${p.id}`" @click="assign(p)">
-                Pseudonym vergeben
+              <v-btn size="small" color="secondary" variant="flat" :loading="busy === `ps-${p.id}`" @click="assign(p)">
+                Vergeben
               </v-btn>
             </template>
-            <v-btn v-if="!isOut(p)" size="small" color="error" variant="tonal" @click="openRemove(p)">Entfernen</v-btn>
+            <v-btn v-if="!isOut(p)" size="small" color="error" variant="text" @click="openRemove(p)">Entfernen</v-btn>
             <v-btn v-else size="small" variant="tonal" :loading="busy === `re-${p.id}`" @click="readmit(p)">
               Wieder aufnehmen
             </v-btn>
@@ -61,23 +52,23 @@
   </v-table>
 
   <v-dialog v-model="removeDialog.open" max-width="480">
-    <v-card title="Anmeldung entfernen">
+    <v-card class="hc-dialog pa-2" title="Anmeldung entfernen">
       <v-card-text>
         <p class="mb-3">
           <strong>{{ removeDialog.player?.pseudonym || 'Spieler ohne Pseudonym' }}</strong> entfernen?
-          Das Pseudonym bleibt reserviert und wird niemand anderem gegeben.
+          Das Pseudonym bleibt reserviert.
         </p>
-        <v-text-field v-model="removeDialog.reason" label="Grund (Pflicht)" autofocus />
+        <v-text-field v-model="removeDialog.reason" label="Grund" autofocus />
         <v-checkbox
           v-model="removeDialog.permanent"
-          label="dauerhaft — nur für gesicherte Fehlanmeldungen; kann sich nicht selbst neu anmelden"
+          label="Dauerhaft sperren (keine Neuanmeldung möglich)"
           density="compact"
           hide-details
         />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn @click="removeDialog.open = false">Abbrechen</v-btn>
+        <v-btn variant="text" @click="removeDialog.open = false">Abbrechen</v-btn>
         <v-btn color="error" variant="flat" :disabled="!removeDialog.reason.trim()" :loading="busy === 'remove'" @click="remove">
           Entfernen
         </v-btn>
@@ -88,7 +79,9 @@
 
 <script setup>
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
-import { errorMessage, hcApi } from '@/services/hcApi'
+import { errorMessage, hcApi, PLAYER_STATUS } from '@/services/hcApi'
+import { confirmAction } from '@/services/confirm'
+import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 const players = ref([])
 const loading = ref(false)
@@ -133,14 +126,18 @@ async function run (key, fn, success) {
   }
 }
 
-const rebuild = () => run('rebuild', () => hcApi.post('/registrations/list/rebuild'), 'Anmeldeliste neu gepostet.')
+const rebuild = () => run('rebuild', () => hcApi.post('/registrations/list/rebuild'), 'Liste neu gepostet.')
 
 const assign = p =>
   run(`ps-${p.id}`, () => hcApi.post(`/registrations/${p.id}/pseudonym`, { pseudonym: pseudonymInput[p.id] ?? '' }))
 
-const readmit = p => {
-  if (!confirm(`Spieler wieder aufnehmen?${p.pseudonym ? ' Er behält sein Pseudonym.' : ''}`)) return
-  run(`re-${p.id}`, () => hcApi.post(`/registrations/${p.id}/readmit`))
+async function readmit (p) {
+  const ok = await confirmAction({
+    title: `${p.pseudonym || 'Spieler'} wieder aufnehmen?`,
+    text: p.pseudonym ? 'Das Pseudonym bleibt erhalten.' : '',
+    confirmText: 'Wieder aufnehmen',
+  })
+  if (ok) run(`re-${p.id}`, () => hcApi.post(`/registrations/${p.id}/readmit`))
 }
 
 function openRemove (p) {

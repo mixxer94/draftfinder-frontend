@@ -1,18 +1,21 @@
 <template>
-  <v-chip size="x-small" variant="flat" :color="color">{{ label }}</v-chip>
-  <span v-if="match.score" class="text-medium-emphasis ml-1">{{ match.score }}</span>
+  <v-chip size="small" variant="tonal" :color="color">{{ label }}</v-chip>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { MATCH_STATES } from '@/services/hcApi'
 
+/** Status eines Matches oder Slots; `state` genügt für Slots ohne Match. */
 const props = defineProps({ match: { type: Object, required: true } })
 
-const label = computed(() => (props.match.blocked ? 'BLOCKED' : props.match.state))
+const key = computed(() => (props.match.blocked ? 'BLOCKED' : props.match.state))
+const label = computed(() => MATCH_STATES[key.value] ?? key.value)
 const color = computed(() => {
-  if (props.match.blocked || props.match.state === 'ESCALATED') return 'error'
-  if (props.match.state === 'PLAYED') return 'success'
-  if (props.match.state === 'RESULT_REPORTED') return 'warning'
-  return 'grey'
+  if (key.value === 'BLOCKED' || key.value === 'ESCALATED') return 'error'
+  if (key.value === 'PLAYED') return 'success'
+  if (key.value === 'RESULT_REPORTED' || key.value === 'READY') return 'warning'
+  if (key.value === 'PENDING') return undefined
+  return 'secondary'
 })
 </script>

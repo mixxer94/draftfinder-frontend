@@ -1,9 +1,5 @@
 <template>
-  <h2 class="text-h6 mb-2">Audit-Log</h2>
-  <p class="text-medium-emphasis mb-4">
-    Unveränderlich. Enthält insbesondere jedes Aufdecken der Zuordnungstabelle und jede
-    übersteuerte Sperre. Die letzten 500 Einträge.
-  </p>
+  <PageHeader title="Audit-Log" text="Die letzten 500 Einträge, unveränderlich. Heikle Aktionen sind markiert." />
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
 
   <v-table density="compact">
@@ -11,12 +7,12 @@
     <tbody>
       <tr v-for="e in entries" :key="e.id">
         <td class="text-no-wrap text-medium-emphasis">{{ formatDate(e.at, tz) }}</td>
-        <td class="text-caption">{{ e.actorId }}</td>
+        <td>{{ e.actorId }}</td>
         <td>
-          <v-chip size="x-small" variant="flat" :color="CRITICAL.includes(e.action) ? 'warning' : undefined">{{ e.action }}</v-chip>
+          <v-chip size="small" variant="tonal" :color="CRITICAL.includes(e.action) ? 'warning' : undefined">{{ e.action }}</v-chip>
         </td>
-        <td class="text-caption text-medium-emphasis">{{ e.targetType }}/{{ e.targetId }}</td>
-        <td class="text-caption text-medium-emphasis">{{ Object.keys(e.meta ?? {}).length ? JSON.stringify(e.meta) : '' }}</td>
+        <td class="text-medium-emphasis">{{ e.targetType }}/{{ e.targetId }}</td>
+        <td class="text-medium-emphasis text-body-2">{{ Object.keys(e.meta ?? {}).length ? JSON.stringify(e.meta) : '' }}</td>
       </tr>
     </tbody>
   </v-table>
@@ -25,6 +21,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { errorMessage, formatDate, hcApi } from '@/services/hcApi'
+import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 const CRITICAL = ['IDENTITY_REVEALED', 'BLOCK_OVERRIDDEN', 'PLAYER_REMOVED', 'RESULT_CORRECTED']
 
