@@ -1,10 +1,16 @@
 <template>
-  <PageHeader title="Bracket" />
+  <PageHeader title="Bracket">
+    <v-btn-toggle v-model="view" mandatory density="compact" variant="outlined" divided aria-label="Darstellung">
+      <v-btn value="tree" prepend-icon="mdi-tournament">Baum</v-btn>
+      <v-btn value="list" prepend-icon="mdi-format-list-bulleted">Liste</v-btn>
+    </v-btn-toggle>
+  </PageHeader>
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
 
   <section v-for="side in sides" :key="side.bracket" class="mb-10">
     <h2 v-if="sides.length > 1" class="text-h6 mb-4">{{ side.title }}</h2>
-    <div v-for="round in side.rounds" :key="round.key" class="mb-6">
+    <BracketTree v-if="view === 'tree'" :rounds="side.rounds" :admin="admin" />
+    <div v-for="round in side.rounds" v-else :key="round.key" class="mb-6">
       <h3 v-if="round.label !== side.title" class="hc-h2">{{ round.label }}</h3>
       <v-table density="compact" class="hc-bracket">
         <colgroup>
@@ -36,13 +42,17 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { BRACKETS, errorMessage, hcApi, isAdmin } from '@/services/hcApi'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
 import DetailButton from '@/components/gliddencup/DetailButton.vue'
+import BracketTree from '@/components/gliddencup/BracketTree.vue'
 
 const slots = ref([])
+// Die gewählte Darstellung bleibt über Seitenwechsel hinweg erhalten.
+const view = ref(localStorage.getItem('hc_bracket_view') === 'list' ? 'list' : 'tree')
+watch(view, v => localStorage.setItem('hc_bracket_view', v))
 const error = ref('')
 const admin = computed(() => isAdmin())
 
