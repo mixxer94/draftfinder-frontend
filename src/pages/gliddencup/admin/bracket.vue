@@ -18,34 +18,38 @@
     </v-btn-toggle>
   </PageHeader>
   <v-alert v-if="error" type="error" variant="tonal" closable class="mb-4" @click:close="error = ''">{{ error }}</v-alert>
+  <v-alert v-if="revealMode && !played" type="info" variant="tonal" density="compact" class="mb-4">
+    Vermutung und Ergebnis lassen sich aufdecken, sobald das Finale gespielt ist.
+  </v-alert>
 
   <section v-for="side in sides" :key="side.bracket" class="mb-10">
     <h2 v-if="sides.length > 1" class="text-h6 mb-4">{{ side.title }}</h2>
     <!-- Die Aufdeck-Buttons brauchen Platz in der Karte, deshalb nur im Aufdecken-Modus höher. -->
     <BracketTree v-if="view === 'tree'" :rounds="side.rounds" :admin="admin" :card-height="revealMode ? 140 : 84">
       <template v-if="revealMode" #actions="{ slot: s }">
-        <div class="d-flex align-center ga-1">
-          <v-chip size="small" variant="tonal" :color="REVEAL_LEVELS[level(s)].color">{{ REVEAL_LEVELS[level(s)].text }}</v-chip>
-          <v-spacer />
+        <!-- Was öffentlich zu sehen ist; die Paarung ist es immer. -->
+        <v-btn-toggle
+          :model-value="level(s)"
+          mandatory
+          divided
+          variant="outlined"
+          density="compact"
+          :color="REVEAL_LEVELS[level(s)].color"
+          class="hc-reveal"
+          :aria-label="`${s.code}: öffentlich bis`"
+          @update:model-value="target => setLevel(s, target)"
+        >
           <v-btn
-            icon="mdi-chevron-down"
+            v-for="(stage, i) in REVEAL_LEVELS"
+            :key="i"
+            :value="i"
             size="x-small"
-            variant="text"
-            :disabled="!!busy || level(s) === 0"
-            :loading="busy === `${s.code}-down`"
-            :aria-label="`${s.code}: Stufe niedriger`"
-            @click="setLevel(s, level(s) - 1, 'down')"
-          />
-          <v-btn
-            icon="mdi-chevron-up"
-            size="x-small"
-            variant="text"
-            :disabled="!!busy || !s.canRaise"
-            :loading="busy === `${s.code}-up`"
-            :aria-label="`${s.code}: Stufe höher`"
-            @click="setLevel(s, level(s) + 1, 'up')"
-          />
-        </div>
+            :disabled="!!busy || !reachable(s, i)"
+            :loading="busy === `${s.code}-${i}`"
+          >
+            {{ stage.text }}
+          </v-btn>
+        </v-btn-toggle>
         <!-- Zurücknehmen auf jeder Stufe, enthüllen nur auf Stufe 2; ob der Verlierer weiterspielt, prüft der Server. -->
         <v-btn
           v-if="s.loserPublic === true || (level(s) === 2 && s.loserPublic === false)"
@@ -106,6 +110,7 @@ import BracketTree from '@/components/gliddencup/BracketTree.vue'
 
 const slots = ref([])
 const identitiesPublic = ref(false)
+const played = ref(false)
 // Die gewählte Darstellung bleibt über Seitenwechsel hinweg erhalten.
 const view = ref(localStorage.getItem('hc_bracket_view') === 'list' ? 'list' : 'tree')
 watch(view, v => localStorage.setItem('hc_bracket_view', v))
@@ -132,14 +137,16 @@ const sides = computed(() => {
     .map(side => ({ ...side, rounds: [...side.rounds.values()].sort((x, y) => x.key - y.key) }))
 })
 
-// Ob sich ein Slot hochstufen lässt, entscheidet der Server (`canRaise`); die Regeln stehen nur dort.
 const level = s => s.revealLevel ?? 0
+// Zurück geht immer, vorwärts nur eine Stufe, wenn der Server es erlaubt (`canRaise`); die Regeln stehen nur dort.
+const reachable = (s, target) => target <= level(s) || (target === level(s) + 1 && s.canRaise)
 
 async function load () {
   try {
     const data = (await hcApi.get('/bracket')).data
     slots.value = data.slots
     identitiesPublic.value = data.identitiesPublic ?? false
+    played.value = data.played ?? false
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -159,8 +166,8 @@ async function run (key, fn) {
   }
 }
 
-const setLevel = (s, target, dir) =>
-  run(`${s.code}-${dir}`, () => hcApi.post(`/bracket/${s.code}/reveal`, { level: target }))
+const setLevel = (s, target) =>
+  run(`${s.code}-${target}`, () => hcApi.post(`/bracket/${s.code}/reveal`, { level: target }))
 
 async function toggleLoser (s) {
   const show = !s.loserPublic
@@ -168,7 +175,7 @@ async function toggleLoser (s) {
   const ok = await confirmAction(show
     ? {
         title: `${loser} enthüllen?`,
-        text: `Der Klarname von ${loser} wird öffentlich, in allen Matches ab Stufe „Paarung“.`,
+        text: `Der Klarname von ${loser} wird öffentlich, in allen seinen Matches.`,
         confirmText: 'Enthüllen',
         color: 'error',
       }
@@ -218,4 +225,6 @@ onMounted(load)
 .hc-col-state { width: 11rem; }
 .hc-col-level { width: 7rem; }
 .hc-col-action { width: 8rem; }
+.hc-reveal { width: 100%; height: 26px; }
+.hc-reveal > .v-btn { flex: 1 1 0; min-width: 0; padding: 0 4px; }
 </style>

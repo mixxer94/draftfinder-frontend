@@ -9,7 +9,7 @@
         v-for="(col, c) in layout.columns"
         :key="col.key"
         class="hc-tree-label text-caption text-medium-emphasis"
-        :style="{ left: `${c * COL_W}px`, width: `${CARD_W}px` }"
+        :style="{ left: `${c * layout.colW}px`, width: `${cardW}px` }"
       >
         {{ col.label }}
       </div>
@@ -21,7 +21,7 @@
         :to="linkable(card.slot) ? `/gliddencup/admin/matches/${card.slot.match.id}` : undefined"
         class="hc-tree-card"
         :class="{ 'hc-tree-card--link': linkable(card.slot) }"
-        :style="{ left: `${card.x}px`, top: `${card.y}px`, width: `${CARD_W}px`, height: `${cardH}px` }"
+        :style="{ left: `${card.x}px`, top: `${card.y}px`, width: `${cardW}px`, height: `${cardH}px` }"
         :aria-label="linkable(card.slot) ? `Details zu ${card.slot.code}` : undefined"
       >
         <div class="hc-tree-head">
@@ -29,6 +29,7 @@
             {{ card.slot.code }}<template v-if="card.slot.match?.score"> · {{ card.slot.match.score }}</template>
           </span>
           <MatchStateChip v-if="showState" :match="card.slot.match ?? { state: card.slot.a && card.slot.b ? 'READY' : 'PENDING' }" />
+          <slot name="head" :slot="card.slot" />
         </div>
         <div v-for="side in ['A', 'B']" :key="side" :class="{ 'font-weight-bold': card.slot.match?.winner === side }">
           <slot name="side" :slot="card.slot" :side="side">
@@ -50,21 +51,22 @@ import MatchStateChip from './MatchStateChip.vue'
  * [{ key, label, slots: [slotView, …] }], aufsteigend nach Runde.
  *
  * Slots: `side` ({ slot, side: 'A' | 'B' }) ersetzt die Namenszeile eines
- * Spielers, `actions` ({ slot }) steht unten in der Karte. Was die Slots
- * zusätzlich zeigen, muss in `cardHeight` Platz haben.
+ * Spielers, `head` ({ slot }) steht rechts in der Kopfzeile, `actions`
+ * ({ slot }) unten in der Karte. Was die Slots zusätzlich zeigen, muss in
+ * `cardHeight` × `cardWidth` Platz haben.
  */
 const props = defineProps({
   rounds: { type: Array, required: true },
   admin: { type: Boolean, default: false },
   cardHeight: { type: Number, default: 84 },
+  cardWidth: { type: Number, default: 220 },
   showState: { type: Boolean, default: true },
 })
 const slots = useSlots()
 
-const CARD_W = 220
-const COL_W = CARD_W + 48
 const TOP = 28 // Platz für die Rundennamen
 const cardH = computed(() => props.cardHeight)
+const cardW = computed(() => props.cardWidth)
 
 // Match-Detail ist der Turnierleitung vorbehalten (Chatverlauf). Mit Buttons
 // in der Karte bleibt sie ein div: Buttons in einem Link sind ungültiges HTML.
@@ -81,6 +83,8 @@ const indexOf = code => Number(code.match(/-M(\d+)$/)?.[1] ?? 1)
  */
 const layout = computed(() => {
   const CARD_H = cardH.value
+  const CARD_W = cardW.value
+  const COL_W = CARD_W + 48
   const ROW_H = CARD_H + 16
   const cards = []
   const lines = []
@@ -108,6 +112,7 @@ const layout = computed(() => {
   })
 
   return {
+    colW: COL_W,
     cards,
     lines,
     columns: props.rounds.map(r => ({ key: r.key, label: r.label })),
