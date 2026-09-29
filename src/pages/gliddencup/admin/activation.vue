@@ -35,7 +35,12 @@
           <tr v-for="r in data.ready" :key="r.code">
             <td class="font-weight-medium text-no-wrap">{{ r.code }}</td>
             <td class="d-none d-md-table-cell">{{ r.label }}</td>
-            <td>{{ r.a }} vs. {{ r.b }}</td>
+            <td>
+              {{ r.a }} vs. {{ r.b }}
+              <div v-for="g in r.openGuesses ?? []" :key="g.pseudonym" class="text-body-2 text-medium-emphasis">
+                <router-link :to="`/gliddencup/admin/matches/${g.matchId}`">{{ guessHint(g) }}</router-link>
+              </div>
+            </td>
             <td>
               <div class="d-flex flex-wrap justify-end ga-2 py-1">
                 <v-btn
@@ -87,6 +92,9 @@ const info = ref('')
 const busy = ref('')
 
 const validWindow = computed(() => period.from && period.to && period.from <= period.to)
+
+// Der Link führt zum ältesten Match mit offener Vermutung (`matchId`).
+const guessHint = g => `${g.pseudonym}: ${g.count} ${g.count === 1 ? 'Vermutung' : 'Vermutungen'} offen`
 
 async function load () {
   try {

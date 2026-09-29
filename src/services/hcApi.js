@@ -109,6 +109,19 @@ export const PLAYER_STATUS = {
   AUSGESCHIEDEN: 'Ausgeschieden',
 }
 
+/** Öffentliche Aufdeckstufe eines Slots (`revealLevel`), Index = Stufe. */
+export const REVEAL_LEVELS = [
+  { text: 'verdeckt', color: undefined },
+  { text: 'Paarung', color: 'secondary' },
+  { text: 'Ergebnis', color: 'success' },
+]
+
+/** Wer eine Vermutung eingetragen hat (`Guess.by`). */
+export const GUESS_BY = {
+  PLAYER: 'Spieler',
+  ADMIN: 'Turnierleitung',
+}
+
 export const BRACKETS = {
   MAIN: 'Bracket',
   WINNERS: 'Winner Bracket',

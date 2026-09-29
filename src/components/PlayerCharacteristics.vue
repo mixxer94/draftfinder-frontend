@@ -1,658 +1,366 @@
-<script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
-import playersData from '@/assets/players.json'
+<template>
+  <div>
+    <div class="d-flex align-center flex-wrap ga-2 mb-4">
+      <v-btn-toggle v-model="layoutMode" mandatory density="compact" variant="outlined" divided aria-label="Anordnung">
+        <v-btn value="free" prepend-icon="mdi-cursor-move">Frei</v-btn>
+        <v-btn value="grid" prepend-icon="mdi-view-grid-outline">Raster</v-btn>
+      </v-btn-toggle>
 
-// reaktive Daten
-const players = ref(playersData)
-const positions = reactive(JSON.parse(localStorage.getItem('cardPositions') || '{}'))
+      <v-select
+        v-if="gridMode"
+        v-model="currentSort"
+        :items="SORT_OPTIONS"
+        label="Sortieren nach"
+        density="compact"
+        hide-details
+        class="gc-sort flex-grow-0"
+      />
+
+      <div class="d-flex align-center" role="group" aria-label="Zoom">
+        <v-btn icon="mdi-magnify-minus-outline" variant="text" size="small" aria-label="Verkleinern" @click="zoomBy(1 / 1.1)" />
+        <v-btn variant="text" size="small" class="gc-zoom" aria-label="Zoom zurücksetzen" @click="zoomLevel = 1">
+          {{ Math.round(zoomLevel * 100) }} %
+        </v-btn>
+        <v-btn icon="mdi-magnify-plus-outline" variant="text" size="small" aria-label="Vergrößern" @click="zoomBy(1.1)" />
+      </div>
+
+      <v-spacer />
+
+      <v-btn variant="text" prepend-icon="mdi-rotate-3d-variant" @click="flipAll">
+        {{ allFlipped ? 'Alle Werte zeigen' : 'Alle Zitate zeigen' }}
+      </v-btn>
+      <v-btn variant="text" :prepend-icon="allMinimized ? 'mdi-arrow-expand' : 'mdi-arrow-collapse'" @click="toggleMinimizeAll">
+        {{ allMinimized ? 'Alle ausklappen' : 'Alle einklappen' }}
+      </v-btn>
+      <v-btn v-if="!gridMode" variant="text" prepend-icon="mdi-restore" @click="reset">Anordnung zurücksetzen</v-btn>
+    </div>
+
+    <div
+      class="pc-root"
+      :class="{ 'pc-grid': gridMode }"
+      @pointermove="onDrag"
+      @pointerup="endDrag"
+      @pointerleave="endDrag"
+    >
+      <div
+        v-for="(p, i) in players"
+        :key="p.user"
+        class="pc-card"
+        :class="{ minimized: minimized[p.user] }"
+        :style="cardStyle(p, i)"
+        @pointerdown="startDrag(p, $event)"
+        @mouseenter="onHoverStart(p)"
+        @mouseleave="onHoverEnd(p)"
+      >
+        <div class="pc-card-actions">
+          <v-btn
+            v-if="!minimized[p.user]"
+            :icon="isShowingStats(p.user) ? 'mdi-format-quote-open' : 'mdi-chart-bar'"
+            size="x-small"
+            density="comfortable"
+            variant="flat"
+            class="pc-card-btn"
+            :aria-label="`${p.user} umdrehen`"
+            @pointerdown.stop
+            @click.stop="toggle(p.user)"
+          />
+          <v-btn
+            :icon="minimized[p.user] ? 'mdi-arrow-expand' : 'mdi-arrow-collapse'"
+            size="x-small"
+            density="comfortable"
+            variant="flat"
+            class="pc-card-btn"
+            :aria-label="`${p.user} ${minimized[p.user] ? 'ausklappen' : 'einklappen'}`"
+            @pointerdown.stop
+            @click.stop="toggleMinimized(p.user)"
+          />
+        </div>
+
+        <div class="name">{{ p.user }}</div>
+
+        <template v-if="!minimized[p.user]">
+          <div class="elo">{{ p.elo }} ({{ p.maxElo }})</div>
+
+          <div v-if="isShowingStats(p.user)" class="stats-container">
+            <div class="hint">{{ firstHint(p) }}</div>
+
+            <div class="meta">
+              <span>{{ p.map || '???' }}</span>
+              <hr class="divider">
+              <span>{{ p.civ || '???' }}</span>
+              <hr class="divider">
+              <span>{{ p.unit || '???' }}</span>
+            </div>
+
+            <div class="flex-grow-1" />
+
+            <div class="stats">
+              <div v-for="s in statList(p)" :key="s.label" class="stat">
+                <span class="label">{{ s.label }}</span>
+                <div class="bar"><div class="bar-mask" :style="{ width: `${100 - (s.value || 0) * 10}%` }" /></div>
+                <div class="value">{{ s.value }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="extra">
+            <strong>Charakter</strong>
+            <ul class="item-list">
+              <li v-for="(hint, idx) in p.hints" :key="idx">{{ hint }}</li>
+            </ul>
+            <strong>Zitate (nicht wirklich)</strong>
+            <ul class="item-list">
+              <li v-for="(q, idx) in p.quotes" :key="idx">„{{ q }}“</li>
+            </ul>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import playersData from '@/assets/players.json'
+import { firstHint, statList } from '@/components/gliddencup/public/playerCards'
+
+/**
+ * Teilnehmerkarten für Maus und großen Bildschirm: frei verschiebbar oder im
+ * Raster, umdrehbar (Werte / Zitate), einklappbar, zoombar. Die freie
+ * Anordnung bleibt im Browser gespeichert.
+ */
+
+// Eigener Schlüssel je Saison: Positionen der Vorsaison gehören zu anderen Namen.
+const STORAGE_KEY = 'gliddencup_card_positions_2026'
+
+const players = ref([...playersData])
+const positions = reactive(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'))
 const showStats = reactive({})
+const minimized = reactive({})
 const dragging = ref(null)
 const zoomLevel = ref(1)
 const zCounter = ref(0)
-const gridMode = ref(false)
+const layoutMode = ref('free')
+const gridMode = computed(() => layoutMode.value === 'grid')
 const allFlipped = ref(false)
-const minimized = reactive({})
 const allMinimized = ref(false)
-const showNamesBackground = ref(false)
 
+const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(positions))
 
+const zoomBy = f => { zoomLevel.value = Math.min(2, Math.max(0.5, zoomLevel.value * f)) }
 
-function startDrag(p, e) {
+function startDrag (p, e) {
+  if (gridMode.value) return
   e.preventDefault()
   const card = e.currentTarget
-  const container = card.offsetParent // pc-root
-  const containerRect = container.getBoundingClientRect()
+  const containerRect = card.offsetParent.getBoundingClientRect()
   const rect = card.getBoundingClientRect()
-
   dragging.value = {
     name: p.user,
     offsetX: e.clientX - rect.left,
     offsetY: e.clientY - rect.top,
     containerTop: containerRect.top,
-    containerLeft: containerRect.left
+    containerLeft: containerRect.left,
   }
-
   zCounter.value++
-  positions[p.user] = positions[p.user] || {}
-  positions[p.user].zIndex = zCounter.value
+  positions[p.user] = { ...positions[p.user], zIndex: zCounter.value }
 }
 
-function onDrag(e) {
+function onDrag (e) {
   if (!dragging.value) return
   const { name, offsetX, offsetY, containerTop, containerLeft } = dragging.value
-  positions[name] = positions[name] || {}
-  positions[name].top = e.clientY - containerTop - offsetY
-  positions[name].left = e.clientX - containerLeft - offsetX
+  positions[name] = {
+    ...positions[name],
+    top: e.clientY - containerTop - offsetY,
+    left: e.clientX - containerLeft - offsetX,
+  }
 }
 
-function endDrag() {
+function endDrag () {
   dragging.value = null
 }
 
-function onHoverStart(p) {
-  if (dragging.value) return
+// Die Karte unter der Maus kommt nach vorn, ohne ihre gespeicherte Ebene zu ändern.
+function onHoverStart (p) {
+  if (dragging.value || gridMode.value) return
   zCounter.value++
-  positions[p.user] = positions[p.user] || {}
-  positions[p.user].hoverZ = zCounter.value
+  positions[p.user] = { ...positions[p.user], hoverZ: zCounter.value }
 }
 
-function onHoverEnd(p) {
-  if (dragging.value) return
-  if (positions[p.user]) delete positions[p.user].hoverZ
+function onHoverEnd (p) {
+  if (dragging.value || !positions[p.user]) return
+  delete positions[p.user].hoverZ
 }
 
+watch(positions, () => { if (!gridMode.value) persist() }, { deep: true })
 
+const isShowingStats = name => showStats[name] !== false
 
-watch(positions, (val) => {
-  if (!gridMode.value)
-    localStorage.setItem('cardPositions', JSON.stringify(val))
-}, { deep: true })
-
-
-
-function statList(p) {
-  const m = p.median || {}
-  return [
-    { label: 'Micro', value: m.micro },
-    { label: 'Macro', value: m.macro ?? m.macri },
-    { label: 'Strategy', value: m.strategy },
-    { label: 'Speed', value: m.speed },
-    { label: 'Exp', value: m.experience }
-  ]
-}
-
-function firstHint(p) {
-  return (p.hints && p.hints[0]) || ''
-}
-
-function isShowingStats(name) {
-  return showStats[name] !== false
-}
-
-// -- Card Button functions ----------------
-function toggle(name) {
+function toggle (name) {
   showStats[name] = !isShowingStats(name)
 }
 
-function toggleMinimized(name) {
+function toggleMinimized (name) {
   minimized[name] = !minimized[name]
-  positions[name] = positions[name] || {}
-  positions[name].minimized = minimized[name]
-  localStorage.setItem('cardPositions', JSON.stringify(positions))
-
-  const allTrue = players.value.every(p => minimized[p.user] === true)
-  const allFalse = players.value.every(p => minimized[p.user] !== true)
-  allMinimized.value = allTrue
+  positions[name] = { ...positions[name], minimized: minimized[name] }
+  allMinimized.value = players.value.every(p => minimized[p.user])
 }
 
-// -- Toolbar Button functions ----------------
-
-function toggleBackground() {
-  showNamesBackground.value = !showNamesBackground.value
-}
-
-function reset() {
-  Object.keys(positions).forEach(k => {
-    delete positions[k]
-    minimized[k] = false
-  })
-  zCounter.value = 0
-
-  localStorage.removeItem('cardPositions')
-
-  players.value.forEach(p => {
-    positions[p.user].minimized = false
-  })
-}
-
-function zoom() {
-  zoomLevel.value *= 1.1
-}
-
-function resetZoom() {
-  zoomLevel.value = 1;
-}
-
-function toggleGrid() {
-  gridMode.value = !gridMode.value
-}
-
-function toggleAll() {
+function flipAll () {
   allFlipped.value = !allFlipped.value
-  players.value.forEach(p => {
-    showStats[p.user] = !allFlipped.value
-  })
+  players.value.forEach(p => { showStats[p.user] = !allFlipped.value })
 }
 
-function toggleMinimizeAll() {
+function toggleMinimizeAll () {
   allMinimized.value = !allMinimized.value
   players.value.forEach(p => {
-    const name = p.user
-    minimized[name] = allMinimized.value
-    positions[name] = positions[name] || {}
-    positions[name].minimized = allMinimized.value
+    minimized[p.user] = allMinimized.value
+    positions[p.user] = { ...positions[p.user], minimized: allMinimized.value }
   })
-
-  localStorage.setItem('cardPositions', JSON.stringify(positions))
 }
 
-// ------------------------------------------
-function cardStyle(p, i) {
-  if (gridMode.value) {
-    // 8x2 Rasterlayout
-    const row = Math.floor(i / 8)
-    const col = i % 8
-    return {
-      top: `${row * 420 + 25}px`,
-      left: `${col * 240 - 5}px`,
-      transform: `scale(${zoomLevel.value})`,
-      zIndex: 1,
-    }
-  }
+function reset () {
+  Object.keys(positions).forEach(k => { delete positions[k] })
+  players.value.forEach(p => { minimized[p.user] = false })
+  allMinimized.value = false
+  zCounter.value = 0
+  localStorage.removeItem(STORAGE_KEY)
+}
 
-  // Standard: freie Positionierung
-  const savedPos = positions[p.user]
-  // Only use saved position if it has valid top/left coordinates
-  const hasValidPosition = savedPos && typeof savedPos.top === 'number' && typeof savedPos.left === 'number'
-  const pos = hasValidPosition 
-    ? savedPos 
-    : { top: 40 + i * 30, left: 40 + (i % 5) * 260 }
-  
+function cardStyle (p, i) {
+  // Im Raster ordnet CSS Grid; `zoom` statt `scale`, damit die Spalten mitwachsen.
+  if (gridMode.value) return { zoom: zoomLevel.value }
+
+  const saved = positions[p.user]
+  const pos = typeof saved?.top === 'number' && typeof saved?.left === 'number'
+    ? saved
+    : { top: 16 + i * 30, left: 16 + (i % 5) * 260 }
   const z = dragging.value?.name === p.user
     ? zCounter.value + 1
-    : pos.hoverZ || pos.zIndex || 10 + i
+    : saved?.hoverZ || saved?.zIndex || 10 + i
   return {
-    top: pos.top + 'px',
-    left: pos.left + 'px',
+    top: `${pos.top}px`,
+    left: `${pos.left}px`,
     transform: `scale(${zoomLevel.value})`,
-    zIndex: z
+    zIndex: z,
   }
 }
 
-// Sort Logic
-const currentSort = ref('elo')
-const showSortMenu = ref(false)
-
-const sortOptions = [
-  { label: 'ELO', value: 'elo' },
-  { label: 'Micro', value: 'micro' },
-  { label: 'Macro', value: 'macro' },
-  { label: 'Strategy', value: 'strategy' },
-  { label: 'Speed', value: 'speed' },
-  { label: 'Exp', value: 'experience' }
+const SORT_OPTIONS = [
+  { title: 'Elo', value: 'elo' },
+  { title: 'Micro', value: 'micro' },
+  { title: 'Macro', value: 'macro' },
+  { title: 'Strategy', value: 'strategy' },
+  { title: 'Speed', value: 'speed' },
+  { title: 'Exp', value: 'experience' },
 ]
+const currentSort = ref('elo')
 
-const currentSortLabel = computed(() => 
-  sortOptions.find(o => o.value === currentSort.value)?.label || 'ELO'
-)
-
-function toggleSortMenu() {
-  showSortMenu.value = !showSortMenu.value
+function sortPlayers () {
+  const key = currentSort.value
+  const valueOf = p => (key === 'elo' ? p.elo || 0 : p.median?.[key] ?? -Infinity)
+  players.value.sort((a, b) => valueOf(b) - valueOf(a))
 }
+watch(currentSort, sortPlayers)
 
-function setSort(criteria) {
-  currentSort.value = criteria
-  showSortMenu.value = false
-  sortPlayers()
-}
-
-function sortPlayers() {
-  players.value.sort((a, b) => {
-    let valA, valB;
-
-    if (currentSort.value === 'elo') {
-      valA = a.elo || 0;
-      valB = b.elo || 0;
-    } else {
-      // Access nested median properties
-      valA = a.median?.[currentSort.value] ?? -Infinity;
-      valB = b.median?.[currentSort.value] ?? -Infinity;
-    }
-
-    return valB - valA; // Descending sort
-  });
-}
-
-// ---- init --------------------------------
 onMounted(() => {
-  if (!document.getElementById('fa-6-6-0')) {
-
-    sortPlayers() // Initial sort
-
-    // load and apply saved z-indeces 
-    const saved = Object.values(positions)
-    const maxZ = saved.length ? Math.max(...saved.map(p => p.zIndex || 0)) : 0
-    zCounter.value = maxZ
-
-    players.value.forEach(p => {
-      const entry = positions[p.user]
-      if (entry && typeof entry.minimized === 'boolean') {
-        minimized[p.user] = entry.minimized
-      }
-    })
-  }
+  sortPlayers()
+  zCounter.value = Math.max(0, ...Object.values(positions).map(p => p.zIndex || 0))
+  players.value.forEach(p => {
+    if (typeof positions[p.user]?.minimized === 'boolean') minimized[p.user] = positions[p.user].minimized
+  })
+  allMinimized.value = players.value.length > 0 && players.value.every(p => minimized[p.user])
 })
 </script>
 
-<template>
-  <div class="pc-root" @pointermove="onDrag" @pointerup="endDrag" @pointerleave="endDrag" :class="showNamesBackground ? 'background-bracket' : 'background-color'
-    ">
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <button class="toolbar-btn" @click="toggleBackground">
-        <i class="fa-solid" :class="showNamesBackground ? 'fa-image' : 'fa-images'"></i>
-      </button>
-      <button class="toolbar-btn" @click="resetZoom">
-        <i class="fa-solid fa-magnifying-glass-minus"></i>
-      </button>
-      <button class="toolbar-btn" @click="zoom">
-        <i class="fa-solid fa-magnifying-glass-plus"></i>
-      </button>
-      <button class="toolbar-btn" :class="{ active: gridMode }" @click="toggleGrid">
-        <i class="fa-solid fa-table-cells-large"></i>
-        <span class="toolbar-btn-text">{{ gridMode ? 'Grid-Mode aus' : 'Grid-Mode an' }}</span>
-      </button>
-      
-      <!-- Sort Dropdown (only in Grid Mode) -->
-      <div class="toolbar-btn-wrapper" v-if="gridMode">
-        <button class="toolbar-btn" @click="toggleSortMenu">
-          <i class="fa-solid fa-sort"></i>
-          <span class="toolbar-btn-text">Sort: {{ currentSortLabel }}</span>
-        </button>
-        <div class="dropdown-menu" v-if="showSortMenu">
-          <div v-for="opt in sortOptions" :key="opt.value" 
-               class="dropdown-item" 
-               :class="{ active: currentSort === opt.value }"
-               @click="setSort(opt.value)">
-            {{ opt.label }}
-          </div>
-        </div>
-      </div>
-
-      <button class="toolbar-btn" @click="toggleAll">
-        <i class="fa-solid" :class="allFlipped ? 'fa-angles-up' : 'fa-angles-down'"></i>
-        <span class="toolbar-btn-text">alle Infos {{ allFlipped ? 'ausblenden' : 'anzeigen'  }}</span>
-      </button>
-      <button class="toolbar-btn" :class="{ active: allMinimized }" @click="toggleMinimizeAll">
-        <i class="fa-solid"
-          :class="allMinimized ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
-          <span class="toolbar-btn-text">{{ allMinimized ? 'alle maximieren' : 'alle minimieren'  }}</span>
-      </button>
-      <button class="toolbar-btn" style="right: 15px" @click="reset">
-        <i class="fa-solid fa-rotate-left"></i>
-        <span class="toolbar-btn-text">Positionen zurücksetzen</span>
-      </button>
-    </div>
-
-    <!-- Cards -->
-    <div v-for="(p, i) in players" :key="p.user" class="card" :class="{ minimized: minimized[p.user] }"
-      :style="cardStyle(p, i)" @pointerdown="startDrag(p, $event)" @mouseenter="onHoverStart(p)"
-      @mouseleave="onHoverEnd(p)">
-      <div class="minimize-btn" @click.stop="toggleMinimized(p.user)">
-        <i class="fa-solid"
-          :class="minimized[p.user] ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center'"></i>
-      </div>
-      <template v-if="!minimized[p.user]">
-        <div class="toggle-btn" :class="{ rotated: !isShowingStats(p.user) }" @click.stop="toggle(p.user)">
-          <i class="fa-solid fa-angles-down"></i>
-        </div>
-
-        <div class="name">{{ p.user }}</div>
-        <div class="elo">{{ `${p.elo} (${p.maxElo})` }}</div>
-
-        <div class="stats-container" v-if="isShowingStats(p.user)">
-          <div class="hint">{{ firstHint(p) }}</div>
-
-          <div class="meta">
-            <span>{{ (p.map || '???') }}</span>
-            <hr class="divider" />
-            <span>{{ (p.civ || '???') }}</span>
-            <hr class="divider" />
-            <span>{{ (p.unit || '???') }}</span>
-          </div>
-
-          <div class="flex-placeholder"></div>
-
-          <!-- Stats -->
-          <div class="stats">
-            <div v-for="s in statList(p)" :key="s.label" class="stat">
-              <span class="label">{{ s.label }}:</span>
-              <div class="bar">
-                <div class="bar-mask" :style="{ width: (100 - (s.value || 0) * 10) + '%' }"></div>
-              </div>
-              <div class="value">{{ s.value }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Hints / Quotes -->
-        <div class="extra" v-else>
-          <strong>Charakter:</strong>
-          <ul class="item-list">
-            <li v-for="(h, idx) in p.hints" :key="idx">{{ h }}</li>
-          </ul>
-          <strong>(not actually) Quotes:</strong>
-          <ul class="item-list">
-            <li v-for="(q, idx) in p.quotes" :key="idx">"{{ q }}"</li>
-          </ul>
-        </div>
-      </template>
-      <template v-else>
-        <div class="name">{{ p.user }}</div>
-      </template>
-
-
-    </div>
-  </div>
-</template>
-
-
-
 <style scoped>
+.gc-sort { min-width: 170px; }
+.gc-zoom { min-width: 4.5rem; font-variant-numeric: tabular-nums; }
+
 .pc-root {
-  height: calc(100vh - 98px);
-  color: #fff;
   position: relative;
+  height: calc(100vh - 260px);
+  min-height: 520px;
   overflow: hidden;
-  font-family: 'Marcellus SC', serif;
   user-select: none;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
+  background: rgb(var(--v-theme-surface));
 }
 
-.background-bracket {
-  background: url('/gliddencup/bracket_with_names_r1.webp');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+.pc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, max-content));
+  gap: 16px;
+  justify-content: center;
+  height: auto;
+  min-height: 0;
+  padding: 16px;
+  overflow: visible;
 }
 
-.background-color {
-  background-color: rgb(11, 11, 11);
-
-}
-
-.card {
+/*
+ * Die Karte ist Spielgrafik mit dunklem Hintergrundbild; Schrift und Buttons
+ * darauf bleiben deshalb in beiden Themes hell.
+ */
+.pc-card {
   position: absolute;
   width: 240px;
   height: 390px;
+  padding: 15px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  font-family: 'Marcellus SC', serif;
   background-image: url('/gliddencup/card.webp');
   background-size: cover;
   background-position: center;
   border-radius: 12px;
-  box-shadow: 2px 4px 9px 0px rgb(127 72 15 / 20%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
   cursor: grab;
-  padding: 15px 20px;
-  box-sizing: border-box;
-  /* transition: transform 0.25s ease; */
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease,
-    height 0.3s ease;
-  display: flex;
-  flex-direction: column;
-
-  &.minimized {
-    height: 50px;
-    width: 240px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background-image: url('/gliddencup/name_badge.webp');
-    background-size: 100% 100%;
-
-
-    .name {
-      margin: 0;
-      font-size: 16px;
-    }
-
-    >.toggle-btn,
-    .meta,
-    .hint,
-    .stats-container,
-    .extra {
-      display: none !important;
-    }
-  }
+  transition: transform 0.25s ease, box-shadow 0.25s ease, height 0.3s ease;
 }
+.pc-grid .pc-card { position: relative; cursor: default; }
+.pc-card:hover { box-shadow: 0 8px 20px rgb(0 0 0 / 35%); }
+.pc-root:not(.pc-grid) .pc-card:hover { transform: scale(1.05); }
 
-.card:hover {
-  transform: scale(1.05);
-  box-shadow: 2px 4px 9px 0px rgb(17 127 15 / 50%)
-}
-
-.name {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 10px;
-}
-
-.elo {
-  font-size: 12px;
-  text-align: center;
-}
-
-.flex-placeholder {
-  flex-grow: 1;
-}
-
-.meta {
-  font-size: 16px;
-  font-weight: bold;
-  text-align: center;
-  color: #ccc;
-
-  .divider {
-    width: 10%;
-    align-self: center;
-    text-align: center;
-    margin-left: 45%;
-  }
-}
-
-.hint {
-  font-size: 16px;
-  color: #aaa;
-  margin-top: 4px;
-  text-align: center;
-  font-style: italic;
-}
-
-.stats-container {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-.stats {
-  font-size: 16px;
-  line-height: 1.4;
-}
-
-.stat {
-  margin: 4px 0;
-
-  display: flex;
-  align-items: center;
-}
-
-.label {
-  display: inline-block;
-  width: 68px;
-}
-
-.value {
-  font-weight: bold;
-  font-weight: bold;
-  border-radius: 4px;
-  color: #fff;
-  width: 26px;
-  text-align: right;
-}
-
-.bar {
-  flex-grow: 1;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #620c03, #f1c40f, #00ff6c);
-  overflow: hidden;
-  margin: 0 2px;
-  position: relative;
-}
-
-.bar-mask {
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  background: #000;
-  border: 1px solid black;
-}
-
-.toggle-btn,
-.minimize-btn {
-  position: absolute;
-  top: 11px;
-  background: rgb(117, 50, 50);
-  border-radius: 30%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
+.pc-card.minimized {
+  height: 50px;
   justify-content: center;
-  font-size: 10px;
-  cursor: pointer;
-  color: #fff;
-  font-weight: bold;
-  transition: background 0.2s;
-
-  & i {
-    transition: transform 0.3s ease;
-  }
+  overflow: hidden;
+  background-image: url('/gliddencup/name_badge.webp');
+  background-size: 100% 100%;
 }
+.pc-card.minimized .name { margin: 0; padding-right: 36px; font-size: 16px; }
 
-.minimize-btn {
-  right: 7px;
-}
-
-.toggle-btn {
-  right: 30px;
-}
-
-.toggle-btn:hover,
-.minimize-btn:hover {
-  background: rgb(167, 50, 50);
-  box-shadow: 2px 2px 2px rgba(102, 27, 27, 0.4);
-}
-
-.toggle-btn.rotated i {
-  transform: rotate(180deg);
-}
-
-.extra {
-  font-size: 16px;
-  margin-top: 10px;
-  margin-bottom: 20px;
-  background-color: rgba(17, 17, 17, .63);
-  color: #ccc;
-  overflow-y: auto;
-}
-
-.extra strong {
-  color: #fff;
-  text-decoration: underline;
-}
-
-.item-list {
-  padding-left: 15px;
-}
-
-.toolbar {
+.pc-card-actions {
   position: absolute;
-  top: 3px;
-  right: 10px;
-  z-index: 999;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
 }
+.pc-card.minimized .pc-card-actions { top: 50%; transform: translateY(-50%); }
+.pc-card-btn { background: rgb(0 0 0 / 45%) !important; color: #fff !important; }
 
-.toolbar-btn {
-  background: #fff;
-  color: #000;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0px 5px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  margin-left: 5px;
-}
+.name { font-size: 20px; font-weight: bold; text-align: center; margin-top: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.elo { font-size: 12px; text-align: center; }
 
-.toolbar-btn:hover {
-  background: rgb(100, 100, 100);
-  border-color: rgba(255, 255, 255, 0.5);
-}
+.stats-container { flex-grow: 1; display: flex; flex-direction: column; }
+.hint { font-size: 16px; color: #bbb; margin-top: 4px; text-align: center; font-style: italic; }
+.meta { font-size: 16px; font-weight: bold; text-align: center; color: #ddd; }
+.meta .divider { width: 10%; margin: 2px 45%; border-color: rgb(255 255 255 / 40%); }
 
-.toolbar-btn.active {
-  background: #10e110;
-}
-.toolbar-btn-text {
-  font-weight: bold;
-  padding-left: 5px;
-  font-size: 14px;
-}
+.stats { font-size: 16px; line-height: 1.4; }
+.stat { display: flex; align-items: center; margin: 4px 0; }
+.label { width: 68px; }
+.value { width: 26px; text-align: right; font-weight: bold; }
+/* Farbverlauf ist die Skala der Werte 1–10; die Maske deckt den Rest ab. */
+.bar { position: relative; flex-grow: 1; height: 8px; margin: 0 2px; border-radius: 4px; overflow: hidden; background: linear-gradient(90deg, #620c03, #f1c40f, #00ff6c); }
+.bar-mask { position: absolute; top: 0; right: 0; height: 100%; background: #000; }
 
-.toolbar-btn-wrapper {
-  display: inline-block;
-  position: relative;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 5px; /* Align with button */
-  background: #222;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 6px;
-  padding: 5px 0;
-  z-index: 1000;
-  min-width: 120px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-
-.dropdown-item {
-  padding: 5px 15px;
-  cursor: pointer;
-  color: #fff;
-  font-size: 14px;
-}
-
-.dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dropdown-item.active {
-  background: #10e110;
-  color: #000;
-  font-weight: bold;
-}
-
+.extra { font-size: 16px; margin: 10px 0 20px; padding: 6px 8px; overflow-y: auto; color: #ddd; background: rgb(17 17 17 / 63%); border-radius: 6px; }
+.extra strong { color: #fff; }
+.item-list { padding-left: 15px; margin-bottom: 6px; }
 </style>

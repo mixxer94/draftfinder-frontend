@@ -74,6 +74,42 @@
       </div>
     </template>
 
+    <template v-if="WITH_RESULT.includes(m.state) && m.guesses">
+      <h2 class="hc-h2 mt-8">Vermutungen</h2>
+      <p class="text-body-2 text-medium-emphasis mb-2">Wen die Spieler hinter ihrem Gegner vermuten. Blockiert nichts; ein Eintrag hier ersetzt den des Spielers.</p>
+      <v-table density="compact">
+        <thead><tr><th>Spieler</th><th>Vermutet</th><th>Von</th><th>Zeit</th><th>Nachtragen / korrigieren</th></tr></thead>
+        <tbody>
+          <tr v-for="s in ['A', 'B']" :key="s">
+            <td class="font-weight-medium">{{ name[s] }}</td>
+            <td>
+              <template v-if="m.guesses[s]">{{ m.guesses[s].name }}</template>
+              <v-chip v-else size="small" variant="tonal" color="warning">offen</v-chip>
+            </td>
+            <td>{{ m.guesses[s] ? GUESS_BY[m.guesses[s].by] ?? m.guesses[s].by : '' }}</td>
+            <td class="text-no-wrap text-medium-emphasis">{{ m.guesses[s] ? fmt(m.guesses[s].at) : '' }}</td>
+            <td>
+              <div class="d-flex align-center ga-2 py-1">
+                <v-select
+                  v-model="guessInput[s]"
+                  :items="m.guessOptions ?? []"
+                  item-title="name"
+                  item-value="key"
+                  :label="`Vermutung von ${name[s]}`"
+                  density="compact"
+                  hide-details
+                  style="min-width: 200px; max-width: 260px"
+                />
+                <v-btn size="small" color="secondary" variant="flat" :disabled="!guessInput[s]" :loading="busy === `guess-${s}`" @click="saveGuess(s)">
+                  Speichern
+                </v-btn>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </template>
+
     <h2 id="replay" class="hc-h2 hc-anchor mt-8">Replay-Pack</h2>
     <p v-if="m.replayPack">
       <a :href="`/api/hc/matches/${m.id}/replay`">{{ m.replayPack.filename }}</a>
@@ -168,7 +204,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { errorMessage, formatDate, hcApi, MATCH_STATES } from '@/services/hcApi'
+import { errorMessage, formatDate, GUESS_BY, hcApi, MATCH_STATES } from '@/services/hcApi'
 import { confirmAction, confirmStartNow } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
@@ -189,6 +225,9 @@ const upload = reactive({ file: null, progress: 0 })
 // v-file-input liefert je nach Vuetify-Version eine Datei oder ein Array.
 const uploadFile = computed(() => (Array.isArray(upload.file) ? upload.file[0] : upload.file) ?? null)
 const compose = reactive({ text: '', to: 'BOTH' })
+// Vermutungen gibt es erst mit gemeldetem Ergebnis.
+const WITH_RESULT = ['RESULT_REPORTED', 'PLAYED']
+const guessInput = reactive({ A: null, B: null })
 
 const name = computed(() => ({ A: m.value?.players.A.pseudonym, B: m.value?.players.B.pseudonym }))
 const recipients = computed(() => [
@@ -303,6 +342,11 @@ async function correctResult () {
   if (!ok) return
   const res = await run('result', () => hcApi.post(`/matches/${m.value.id}/result`, { winner: correction.winner, score: correction.score }))
   if (res) correction.open = false
+}
+
+async function saveGuess (s) {
+  const res = await run(`guess-${s}`, () => hcApi.post(`/matches/${m.value.id}/guess`, { side: s, guessedKey: guessInput[s] }))
+  if (res) guessInput[s] = null
 }
 
 async function send () {

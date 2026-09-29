@@ -51,7 +51,7 @@ Die Seite ist ein maßgeschneidertes Werkzeug für genau dieses eine Pseudonym-T
 - Civ-Embleme: `public/civemblems/*.png`
 - Map-Bilder: `public/maps/*.png`
 
-- Spielerprofile mit Werten und Zitaten: `src/assets/players.json`. Match-Daten liegen in `src/assets/matches.json`.
+- Spielerprofile mit Werten und Zitaten: `src/assets/players.json`.
 - Es gibt keine Testimonials, Nutzerzahlen oder Presse, und es sollen auch keine erfunden werden.
 
 ## Product Principles

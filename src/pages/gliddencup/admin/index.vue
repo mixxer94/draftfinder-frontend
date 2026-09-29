@@ -18,7 +18,8 @@
       {{ t.format }} · Anmeldung {{ s.anmeldungOffen ? 'offen' : 'geschlossen' }} ·
       {{ s.angemeldet }}/{{ s.plaetze }} Plätze<template v-if="s.fehlend > 0"> ({{ s.fehlend }} frei)</template><template v-else-if="s.fehlend < 0"> ({{ -s.fehlend }} überbucht)</template> ·
       {{ s.verifiziert }} startklar ·
-      {{ s.matchesGewertet }}/{{ s.matchesGesamt }} Matches gewertet
+      {{ s.matchesGewertet }}/{{ s.matchesGesamt }} Matches gewertet<template v-if="data.openGuesses != null"> ·
+        {{ data.openGuesses }} {{ data.openGuesses === 1 ? 'Vermutung' : 'Vermutungen' }} offen</template>
     </p>
 
     <v-alert v-if="info" type="success" variant="tonal" closable class="mb-4" @click:close="info = ''">{{ info }}</v-alert>

@@ -15,7 +15,25 @@
         <td class="font-weight-bold">{{ p.pseudonym || '—' }}</td>
         <td class="text-no-wrap">
           <template v-if="revealed[p.id]">
-            <code>{{ revealed[p.id] }}</code>
+            <code>{{ revealed[p.id].discordTag }}</code>
+            <div v-if="nameEdit.id !== p.id" class="d-flex align-center ga-1">
+              <span>{{ revealed[p.id].displayName ?? '—' }}</span>
+              <v-btn v-if="setup" icon="mdi-pencil" size="x-small" variant="text" :aria-label="`Anzeigename bearbeiten: ${rowName(p, i)}`" @click="editName(p)" />
+            </div>
+            <div v-else class="d-flex align-center ga-2 py-1">
+              <v-text-field
+                v-model="nameEdit.value"
+                label="Anzeigename"
+                density="compact"
+                hide-details
+                maxlength="64"
+                autofocus
+                style="min-width: 180px; max-width: 240px"
+                @keyup.enter="saveName(p)"
+              />
+              <v-btn size="small" color="secondary" variant="flat" :disabled="!nameValid" :loading="busy === `name-${p.id}`" @click="saveName(p)">Speichern</v-btn>
+              <v-btn size="small" variant="text" @click="nameEdit.id = null">Abbrechen</v-btn>
+            </div>
           </template>
           <template v-else>
             <span class="text-medium-emphasis">••••••••</span>
@@ -79,12 +97,20 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { errorMessage, hcApi, PLAYER_STATUS } from '@/services/hcApi'
 import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 const players = ref([])
+/*
+ * Turnierzustand aus der eigenen Antwort statt aus hcSession.tournamentState:
+ * Das setzt das Layout erst nach einem Dashboard-Abruf, beim direkten Aufruf
+ * der Seite also womöglich später oder gar nicht.
+ */
+const tournamentState = ref(null)
+// Nach der Auslosung steht der Anzeigename fest, an ihm hängen die Tipps (409 NAME_FIXED).
+const setup = computed(() => tournamentState.value === 'SETUP')
 const loading = ref(false)
 const error = ref('')
 const info = ref('')
@@ -103,7 +129,9 @@ const statusColor = s =>
 async function load () {
   loading.value = true
   try {
-    players.value = (await hcApi.get('/registrations')).data.players
+    const data = (await hcApi.get('/registrations')).data
+    players.value = data.players
+    tournamentState.value = data.tournament?.state ?? null
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
@@ -157,9 +185,37 @@ async function remove () {
 async function reveal (p) {
   busy.value = `reveal-${p.id}`
   try {
-    const { discordTag, until } = (await hcApi.post(`/players/${p.id}/reveal`)).data
-    revealed[p.id] = discordTag
-    timers.push(setTimeout(() => delete revealed[p.id], Math.max(0, new Date(until) - Date.now())))
+    const { discordTag, displayName, until } = (await hcApi.post(`/players/${p.id}/reveal`)).data
+    revealed[p.id] = { discordTag, displayName }
+    timers.push(setTimeout(() => {
+      delete revealed[p.id]
+      if (nameEdit.id === p.id) nameEdit.id = null
+    }, Math.max(0, new Date(until) - Date.now())))
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    busy.value = ''
+  }
+}
+
+// Bearbeiten nur im Reveal-Fenster: ohne Aufdecken kennt die Seite den Namen nicht.
+const nameEdit = reactive({ id: null, value: '' })
+const nameValid = computed(() => nameEdit.value.trim().length >= 1 && nameEdit.value.trim().length <= 64)
+
+function editName (p) {
+  Object.assign(nameEdit, { id: p.id, value: revealed[p.id].displayName ?? '' })
+}
+
+async function saveName (p) {
+  if (!nameValid.value) return
+  const displayName = nameEdit.value.trim()
+  busy.value = `name-${p.id}`
+  error.value = ''
+  try {
+    await hcApi.put(`/players/${p.id}/display-name`, { displayName })
+    if (revealed[p.id]) revealed[p.id].displayName = displayName
+    nameEdit.id = null
+    info.value = `Anzeigename von ${p.pseudonym || 'Spieler'} gespeichert.`
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
