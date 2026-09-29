@@ -1,17 +1,6 @@
 <template>
   <PublicShell :title="tournament?.tournamentName ?? 'Gliddencup'">
-    <PageHeader
-      :title="tournament?.tournamentName ?? 'Gliddencup'"
-      text="Alle Teilnehmer treten unter Pseudonym an. Tipp, wer hinter welchem Pseudonym steckt."
-    >
-      <template #meta>
-        <v-chip v-if="phase" size="small" variant="tonal" :color="phase.color">{{ phase.text }}</v-chip>
-        <v-chip v-if="tournament && error" size="small" variant="tonal" color="warning" prepend-icon="mdi-wifi-off">
-          Nicht aktuell
-        </v-chip>
-      </template>
-    </PageHeader>
-
+    
     <!-- Auf dem Handy ohne Icons, damit mehr Tabs ohne Scrollen passen. -->
     <v-tabs v-model="tab" color="secondary" show-arrows class="gc-tabs mb-6">
       <v-tab value="tippen" :prepend-icon="smAndUp ? 'mdi-pencil-outline' : undefined">Tippen</v-tab>

@@ -41,8 +41,7 @@
 
     <template v-else>
       <v-alert v-if="!tournament.tipsOpen" type="info" variant="tonal" class="mb-4">
-        Tippen ist geschlossen. Tipps gehen nur, bis das erste Ergebnis aufgedeckt ist.
-        <template v-if="account === 'in'"> Unten stehen deine gespeicherten Tipps.</template>
+        Tippen ist geschlossen.
       </v-alert>
 
       <div class="d-flex align-baseline flex-wrap ga-2 mb-3">
