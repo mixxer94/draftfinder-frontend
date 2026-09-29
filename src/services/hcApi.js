@@ -111,7 +111,8 @@ export const PLAYER_STATUS = {
 
 /** Öffentliche Aufdeckstufe eines Slots (`revealLevel`), Index = Stufe. */
 export const REVEAL_LEVELS = [
-  { text: 'Paarung', color: undefined },
+  { text: 'Verdeckt', color: undefined },
+  { text: 'Paarung', color: 'primary' },
   { text: 'Vermutung', color: 'secondary' },
   { text: 'Ergebnis', color: 'success' },
 ]

@@ -2,10 +2,12 @@
   <PageHeader title="Bracket">
     <template v-if="admin">
       <v-switch v-model="revealMode" label="Aufdecken" color="secondary" density="compact" hide-details inset class="flex-grow-0 mr-2" />
+      <!-- Der Schlusspunkt im Stream: erst nach dem Finale, zurücknehmen geht immer. -->
       <v-btn
         v-if="revealMode"
         variant="tonal"
         :color="identitiesPublic ? undefined : 'error'"
+        :disabled="!played && !identitiesPublic"
         :loading="busy === 'identities'"
         @click="toggleIdentities"
       >
@@ -18,16 +20,24 @@
     </v-btn-toggle>
   </PageHeader>
   <v-alert v-if="error" type="error" variant="tonal" closable class="mb-4" @click:close="error = ''">{{ error }}</v-alert>
-  <v-alert v-if="revealMode && !played" type="info" variant="tonal" density="compact" class="mb-4">
-    Vermutung und Ergebnis lassen sich aufdecken, sobald das Finale gespielt ist.
+  <v-alert v-if="revealMode" type="info" variant="tonal" density="compact" class="mb-4">
+    Je Match: Paarung → Vermutung → Ergebnis → Verlierer enthüllen. Ab Runde 2 schaltest du jede Paarung selbst frei.
+    Zum Schluss deckt „Zuordnung veröffentlichen“ den Sieger und alle Tipps auf.
+    <template v-if="!played"><br>Vermutung, Ergebnis und Zuordnung gehen erst, wenn das Finale gespielt ist.</template>
   </v-alert>
 
   <section v-for="side in sides" :key="side.bracket" class="mb-10">
     <h2 v-if="sides.length > 1" class="text-h6 mb-4">{{ side.title }}</h2>
-    <!-- Die Aufdeck-Buttons brauchen Platz in der Karte, deshalb nur im Aufdecken-Modus höher. -->
-    <BracketTree v-if="view === 'tree'" :rounds="side.rounds" :admin="admin" :card-height="revealMode ? 140 : 84">
+    <!-- Die Aufdeck-Buttons brauchen Platz in der Karte, deshalb nur im Aufdecken-Modus größer. -->
+    <BracketTree
+      v-if="view === 'tree'"
+      :rounds="side.rounds"
+      :admin="admin"
+      :card-height="revealMode ? 140 : 84"
+      :card-width="revealMode ? 300 : 220"
+    >
       <template v-if="revealMode" #actions="{ slot: s }">
-        <!-- Was öffentlich zu sehen ist; die Paarung ist es immer. -->
+        <!-- Was öffentlich zu sehen ist. -->
         <v-btn-toggle
           :model-value="level(s)"
           mandatory
@@ -50,9 +60,9 @@
             {{ stage.text }}
           </v-btn>
         </v-btn-toggle>
-        <!-- Zurücknehmen auf jeder Stufe, enthüllen nur auf Stufe 2; ob der Verlierer weiterspielt, prüft der Server. -->
+        <!-- Zurücknehmen geht immer, enthüllen nur, wo der Server es erlaubt (`canRevealLoser`). -->
         <v-btn
-          v-if="s.loserPublic === true || (level(s) === 2 && s.loserPublic === false)"
+          v-if="s.loserPublic === true || s.canRevealLoser"
           size="x-small"
           variant="text"
           :color="s.loserPublic ? undefined : 'error'"
@@ -192,7 +202,7 @@ async function toggleIdentities () {
   const ok = await confirmAction(show
     ? {
         title: 'Zuordnung veröffentlichen?',
-        text: 'Alle Klarnamen, alle Tipps und die Auswertungen werden öffentlich. Tipps sind danach geschlossen.',
+        text: 'Alle Klarnamen, auch der des Siegers, alle Tipps und die Auswertungen werden öffentlich. Tipps sind danach geschlossen.',
         confirmText: 'Veröffentlichen',
         color: 'error',
       }
