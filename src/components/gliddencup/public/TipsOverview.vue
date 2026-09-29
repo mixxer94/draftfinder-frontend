@@ -29,7 +29,10 @@
 
     <v-col cols="12" md="9">
       <div class="d-flex align-center flex-wrap ga-3 mb-2">
-        <h2 class="hc-h2 mb-0">{{ selected ? `Tipps von ${selected}` : 'Tipps' }}</h2>
+        <h2 class="hc-h2 mb-0">
+          {{ selected ? `Tipps von ${selected}` : 'Tipps' }}
+          <span v-if="selected && spoilers" class="gc-num">({{ correctBy.get(selected) }}/{{ rows.length }})</span>
+        </h2>
         <v-spacer />
         <v-switch v-model="spoilers" label="Auflösung zeigen" color="secondary" density="compact" hide-details inset class="flex-grow-0" />
       </div>
@@ -45,7 +48,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows" :key="row.pseudonym">
+          <tr
+            v-for="row in rows"
+            :key="row.pseudonym"
+            :class="spoilers && row.guess && (row.correct ? 'gc-hit' : 'gc-miss')"
+          >
             <td class="font-weight-medium">{{ row.pseudonym }}</td>
             <td>
               <span v-if="row.guess">{{ row.guess }}</span>
@@ -108,4 +115,6 @@ const rows = computed(() => {
 <style scoped>
 .gc-users { max-height: 70vh; overflow-y: auto; }
 .gc-num { font-variant-numeric: tabular-nums; }
+.gc-hit { background: rgba(var(--v-theme-success), 0.16); }
+.gc-miss { background: rgba(var(--v-theme-error), 0.12); }
 </style>
