@@ -1,5 +1,5 @@
 <template>
-  <PageHeader title="Anmeldungen" text="Discord-Namen sind verdeckt. Aufdecken zeigt sie zwei Minuten lang und steht im Audit-Log.">
+  <PageHeader title="Anmeldungen" text="Namen sind verdeckt. Aufdecken zeigt sie zwei Minuten lang und steht im Audit-Log.">
     <v-btn variant="tonal" prepend-icon="mdi-repeat" :loading="busy === 'rebuild'" @click="rebuild">Liste im Kanal neu posten</v-btn>
   </PageHeader>
 
@@ -8,14 +8,13 @@
 
   <v-table density="comfortable">
     <thead>
-      <tr><th>Pseudonym</th><th>Discord</th><th>Status</th><th>Aktionen</th></tr>
+      <tr><th>Pseudonym</th><th>Name</th><th>Status</th><th>Aktionen</th></tr>
     </thead>
     <tbody>
       <tr v-for="(p, i) in players" :key="p.id">
         <td class="font-weight-bold">{{ p.pseudonym || '—' }}</td>
         <td class="text-no-wrap">
           <template v-if="revealed[p.id]">
-            <code>{{ revealed[p.id].discordTag }}</code>
             <div v-if="nameEdit.id !== p.id" class="d-flex align-center ga-1">
               <span>{{ revealed[p.id].displayName ?? '—' }}</span>
               <v-btn v-if="setup" icon="mdi-pencil" size="x-small" variant="text" :aria-label="`Anzeigename bearbeiten: ${rowName(p, i)}`" @click="editName(p)" />
@@ -185,8 +184,8 @@ async function remove () {
 async function reveal (p) {
   busy.value = `reveal-${p.id}`
   try {
-    const { discordTag, displayName, until } = (await hcApi.post(`/players/${p.id}/reveal`)).data
-    revealed[p.id] = { discordTag, displayName }
+    const { displayName, until } = (await hcApi.post(`/players/${p.id}/reveal`)).data
+    revealed[p.id] = { displayName }
     timers.push(setTimeout(() => {
       delete revealed[p.id]
       if (nameEdit.id === p.id) nameEdit.id = null
