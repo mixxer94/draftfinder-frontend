@@ -16,7 +16,7 @@
         Kein Match bereit, weil noch nicht ausgelost ist. Nach der <router-link to="/gliddencup/admin/draw">Auslosung</router-link> erscheint hier die erste Runde.
       </template>
       <template v-else-if="data.tournament.state === 'FINISHED'">Kein Match bereit. Das Turnier ist abgeschlossen.</template>
-      <template v-else>Kein Match bereit. Ein Match lässt sich freigeben, sobald beide Gegner feststehen, also wenn die Matches davor gewertet sind.</template>
+      <template v-else>Kein Match freizugeben. </template>
     </p>
 
     <template v-else>

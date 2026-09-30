@@ -25,16 +25,22 @@
         :aria-label="linkable(card.slot) ? `Details zu ${card.slot.code}` : undefined"
       >
         <div class="hc-tree-head">
-          <span class="text-medium-emphasis text-no-wrap">
-            {{ card.slot.code }}<template v-if="card.slot.match?.score"> · {{ card.slot.match.score }}</template>
-          </span>
+          <span class="text-medium-emphasis text-no-wrap">{{ card.slot.code }}</span>
           <MatchStateChip v-if="showState" :match="card.slot.match ?? { state: card.slot.a && card.slot.b ? 'READY' : 'PENDING' }" />
           <slot name="head" :slot="card.slot" />
         </div>
-        <div v-for="side in ['A', 'B']" :key="side" :class="{ 'font-weight-bold': card.slot.match?.winner === side }">
-          <slot name="side" :slot="card.slot" :side="side">
-            <div class="hc-tree-name">{{ (side === 'A' ? card.slot.a : card.slot.b) ?? '—' }}</div>
-          </slot>
+        <div
+          v-for="side in ['A', 'B']"
+          :key="side"
+          class="hc-tree-side"
+          :class="{ 'font-weight-bold': card.slot.match?.winner === side }"
+        >
+          <span v-if="hasScores" class="hc-tree-score">{{ sideScore(card.slot.match, side) }}</span>
+          <div class="hc-tree-side-main">
+            <slot name="side" :slot="card.slot" :side="side">
+              <div class="hc-tree-name">{{ (side === 'A' ? card.slot.a : card.slot.b) ?? '—' }}</div>
+            </slot>
+          </div>
         </div>
         <slot name="actions" :slot="card.slot" />
       </component>
@@ -71,6 +77,15 @@ const cardW = computed(() => props.cardWidth)
 // Match-Detail ist der Turnierleitung vorbehalten (Chatverlauf). Mit Buttons
 // in der Karte bleibt sie ein div: Buttons in einem Link sind ungültiges HTML.
 const linkable = slot => props.admin && slot.match && !slots.actions
+
+// Das Ergebnis steht immer aus Sicht des Siegers („2:1“), die Zahlen gehören also zu Sieger und Verlierer, nicht zu A und B.
+const sideScore = (match, side) => {
+  const [won, lost] = match?.score?.split(':') ?? []
+  if (!match?.winner || lost === undefined) return ''
+  return match.winner === side ? won : lost
+}
+// Die Ergebnisspalte gibt es erst, wenn irgendein Match eins hat, sonst wären alle Namen grundlos eingerückt.
+const hasScores = computed(() => props.rounds.some(r => r.slots.some(s => s.match?.score)))
 
 // Position in der Runde steckt im Code (WB-R2-M3); GF und GF-RESET haben keine.
 const indexOf = code => Number(code.match(/-M(\d+)$/)?.[1] ?? 1)
@@ -147,5 +162,8 @@ const layout = computed(() => {
 
 .hc-tree-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.75rem; }
 .hc-tree-head :deep(.v-chip) { --v-chip-height: 20px; font-size: 0.7rem; }
+.hc-tree-side { display: flex; align-items: baseline; gap: 8px; }
+.hc-tree-side-main { flex: 1 1 auto; min-width: 0; }
+.hc-tree-score { flex: 0 0 1ch; text-align: right; font-variant-numeric: tabular-nums; }
 .hc-tree-name { line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

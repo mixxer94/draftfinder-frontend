@@ -127,4 +127,6 @@ const cardWidth = computed(() => 220
 }
 .gc-guess { font-style: italic; }
 .gc-real { font-weight: 500; }
+/* BracketTree setzt die Siegerzeile fett; der Klarname gehört zum Sieger, die Vermutung nicht. */
+.font-weight-bold .gc-real { font-weight: 700; }
 </style>
