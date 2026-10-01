@@ -6,22 +6,17 @@
         <v-btn value="grid" prepend-icon="mdi-view-grid-outline">Raster</v-btn>
       </v-btn-toggle>
 
-      <v-select
-        v-if="gridMode"
-        v-model="currentSort"
-        :items="SORT_OPTIONS"
-        label="Sortieren nach"
-        density="compact"
-        hide-details
-        class="gc-sort flex-grow-0"
-      />
+      <v-select v-if="gridMode" v-model="currentSort" :items="SORT_OPTIONS" label="Sortieren nach" density="compact"
+        hide-details class="gc-sort flex-grow-0" />
 
       <div class="d-flex align-center" role="group" aria-label="Zoom">
-        <v-btn icon="mdi-magnify-minus-outline" variant="text" size="small" aria-label="Verkleinern" @click="zoomBy(1 / 1.1)" />
+        <v-btn icon="mdi-magnify-minus-outline" variant="text" size="small" aria-label="Verkleinern"
+          @click="zoomBy(1 / 1.1)" />
         <v-btn variant="text" size="small" class="gc-zoom" aria-label="Zoom zurücksetzen" @click="zoomLevel = 1">
           {{ Math.round(zoomLevel * 100) }} %
         </v-btn>
-        <v-btn icon="mdi-magnify-plus-outline" variant="text" size="small" aria-label="Vergrößern" @click="zoomBy(1.1)" />
+        <v-btn icon="mdi-magnify-plus-outline" variant="text" size="small" aria-label="Vergrößern"
+          @click="zoomBy(1.1)" />
       </div>
 
       <v-spacer />
@@ -32,33 +27,14 @@
       <v-btn v-if="!gridMode" variant="text" prepend-icon="mdi-restore" @click="reset">Anordnung zurücksetzen</v-btn>
     </div>
 
-    <div
-      class="pc-root"
-      :class="{ 'pc-grid': gridMode }"
-      @pointermove="onDrag"
-      @pointerup="endDrag"
-      @pointerleave="endDrag"
-    >
-      <div
-        v-for="(p, i) in players"
-        :key="p.user"
-        class="pc-card"
-        :style="cardStyle(p, i)"
-        @pointerdown="startDrag(p, $event)"
-        @mouseenter="onHoverStart(p)"
-        @mouseleave="onHoverEnd(p)"
-      >
+    <div class="pc-root" :class="{ 'pc-grid': gridMode }" @pointermove="onDrag" @pointerup="endDrag"
+      @pointerleave="endDrag">
+      <div v-for="(p, i) in players" :key="p.user" class="pc-card" :style="cardStyle(p, i)"
+        @pointerdown="startDrag(p, $event)" @mouseenter="onHoverStart(p)" @mouseleave="onHoverEnd(p)">
         <div class="pc-card-actions">
-          <v-btn
-            :icon="isShowingStats(p.user) ? 'mdi-format-quote-open' : 'mdi-chart-bar'"
-            size="x-small"
-            density="comfortable"
-            variant="flat"
-            class="pc-card-btn"
-            :aria-label="`${p.user} umdrehen`"
-            @pointerdown.stop
-            @click.stop="toggle(p.user)"
-          />
+          <v-btn :icon="isShowingStats(p.user) ? 'mdi-format-quote-open' : 'mdi-chart-bar'" size="x-small"
+            density="comfortable" variant="flat" class="pc-card-btn" :aria-label="`${p.user} umdrehen`"
+            @pointerdown.stop @click.stop="toggle(p.user)" />
         </div>
 
         <div class="name">{{ p.user }}</div>
@@ -81,7 +57,9 @@
           <div class="stats">
             <div v-for="s in statList(p)" :key="s.label" class="stat">
               <span class="label">{{ s.label }}</span>
-              <div class="bar"><div class="bar-mask" :style="{ width: `${100 - (s.value || 0) * 10}%` }" /></div>
+              <div class="bar">
+                <div class="bar-mask" :style="{ width: `${100 - (s.value || 0) * 10}%` }" />
+              </div>
               <div class="value">{{ s.value }}</div>
             </div>
           </div>
@@ -130,7 +108,7 @@ const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(positions
 
 const zoomBy = f => { zoomLevel.value = Math.min(2, Math.max(0.5, zoomLevel.value * f)) }
 
-function startDrag (p, e) {
+function startDrag(p, e) {
   if (gridMode.value) return
   e.preventDefault()
   const card = e.currentTarget
@@ -147,7 +125,7 @@ function startDrag (p, e) {
   positions[p.user] = { ...positions[p.user], zIndex: zCounter.value }
 }
 
-function onDrag (e) {
+function onDrag(e) {
   if (!dragging.value) return
   const { name, offsetX, offsetY, containerTop, containerLeft } = dragging.value
   positions[name] = {
@@ -157,18 +135,18 @@ function onDrag (e) {
   }
 }
 
-function endDrag () {
+function endDrag() {
   dragging.value = null
 }
 
 // Die Karte unter der Maus kommt nach vorn, ohne ihre gespeicherte Ebene zu ändern.
-function onHoverStart (p) {
+function onHoverStart(p) {
   if (dragging.value || gridMode.value) return
   zCounter.value++
   positions[p.user] = { ...positions[p.user], hoverZ: zCounter.value }
 }
 
-function onHoverEnd (p) {
+function onHoverEnd(p) {
   if (dragging.value || !positions[p.user]) return
   delete positions[p.user].hoverZ
 }
@@ -177,22 +155,22 @@ watch(positions, () => { if (!gridMode.value) persist() }, { deep: true })
 
 const isShowingStats = name => showStats[name] !== false
 
-function toggle (name) {
+function toggle(name) {
   showStats[name] = !isShowingStats(name)
 }
 
-function flipAll () {
+function flipAll() {
   allFlipped.value = !allFlipped.value
   players.value.forEach(p => { showStats[p.user] = !allFlipped.value })
 }
 
-function reset () {
+function reset() {
   Object.keys(positions).forEach(k => { delete positions[k] })
   zCounter.value = 0
   localStorage.removeItem(STORAGE_KEY)
 }
 
-function cardStyle (p, i) {
+function cardStyle(p, i) {
   // Im Raster ordnet CSS Grid; `zoom` statt `scale`, damit die Spalten mitwachsen.
   if (gridMode.value) return { zoom: zoomLevel.value }
 
@@ -221,7 +199,7 @@ const SORT_OPTIONS = [
 ]
 const currentSort = ref('elo')
 
-function sortPlayers () {
+function sortPlayers() {
   const key = currentSort.value
   const valueOf = p => (key === 'elo' ? p.elo || 0 : p.median?.[key] ?? -Infinity)
   players.value.sort((a, b) => valueOf(b) - valueOf(a))
@@ -235,8 +213,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.gc-sort { min-width: 170px; }
-.gc-zoom { min-width: 4.5rem; font-variant-numeric: tabular-nums; }
+.gc-sort {
+  min-width: 170px;
+}
+
+.gc-zoom {
+  min-width: 4.5rem;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Karten- und Abstandsmaße sind so gewählt, dass 16 Karten auf 1080p in zwei Reihen passen. */
 .pc-root {
@@ -283,9 +267,19 @@ onMounted(() => {
   cursor: grab;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
-.pc-grid .pc-card { position: relative; cursor: default; }
-.pc-card:hover { box-shadow: 0 8px 20px rgb(0 0 0 / 35%); }
-.pc-root:not(.pc-grid) .pc-card:hover { transform: scale(1.05); }
+
+.pc-grid .pc-card {
+  position: relative;
+  cursor: default;
+}
+
+.pc-card:hover {
+  box-shadow: 0 8px 20px rgb(0 0 0 / 35%);
+}
+
+.pc-root:not(.pc-grid) .pc-card:hover {
+  transform: scale(1.05);
+}
 
 .pc-card-actions {
   position: absolute;
@@ -294,26 +288,117 @@ onMounted(() => {
   display: flex;
   gap: 4px;
 }
-.pc-card-btn { background: rgb(0 0 0 / 45%) !important; color: #fff !important; }
+
+.pc-card-btn {
+  background: rgb(0 0 0 / 45%) !important;
+  color: #fff !important;
+}
 
 /* Ohne flex-shrink: 0 drückt eine lange, scrollende Rückseite den Namen weg (overflow: hidden erlaubt Höhe 0). */
-.name { flex-shrink: 0; font-size: 18px; font-weight: bold; text-align: center; margin-top: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.elo { flex-shrink: 0; font-size: 12px; text-align: center; }
+.name {
+  flex-shrink: 0;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.stats-container { flex-grow: 1; display: flex; flex-direction: column; }
-.hint { font-size: 14px; line-height: 1.3; color: #bbb; margin-top: 4px; text-align: center; font-style: italic; }
-.meta { font-size: 15px; line-height: 1.3; font-weight: bold; text-align: center; color: #ddd; }
-.meta .divider { width: 10%; margin: 2px 45%; border-color: rgb(255 255 255 / 40%); }
+.elo {
+  flex-shrink: 0;
+  font-size: 12px;
+  text-align: center;
+}
 
-.stats { font-size: 15px; line-height: 1.3; }
-.stat { display: flex; align-items: center; margin: 3px 0; }
-.label { width: 64px; }
-.value { width: 26px; text-align: right; font-weight: bold; }
+.stats-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.hint {
+  font-size: 14px;
+  line-height: 1.3;
+  color: #bbb;
+  margin-top: 4px;
+  text-align: center;
+  font-style: italic;
+}
+
+.meta {
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: bold;
+  text-align: center;
+  color: #ddd;
+}
+
+.meta .divider {
+  width: 10%;
+  margin: 2px 45%;
+  border-color: rgb(255 255 255 / 40%);
+}
+
+.stats {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  margin: 3px 0;
+}
+
+.label {
+  width: 64px;
+}
+
+.value {
+  width: 26px;
+  text-align: right;
+  font-weight: bold;
+}
+
 /* Farbverlauf ist die Skala der Werte 1–10; die Maske deckt den Rest ab. */
-.bar { position: relative; flex-grow: 1; height: 8px; margin: 0 2px; border-radius: 4px; overflow: hidden; background: linear-gradient(90deg, #620c03, #f1c40f, #00ff6c); }
-.bar-mask { position: absolute; top: 0; right: 0; height: 100%; background: #000; }
+.bar {
+  position: relative;
+  flex-grow: 1;
+  height: 8px;
+  margin: 0 2px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #620c03, #f1c40f, #00ff6c);
+}
 
-.extra { flex: 1 1 0; min-height: 0; font-size: 15px; margin: 8px 0 12px; padding: 6px 8px; overflow-y: auto; color: #ddd; background: rgb(17 17 17 / 63%); border-radius: 6px; }
-.extra strong { color: #fff; }
-.item-list { padding-left: 15px; margin-bottom: 6px; }
+.bar-mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background: #000;
+}
+
+.extra {
+  flex: 1 1 0;
+  min-height: 0;
+  font-size: 15px;
+  margin: 8px 0 12px;
+  padding: 6px 8px;
+  overflow-y: auto;
+  color: #ddd;
+  background: rgb(17 17 17 / 63%);
+  border-radius: 6px;
+}
+
+.extra strong {
+  color: #fff;
+}
+
+.item-list {
+  padding-left: 15px;
+  margin-bottom: 6px;
+}
 </style>
