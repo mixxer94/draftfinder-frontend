@@ -117,11 +117,13 @@ defineProps({
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  background-image: url('/gliddencup/card.webp');
+  /* Abgedunkelt, damit Icons und Text sich gegen das Hintergrundbild durchsetzen. */
+  background-image: linear-gradient(rgb(17 17 17 / 32%), rgb(17 17 17 / 32%)), url('/gliddencup/card.webp');
   background-size: cover;
   background-position: center;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+  /* Heller Innenrand: Der Tint dunkelt auch den Rahmen des Bilds ab, ohne ihn verschwimmen Karten mit dunklem Untergrund. */
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 22%), 0 4px 12px rgb(0 0 0 / 25%);
   backface-visibility: hidden;
   /* Die Hälfte der Drehdauer: Die Seiten wechseln, wenn die Karte hochkant steht. */
   transition: box-shadow 0.25s ease, visibility 0s linear 0.35s;
@@ -142,7 +144,7 @@ defineProps({
 }
 
 .pc-card:hover .pc-face {
-  box-shadow: 0 8px 20px rgb(0 0 0 / 35%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 22%), 0 8px 20px rgb(0 0 0 / 35%);
 }
 
 .pennant {
@@ -221,7 +223,7 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.3;
   color: #bbb;
   margin-top: 5px;
@@ -282,14 +284,15 @@ defineProps({
 }
 
 .fact {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.2;
   text-align: center;
   color: #ddd;
+  font-weight: bold;;
 }
 
 .fact-label {
-  font-size: 11px;
+  font-size: 12px;
   color: #aaa;
 }
 
@@ -341,8 +344,6 @@ defineProps({
   padding: 6px 8px;
   overflow-y: auto;
   color: #ddd;
-  background: rgb(17 17 17 / 63%);
-  border-radius: 6px;
 }
 
 .extra strong {
