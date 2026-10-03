@@ -12,4 +12,5 @@ export function statList (player) {
   ]
 }
 
-export const firstHint = player => player?.hints?.[0] ?? ''
+// Erster Eintrag der Liste, die `spotlight` in players.json nennt (z. B. "quotes"), sonst der erste Hint.
+export const spotlightText = player => player?.[player?.spotlight ?? 'hints']?.[0] ?? ''

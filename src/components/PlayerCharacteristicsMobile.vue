@@ -25,7 +25,7 @@
       <div class="elo">{{ p.elo }} ({{ p.maxElo }})</div>
 
       <div v-if="showStats" class="stats-container">
-        <div class="hint">{{ firstHint(p) }}</div>
+        <div class="hint">{{ spotlightText(p) }}</div>
 
         <div class="meta">
           <span>{{ p.map || '???' }}</span>
@@ -65,7 +65,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import playersData from '@/assets/players.json'
-import { firstHint, statList } from '@/components/gliddencup/public/playerCards'
+import { spotlightText, statList } from '@/components/gliddencup/public/playerCards'
 
 /** Teilnehmerkarten für Touch und kleine Bildschirme: eine Karte, Auswahl oben. */
 const players = playersData
