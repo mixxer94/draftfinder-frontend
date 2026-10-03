@@ -1,5 +1,9 @@
 /** Gemeinsame Helfer der Teilnehmerkarten (Desktop und Mobil) über players.json. */
 
+// Feste Kartengröße in px; Raster und Overlays skalieren das Ganze.
+export const CARD_W = 220
+export const CARD_H = 350
+
 export function statList (player) {
   const m = player?.median ?? {}
   return [
@@ -30,7 +34,6 @@ const CIV_ICONS = {
   Vietnamesen: 'vietnamese',
   Wu: 'wu',
 }
-
 
 const UNIT_ICONS = {
   '60 Arbs': 'arbalester',
