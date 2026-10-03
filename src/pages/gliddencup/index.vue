@@ -57,7 +57,7 @@ import { gcApi, usePublicTournament } from '@/services/gliddencupApi'
 
 const { tournament, error, notFound } = usePublicTournament()
 
-// Die freie Kartenfläche braucht Maus und Platz; Touch-Geräte bekommen die Einzelkarte.
+// Das 8×2-Kartenraster braucht Maus und Platz; Touch-Geräte bekommen die Einzelkarte.
 const { mobile, smAndUp } = useDisplay()
 const useMobileVersion = mobile.value || 'ontouchstart' in window || navigator.maxTouchPoints > 0
 

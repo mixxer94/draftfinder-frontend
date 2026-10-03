@@ -20,22 +20,34 @@
       </v-btn>
     </div>
 
-    <div v-if="p" class="pcm-card">
-      <div class="name">{{ p.user }}</div>
-      <div class="elo">{{ p.elo }} ({{ p.maxElo }})</div>
+    <div v-if="p" class="pcm-card" :style="{ '--player-color': playerColorCss(p) }">
+      <div class="pennant" />
+      <div class="plate">
+        <div class="name">{{ p.user }}</div>
+        <div class="elo">{{ p.elo }} ({{ p.maxElo }})</div>
+      </div>
 
       <div v-if="showStats" class="stats-container">
         <div class="hint">{{ spotlightText(p) }}</div>
+        <hr class="divider">
+        <div class="fact"><span class="fact-label">Map</span> {{ p.map?.trim() || '???' }}</div>
+        <hr class="divider">
+        <div class="fact"><span class="fact-label">Angstgegner</span> {{ p.angstgegner || '???' }}</div>
 
         <div class="meta">
-          <span>{{ p.map || '???' }}</span>
-          <hr class="divider">
-          <span>{{ p.civ || '???' }}</span>
-          <hr class="divider">
-          <span>{{ p.unit || '???' }}</span>
+          <template v-for="m in metaItems(p)" :key="m.kind">
+            <v-tooltip v-if="m.src" :text="m.text" location="bottom" content-class="pc-tooltip" open-on-click>
+              <template #activator="{ props }">
+                <span v-if="m.badge" v-bind="props" class="badged">
+                  <img :src="m.src" :alt="m.text">
+                  <span class="badge">{{ m.badge }}</span>
+                </span>
+                <img v-else v-bind="props" :src="m.src" :alt="m.text">
+              </template>
+            </v-tooltip>
+            <span v-else>{{ m.text }}</span>
+          </template>
         </div>
-
-        <div class="flex-grow-1" />
 
         <div class="stats">
           <div v-for="s in statList(p)" :key="s.label" class="stat">
@@ -65,7 +77,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import playersData from '@/assets/players.json'
-import { spotlightText, statList } from '@/components/gliddencup/public/playerCards'
+import { spotlightText, metaItems, playerColorCss, statList } from '@/components/gliddencup/public/playerCards'
 
 /** Teilnehmerkarten für Touch und kleine Bildschirme: eine Karte, Auswahl oben. */
 const players = playersData
@@ -80,6 +92,8 @@ function step (dir) {
 }
 </script>
 
+<style src="@/components/gliddencup/public/playerCards.css"></style>
+
 <style scoped>
 .pcm-root { max-width: 480px; margin: 0 auto; }
 
@@ -88,6 +102,7 @@ function step (dir) {
  * bleibt deshalb in beiden Themes hell.
  */
 .pcm-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   aspect-ratio: 2 / 3;
@@ -104,13 +119,25 @@ function step (dir) {
   box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
 }
 
-.name { margin-top: 20px; font-size: 20px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.pennant { position: absolute; top: 0; left: 18px; z-index: 1; width: 36px; height: 62px; background: linear-gradient(90deg, color-mix(in srgb, var(--player-color) 75%, black), var(--player-color) 45%, color-mix(in srgb, var(--player-color) 80%, black)); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%); }
+.plate { --plate: rgb(0 0 0 / 45%); position: relative; margin: 14px -24px 0; padding: 4px 0 6px; background: linear-gradient(90deg, transparent, var(--plate) 18%, var(--plate) 82%, transparent); text-shadow: 0 1px 2px #000; }
+.plate::before, .plate::after { content: ''; position: absolute; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent); }
+.plate::before { top: 0; }
+.plate::after { bottom: 0; }
+.name, .elo { position: relative; z-index: 2; }
+.name { font-size: 20px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
 .elo { text-align: center; color: #ccc; }
 
 .stats-container { flex-grow: 1; display: flex; flex-direction: column; }
-.hint { font-size: 16px; color: #bbb; margin-top: 4px; text-align: center; font-style: italic; }
-.meta { font-size: 16px; font-weight: 700; text-align: center; color: #ddd; }
-.meta .divider { width: 10%; margin: 2px 45%; border-color: rgb(255 255 255 / 40%); }
+.hint { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #bbb; margin: 8px 0 4px; text-align: center; font-style: italic; }
+.meta { display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; justify-items: center; gap: 8px; margin-bottom: 10px; font-size: 16px; font-weight: 700; text-align: center; color: #ddd; overflow-wrap: anywhere; }
+.meta img { width: 100%; height: 64px; object-fit: contain; }
+.badged { position: relative; display: inline-block; line-height: 0; }
+.badged img { width: auto; }
+.badge { position: absolute; left: -5px; bottom: -5px; padding: 2px; border-radius: 50px; background-color: #00a91b; font-size: 18px; line-height: 1; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 1px 1px 1px #000; }
+.divider { flex-shrink: 0; width: 10%; margin: 6px 45%; border-color: rgb(255 255 255 / 40%); }
+.fact { font-size: 16px; text-align: center; color: #ddd; }
+.fact-label { font-size: 13px; color: #aaa; }
 
 .stats { font-size: 16px; line-height: 1.4; }
 .stat { display: grid; grid-template-columns: 70px 1fr 24px; align-items: center; gap: 8px; }
