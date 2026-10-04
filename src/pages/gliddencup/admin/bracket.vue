@@ -21,9 +21,9 @@
   </PageHeader>
   <v-alert v-if="error" type="error" variant="tonal" closable class="mb-4" @click:close="error = ''">{{ error }}</v-alert>
   <v-alert v-if="revealMode" type="info" variant="tonal" density="compact" class="mb-4">
-    Je Match: Paarung → Vermutung → Ergebnis → Verlierer enthüllen. Ab Runde 2 schaltest du jede Paarung selbst frei.
+    Je Match: Paarung → Ergebnis → Vermutung → Verlierer. Ab Runde 2 schaltest du jede Paarung selbst frei.
     Zum Schluss deckt „Zuordnung veröffentlichen“ den Sieger und alle Tipps auf.
-    <template v-if="!played"><br>Vermutung, Ergebnis und Zuordnung gehen erst, wenn das Finale gespielt ist.</template>
+    <template v-if="!played"><br>Ergebnis, Vermutung und Zuordnung gehen erst, wenn das Finale gespielt ist.</template>
   </v-alert>
 
   <section v-for="side in sides" :key="side.bracket" class="mb-10">
@@ -33,45 +33,33 @@
       v-if="view === 'tree'"
       :rounds="side.rounds"
       :admin="admin"
-      :card-height="revealMode ? 140 : 84"
-      :card-width="revealMode ? 300 : 220"
+      :card-height="revealMode ? 120 : 84"
+      :card-width="revealMode ? 360 : 220"
     >
       <template v-if="revealMode" #actions="{ slot: s }">
         <!-- Was öffentlich zu sehen ist. -->
         <v-btn-toggle
-          :model-value="level(s)"
+          :model-value="stage(s)"
           mandatory
           divided
           variant="outlined"
           density="compact"
-          :color="REVEAL_LEVELS[level(s)].color"
+          :color="STAGES[stage(s)].color"
           class="hc-reveal"
           :aria-label="`${s.code}: öffentlich bis`"
-          @update:model-value="target => setLevel(s, target)"
+          @update:model-value="target => setStage(s, target)"
         >
           <v-btn
-            v-for="(stage, i) in REVEAL_LEVELS"
+            v-for="(st, i) in STAGES"
             :key="i"
             :value="i"
             size="x-small"
             :disabled="!!busy || !reachable(s, i)"
             :loading="busy === `${s.code}-${i}`"
           >
-            {{ stage.text }}
+            {{ st.text }}
           </v-btn>
         </v-btn-toggle>
-        <!-- Zurücknehmen geht immer, enthüllen nur, wo der Server es erlaubt (`canRevealLoser`). -->
-        <v-btn
-          v-if="s.loserPublic === true || s.canRevealLoser"
-          size="x-small"
-          variant="text"
-          :color="s.loserPublic ? undefined : 'error'"
-          :disabled="!!busy"
-          :loading="busy === `${s.code}-loser`"
-          @click="toggleLoser(s)"
-        >
-          {{ s.loserPublic ? 'Enthüllung zurücknehmen' : 'Verlierer enthüllen' }}
-        </v-btn>
       </template>
     </BracketTree>
     <div v-for="round in side.rounds" v-else :key="round.key" class="mb-6">
@@ -97,7 +85,7 @@
             <td>{{ s.match?.score ?? '' }}</td>
             <td><MatchStateChip :match="s.match ?? { state: s.a && s.b ? 'READY' : 'PENDING' }" /></td>
             <td>
-              <v-chip size="small" variant="tonal" :color="REVEAL_LEVELS[level(s)].color">{{ REVEAL_LEVELS[level(s)].text }}</v-chip>
+              <v-chip size="small" variant="tonal" :color="STAGES[stage(s)].color">{{ STAGES[stage(s)].text }}</v-chip>
             </td>
             <td v-if="admin" class="text-right">
               <DetailButton v-if="s.match" :id="s.match.id" :slot-code="s.code" />
@@ -147,9 +135,19 @@ const sides = computed(() => {
     .map(side => ({ ...side, rounds: [...side.rounds.values()].sort((x, y) => x.key - y.key) }))
 })
 
+/**
+ * Die Aufdeckstufen des Servers plus „Verlierer“ als letzter Schritt. Der Verlierer ist kein `revealLevel`,
+ * sondern die Enthüllung eines Spielers (`loserPublic`); in der Leiste steht er trotzdem als Stufe, weil er im
+ * Stream genau so dran ist.
+ */
+const LOSER = REVEAL_LEVELS.length
+const STAGES = [...REVEAL_LEVELS, { text: 'Verlierer', color: 'error' }]
+
 const level = s => s.revealLevel ?? 0
-// Zurück geht immer, vorwärts nur eine Stufe, wenn der Server es erlaubt (`canRaise`); die Regeln stehen nur dort.
-const reachable = (s, target) => target <= level(s) || (target === level(s) + 1 && s.canRaise)
+const stage = s => s.loserPublic ? LOSER : level(s)
+// Zurück geht immer, vorwärts nur eine Stufe, wenn der Server es erlaubt (`canRaise`, `canRevealLoser`); die Regeln stehen nur dort.
+const reachable = (s, target) =>
+  target <= stage(s) || (target === LOSER ? s.canRevealLoser : target === level(s) + 1 && s.canRaise)
 
 async function load () {
   try {
@@ -176,13 +174,16 @@ async function run (key, fn) {
   }
 }
 
-const setLevel = (s, target) =>
-  run(`${s.code}-${target}`, () => hcApi.post(`/bracket/${s.code}/reveal`, { level: target }))
+const postLevel = (s, target) => hcApi.post(`/bracket/${s.code}/reveal`, { level: target })
+const postLoser = (s, show) => hcApi.post(`/bracket/${s.code}/loser-identity`, { public: show })
 
-async function toggleLoser (s) {
-  const show = !s.loserPublic
+/** Wechselt die Stufe; Enthüllen und Zurücknehmen des Verlierers erst nach Rückfrage, er wird überall sichtbar. */
+async function setStage (s, target) {
+  const key = `${s.code}-${target}`
+  if (!s.loserPublic && target !== LOSER) return run(key, () => postLevel(s, target))
+
   const loser = s.match?.winner === 'A' ? s.b : s.a
-  const ok = await confirmAction(show
+  const ok = await confirmAction(target === LOSER
     ? {
         title: `${loser} enthüllen?`,
         text: `Der Klarname von ${loser} wird öffentlich, in allen seinen Matches.`,
@@ -194,7 +195,12 @@ async function toggleLoser (s) {
         text: `${loser} erscheint öffentlich wieder nur mit Pseudonym.`,
         confirmText: 'Zurücknehmen',
       })
-  if (ok) run(`${s.code}-loser`, () => hcApi.post(`/bracket/${s.code}/loser-identity`, { public: show }))
+  if (!ok) return
+  if (target === LOSER) return run(key, () => postLoser(s, true))
+  run(key, async () => {
+    await postLoser(s, false)
+    if (target !== level(s)) await postLevel(s, target)
+  })
 }
 
 async function toggleIdentities () {

@@ -67,8 +67,8 @@ const sides = computed(() => bracketSides(props.tournament))
 const slots = computed(() => sides.value.flatMap(s => s.rounds.flatMap(r => r.slots)))
 const truth = computed(() => truthMap(props.tournament))
 
-// Vermutungen gibt es erst ab Stufe 2; vorher wäre der Schalter wirkungslos.
-const hasGuessStage = slot => slot.revealLevel >= 2
+// Vermutungen gibt es erst ab Stufe 3; vorher wäre der Schalter wirkungslos.
+const hasGuessStage = slot => slot.revealLevel >= 3
 const hasGuesses = computed(() => slots.value.some(hasGuessStage))
 
 const showAll = ref(false)

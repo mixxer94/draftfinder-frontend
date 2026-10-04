@@ -113,8 +113,8 @@ export const PLAYER_STATUS = {
 export const REVEAL_LEVELS = [
   { text: 'Verdeckt', color: undefined },
   { text: 'Paarung', color: 'primary' },
-  { text: 'Vermutung', color: 'secondary' },
   { text: 'Ergebnis', color: 'success' },
+  { text: 'Vermutung', color: 'secondary' },
 ]
 
 export const BRACKETS = {
