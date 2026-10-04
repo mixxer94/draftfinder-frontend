@@ -73,7 +73,11 @@ const UNIT_BADGES = {
   '60 Arbs': '60x',
 }
 
-const playerColor =player => (Number(player?.color) >= 1 && Number(player?.color) <= 8 ? Number(player.color) : 1)
+// Manche Einträge haben statt einer Zahl „keine“ oder „?“; deren Karten zeigen einen Fragezeichen-Wimpel.
+export const hasPlayerColor = player => Number(player?.color) >= 1 && Number(player?.color) <= 8
+
+// Ohne Farbe fallen die Einheiten-Icons auf Spielerfarbe 1 zurück.
+const playerColor = player => (hasPlayerColor(player) ? Number(player.color) : 1)
 
 const PLAYER_COLORS = ['#0000ff', '#ff0000', '#00a91b', '#d6d61b', '#7befef', '#8a13f7', '#666666', '#ff9205']
 

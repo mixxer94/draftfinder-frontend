@@ -2,7 +2,7 @@
   <div class="pc-card" :class="{ 'is-back': side === 'back' }" :style="{ '--player-color': playerColorCss(player) }">
     <div class="pc-flipper">
       <div class="pc-face pc-front">
-        <div class="pennant" />
+        <div class="pennant" :class="{ unknown: !hasPlayerColor(player) }" />
         <div class="plate">
           <div class="name">{{ player.user }}</div>
           <div class="elo">{{ player.elo }} ({{ player.maxElo }})</div>
@@ -44,7 +44,7 @@
       </div>
 
       <div class="pc-face pc-back">
-        <div class="pennant" />
+        <div class="pennant" :class="{ unknown: !hasPlayerColor(player) }" />
         <div class="plate">
           <div class="name">{{ player.user }}</div>
           <div class="elo">{{ player.elo }} ({{ player.maxElo }})</div>
@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ambitionText, metaItems, playerColorCss, spotlightText, statList, statSegments } from '@/components/gliddencup/public/playerCards'
+import { ambitionText, hasPlayerColor, metaItems, playerColorCss, spotlightText, statList, statSegments } from '@/components/gliddencup/public/playerCards'
 
 /**
  * Eine Teilnehmerkarte in fester Größe (CARD_W × CARD_H aus playerCards.js). Ein Wechsel von
@@ -160,6 +160,21 @@ defineProps({
     var(--player-color) 45%,
     color-mix(in srgb, var(--player-color) 80%, black));
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+}
+
+.pennant.unknown {
+  background: linear-gradient(90deg, #241a12, #4d3b2a 45%, #281d14);
+}
+
+.pennant.unknown::after {
+  content: '?';
+  display: block;
+  padding-top: 5px;
+  font-size: 22px;
+  line-height: 1;
+  text-align: center;
+  color: #ead9b0;
+  text-shadow: 0 1px 1px #000;
 }
 
 /* Ohne flex-shrink: 0 drückt eine lange, scrollende Rückseite den Namen weg (overflow: hidden erlaubt Höhe 0). */

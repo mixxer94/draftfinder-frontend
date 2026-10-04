@@ -21,7 +21,7 @@
     </div>
 
     <div v-if="p" class="pcm-card" :style="{ '--player-color': playerColorCss(p) }">
-      <div class="pennant" />
+      <div class="pennant" :class="{ unknown: !hasPlayerColor(p) }" />
       <div class="plate">
         <div class="name">{{ p.user }}</div>
         <div class="elo">{{ p.elo }} ({{ p.maxElo }})</div>
@@ -80,7 +80,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import playersData from '@/assets/players.json'
-import { ambitionText, spotlightText, metaItems, playerColorCss, statList, statSegments } from '@/components/gliddencup/public/playerCards'
+import { ambitionText, hasPlayerColor, spotlightText, metaItems, playerColorCss, statList, statSegments } from '@/components/gliddencup/public/playerCards'
 
 /** Teilnehmerkarten für Touch und kleine Bildschirme: eine Karte, Auswahl oben. */
 const players = playersData
@@ -123,6 +123,8 @@ function step (dir) {
 }
 
 .pennant { position: absolute; top: 0; left: 18px; z-index: 1; width: 36px; height: 62px; background: linear-gradient(90deg, color-mix(in srgb, var(--player-color) 75%, black), var(--player-color) 45%, color-mix(in srgb, var(--player-color) 80%, black)); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%); }
+.pennant.unknown { background: linear-gradient(90deg, #241a12, #4d3b2a 45%, #281d14); }
+.pennant.unknown::after { content: '?'; display: block; padding-top: 6px; font-size: 26px; line-height: 1; text-align: center; color: #ead9b0; text-shadow: 0 1px 1px #000; }
 .plate { --plate: rgb(0 0 0 / 45%); position: relative; margin: 14px -24px 0; padding: 4px 0 6px; background: linear-gradient(90deg, transparent, var(--plate) 18%, var(--plate) 82%, transparent); text-shadow: 0 1px 2px #000; }
 .plate::before, .plate::after { content: ''; position: absolute; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent); }
 .plate::before { top: 0; }
