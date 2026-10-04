@@ -18,11 +18,33 @@
       >
         Sofort starten
       </v-btn>
+      <v-btn
+        v-if="STARTABLE.includes(m.state) && !m.blocked && !scheduling.open"
+        variant="text"
+        @click="openScheduling"
+      >
+        Termin festlegen
+      </v-btn>
     </PageHeader>
     <p class="mb-6">
       {{ m.roundLabel }} · Bo{{ m.bestOf }}
       <template v-if="m.scheduledAt"> · {{ fmt(m.scheduledAt, true) }}</template>
     </p>
+
+    <div v-if="scheduling.open" class="d-flex flex-wrap align-center ga-2 mb-8">
+      <v-text-field
+        v-model="scheduling.at"
+        type="datetime-local"
+        :label="`Termin (${m.timezone})`"
+        density="compact"
+        hide-details
+        style="max-width: 260px"
+      />
+      <v-btn color="secondary" variant="flat" :loading="busy === 'schedule'" :disabled="!scheduling.at" @click="setSchedule">
+        Festlegen
+      </v-btn>
+      <v-btn variant="text" @click="scheduling.open = false">Abbrechen</v-btn>
+    </div>
 
     <v-alert v-if="todo" type="warning" variant="tonal" class="mb-8">
       {{ todo.text }}
@@ -212,7 +234,7 @@ const correction = reactive({ open: false, winner: null, score: null })
 // null, bis der Chatverlauf ausdrücklich abgerufen wird; jeder Abruf erzeugt einen Audit-Eintrag.
 const chat = reactive({ messages: null, error: '' })
 const MAX_MB = 64
-const EVENTS = { ...MATCH_STATES, ACTIVATED: 'Freigegeben' }
+const EVENTS = { ...MATCH_STATES, ACTIVATED: 'Freigegeben', SCHEDULED_BY_ADMIN: 'Termin von der Turnierleitung festgelegt' }
 const DRAFT_KINDS = { MAP: 'Map', CIV: 'Civ', INVALID: 'ungültig' }
 // Wie STARTABLE im Backend; die API prüft ohnehin selbst.
 const STARTABLE = ['INVITED', 'COLLECTING', 'PROPOSED', 'HALF_CONFIRMED', 'CONFIRMED', 'ESCALATED']
@@ -223,6 +245,8 @@ const compose = reactive({ text: '', to: 'BOTH' })
 // Vermutungen gibt es erst mit gemeldetem Ergebnis.
 const WITH_RESULT = ['RESULT_REPORTED', 'PLAYED']
 const guessInput = reactive({ A: null, B: null })
+// `at` als datetime-local-Wert in der Turnierzone, so erwartet ihn POST /matches/:id/schedule.
+const scheduling = reactive({ open: false, at: '' })
 
 const name = computed(() => ({ A: m.value?.players.A.pseudonym, B: m.value?.players.B.pseudonym }))
 const recipients = computed(() => [
@@ -312,6 +336,28 @@ async function startNow () {
   if (!ok) return
   const res = await run('start', () => hcApi.post(`/matches/${m.value.id}/start`))
   if (res) info.value = `${m.value.slotCode} gestartet.`
+}
+
+/** Füllt das Feld mit dem bestehenden Termin; sv-SE liefert „YYYY-MM-DD HH:mm“, passend für datetime-local. */
+function openScheduling () {
+  const iso = m.value.scheduledAt
+  scheduling.at = iso ? new Date(iso).toLocaleString('sv-SE', { timeZone: m.value.timezone }).slice(0, 16).replace(' ', 'T') : ''
+  scheduling.open = true
+}
+
+async function setSchedule () {
+  const termin = m.value.scheduledAt ? `
+Der bisherige Termin am ${fmt(m.value.scheduledAt, true)} entfällt.` : ''
+  const ok = await confirmAction({
+    title: `Termin für ${m.value.slotCode} festlegen?`,
+    text: `${name.value.A} vs. ${name.value.B}: Beide bekommen die Terminbestätigung, ein offener Vorschlag verfällt.${termin}`,
+    confirmText: 'Festlegen',
+  })
+  if (!ok) return
+  const res = await run('schedule', () => hcApi.post(`/matches/${m.value.id}/schedule`, { at: scheduling.at }))
+  if (!res) return
+  scheduling.open = false
+  info.value = `Termin für ${m.value.slotCode} festgelegt: ${fmt(res.data.scheduledAt, true)}.`
 }
 
 function classify (d, kind) {
