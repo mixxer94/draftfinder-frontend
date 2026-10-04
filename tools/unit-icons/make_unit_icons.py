@@ -35,7 +35,9 @@ COMPOSITES = {
 
 SIZE = 96          # Kantenlänge der Icons; die Karten zeigen sie mit 48–64 px, also scharf auf HiDPI
 BG_MAX = 8         # hellster Kanal, der noch als Hintergrund gilt (Hintergrund ist reines Schwarz)
-TILT = 30          # Grad, um die die Einheiten eines Composites gekippt werden
+TILT = 15          # Grad, um die die Einheiten eines Composites gekippt werden
+OVERLAP = 0.65     # Anteil der linken Einheit, den die rechte überlappt
+ZOOM = 1.35        # Composites sind breit; so viel größer als eingepasst, Waffenspitzen am Rand fallen weg
 
 
 def player_colors(game):
@@ -73,21 +75,26 @@ def cut_out(image):
     return image.crop(alpha.getbbox())
 
 
-def fit(image):
-    """Auf SIZE × SIZE einpassen, unten mittig; Seitenverhältnis bleibt, Rest transparent."""
-    image = image.copy()
-    image.thumbnail((SIZE, SIZE), Image.LANCZOS)
+def fit(image, zoom=1):
+    """Auf SIZE × SIZE einpassen, unten mittig; Seitenverhältnis bleibt, Rest transparent.
+
+    Mit zoom > 1 wird über die Breite hinaus vergrößert (höchstens bis zur vollen Höhe) und
+    links und rechts gleichmäßig abgeschnitten.
+    """
+    scale = min(SIZE / image.height, SIZE / image.width * zoom, 1)
+    image = image.resize((round(image.width * scale), round(image.height * scale)), Image.LANCZOS)
     canvas = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
-    canvas.alpha_composite(image, ((SIZE - image.width) // 2, SIZE - image.height))
+    x = (SIZE - image.width) // 2
+    canvas.alpha_composite(image, (max(x, 0), SIZE - image.height), (max(-x, 0), 0))
     return canvas
 
 
 def composite(left, right):
-    """Linke Einheit nach links, rechte nach rechts gekippt; die linke liegt vorn."""
+    """Linke Einheit nach links, rechte nach rechts gekippt und um OVERLAP überlappend; die linke liegt vorn."""
     a = left.rotate(TILT, Image.BICUBIC, expand=True)
     b = right.rotate(-TILT, Image.BICUBIC, expand=True)
     height = max(a.height, b.height)
-    canvas = Image.new('RGBA', (a.width + b.width - a.width // 2, height), (0, 0, 0, 0))
+    canvas = Image.new('RGBA', (a.width + b.width - round(a.width * OVERLAP), height), (0, 0, 0, 0))
     canvas.alpha_composite(b, (canvas.width - b.width, height - b.height))
     canvas.alpha_composite(a, (0, height - a.height))
     return canvas.crop(canvas.getbbox())
@@ -104,7 +111,7 @@ def main():
         images = {name: portrait(icon_id) for name, icon_id in UNITS.items()}
         images |= {name: composite(portrait(l), portrait(r)) for name, (l, r) in COMPOSITES.items()}
         for name, image in images.items():
-            fit(image).save(OUT / f'{name}-p{n}.webp', 'WEBP', quality=90, method=6)
+            fit(image, ZOOM if name in COMPOSITES else 1).save(OUT / f'{name}-p{n}.webp', 'WEBP', quality=90, method=6)
     print(f'{8 * (len(UNITS) + len(COMPOSITES))} Icons in {OUT.relative_to(ROOT)}')
 
 

@@ -36,4 +36,5 @@ Bestehende Icons werden überschrieben.
   innerhalb der Einheit bleibt erhalten. Wird an einer Einheit zu viel oder zu wenig entfernt, hilft
   `BG_MAX` im Skript.
 - **Composite:** Beide Einheiten werden um `TILT` Grad nach links bzw. rechts gekippt und überlappen
-  sich zur Hälfte; die linke liegt vorn.
+  sich um `OVERLAP`; die linke liegt vorn. Weil das Ergebnis breit ist, wird es um `ZOOM` größer als
+  eingepasst gezeichnet und links und rechts beschnitten; Waffenspitzen am Rand fallen dabei weg.
