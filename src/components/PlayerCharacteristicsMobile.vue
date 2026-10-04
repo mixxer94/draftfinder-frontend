@@ -30,9 +30,10 @@
       <div v-if="showStats" class="stats-container">
         <div class="hint">{{ spotlightText(p) }}</div>
         <hr class="divider">
-        <div class="fact"><span class="fact-label">Map</span> {{ p.map?.trim() || '???' }}</div>
-        <hr class="divider">
-        <div class="fact"><span class="fact-label">Angstgegner</span> {{ p.angstgegner || '???' }}</div>
+        <div class="facts">
+          <span class="fact-label">Ambition</span><span>{{ ambitionText(p) }}</span>
+          <span class="fact-label">Angstgegner</span><span>{{ p.angstgegner || '???' }}</span>
+        </div>
 
         <div class="meta">
           <template v-for="m in metaItems(p)" :key="m.kind">
@@ -52,7 +53,9 @@
         <div class="stats">
           <div v-for="s in statList(p)" :key="s.label" class="stat">
             <span class="label">{{ s.label }}</span>
-            <div class="bar"><div class="bar-mask" :style="{ width: `${100 - (s.value || 0) * 10}%` }" /></div>
+            <div class="segs">
+              <i v-for="(seg, i) in statSegments(s.value)" :key="i" :style="seg.fill ? { backgroundImage: `linear-gradient(90deg, ${seg.color} ${seg.fill * 100}%, transparent 0)` } : null" />
+            </div>
             <div class="value">{{ s.value }}</div>
           </div>
         </div>
@@ -77,7 +80,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import playersData from '@/assets/players.json'
-import { spotlightText, metaItems, playerColorCss, statList } from '@/components/gliddencup/public/playerCards'
+import { ambitionText, spotlightText, metaItems, playerColorCss, statList, statSegments } from '@/components/gliddencup/public/playerCards'
 
 /** Teilnehmerkarten für Touch und kleine Bildschirme: eine Karte, Auswahl oben. */
 const players = playersData
@@ -129,22 +132,22 @@ function step (dir) {
 .elo { text-align: center; color: #ccc; }
 
 .stats-container { flex-grow: 1; display: flex; flex-direction: column; }
-.hint { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #bbb; margin: 8px 0 4px; text-align: center; font-style: italic; }
-.meta { display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; justify-items: center; gap: 8px; margin-bottom: 10px; font-size: 16px; font-weight: 700; text-align: center; color: #ddd; overflow-wrap: anywhere; }
-.meta img { width: 100%; height: 64px; object-fit: contain; }
+.hint { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #aaa; margin: 8px 0 4px; text-align: center; font-style: italic; }
+.meta { display: grid; grid-template-columns: repeat(2, auto); justify-content: center; align-items: center; justify-items: center; gap: 8px 32px; margin-bottom: 10px; font-size: 16px; font-weight: 700; text-align: center; color: #ddd; overflow-wrap: anywhere; }
+.meta img { width: auto; max-width: 130px; height: 51px; object-fit: contain; }
 .badged { position: relative; display: inline-block; line-height: 0; }
 .badged img { width: auto; }
 .badge { position: absolute; left: -5px; bottom: -5px; padding: 2px; border-radius: 50px; background-color: #00a91b; font-size: 18px; line-height: 1; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 1px 1px 1px #000; }
 .divider { flex-shrink: 0; width: 10%; margin: 6px 45%; border-color: rgb(255 255 255 / 40%); }
-.fact { font-size: 16px; text-align: center; color: #ddd; }
-.fact-label { font-size: 13px; color: #aaa; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 10px; row-gap: 4px; margin-bottom: 10px; font-size: 18px; color: #ddd; font-weight: 700; white-space: nowrap; }
+.facts > span { overflow: hidden; text-overflow: ellipsis; }
+.fact-label { font-size: 15px; color: #aaa; }
 
 .stats { font-size: 16px; line-height: 1.4; }
 .stat { display: grid; grid-template-columns: 70px 1fr 24px; align-items: center; gap: 8px; }
-.value { text-align: right; font-weight: 700; }
-/* Farbverlauf ist die Skala der Werte 1–10; die Maske deckt den Rest ab. */
-.bar { position: relative; height: 8px; border-radius: 4px; overflow: hidden; background: linear-gradient(90deg, #620c03, #f1c40f, #00ff6c); }
-.bar-mask { position: absolute; top: 0; right: 0; height: 100%; background: #000; }
+.value { text-align: right; color: #ddd; }
+.segs { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }
+.segs i { height: 9px; border-radius: 1px; background-color: rgb(255 255 255 / 10%); }
 
 .extra { flex-grow: 1; min-height: 0; margin: 12px 0; padding: 12px; overflow-y: auto; color: #ddd; background: rgb(17 17 17 / 63%); border-radius: 6px; }
 .extra strong { color: #fff; }

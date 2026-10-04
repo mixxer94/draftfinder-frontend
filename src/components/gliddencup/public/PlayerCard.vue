@@ -11,9 +11,10 @@
         <div class="stats-container">
           <div class="hint">{{ spotlightText(player) }}</div>
           <hr class="divider">
-          <div class="fact"><span class="fact-label">Map</span> {{ player.map?.trim() || '???' }}</div>
-          <hr class="divider">
-          <div class="fact"><span class="fact-label">Angstgegner</span> {{ player.angstgegner || '???' }}</div>
+          <div class="facts">
+            <span class="fact-label">Ambition</span><span>{{ ambitionText(player) }}</span>
+            <span class="fact-label">Angstgegner</span><span>{{ player.angstgegner || '???' }}</span>
+          </div>
 
           <div class="meta">
             <template v-for="m in metaItems(player)" :key="m.kind">
@@ -33,8 +34,8 @@
           <div class="stats">
             <div v-for="s in statList(player)" :key="s.label" class="stat">
               <span class="label">{{ s.label }}</span>
-              <div class="bar">
-                <div class="bar-mask" :style="{ width: `${100 - (s.value || 0) * 10}%` }" />
+              <div class="segs">
+                <i v-for="(seg, i) in statSegments(s.value)" :key="i" :style="seg.fill ? { backgroundImage: `linear-gradient(90deg, ${seg.color} ${seg.fill * 100}%, transparent 0)` } : null" />
               </div>
               <div class="value">{{ s.value }}</div>
             </div>
@@ -68,7 +69,7 @@
 </template>
 
 <script setup>
-import { metaItems, playerColorCss, spotlightText, statList } from '@/components/gliddencup/public/playerCards'
+import { ambitionText, metaItems, playerColorCss, spotlightText, statList, statSegments } from '@/components/gliddencup/public/playerCards'
 
 /**
  * Eine Teilnehmerkarte in fester Größe (CARD_W × CARD_H aus playerCards.js). Ein Wechsel von
@@ -113,7 +114,7 @@ defineProps({
 .pc-face {
   position: absolute;
   inset: 0;
-  padding: 12px 14px;
+  padding: 12px 10px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -166,7 +167,7 @@ defineProps({
   --plate: rgb(0 0 0 / 45%);
   position: relative;
   flex-shrink: 0;
-  margin: 8px -14px 0;
+  margin: 8px -10px 0;
   padding: 3px 0 4px;
   background: linear-gradient(90deg, transparent, var(--plate) 18%, var(--plate) 82%, transparent);
   text-shadow: 0 1px 2px #000;
@@ -223,20 +224,22 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  line-height: 1.3;
-  color: #bbb;
-  margin-top: 5px;
+  font-size: 15px;
+  font-weight: bold;
+  line-height: 1.25;
+  color: #aaa;
+  margin-top: 2px;
   text-align: center;
   font-style: italic;
 }
 
 .meta {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, auto);
+  justify-content: center;
   align-items: center;
   justify-items: center;
-  gap: 6px;
+  gap: 6px 24px;
   margin-bottom: 6px;
   font-size: 13px;
   line-height: 1.2;
@@ -247,8 +250,9 @@ defineProps({
 }
 
 .meta img {
-  width: 100%;
-  height: 38px;
+  width: auto;
+  max-width: 80px;
+  height: 30px;
   object-fit: contain;
 }
 
@@ -283,16 +287,28 @@ defineProps({
   border-color: rgb(255 255 255 / 40%);
 }
 
-.fact {
+/* Einzeilig, weil die Karte eine feste Höhe hat; zu lange Werte werden abgeschnitten. */
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 6px;
+  margin: 0 0 4px;
   font-size: 14px;
-  line-height: 1.2;
-  text-align: center;
+  line-height: 1.25;
   color: #ddd;
-  font-weight: bold;;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.facts > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fact-label {
   font-size: 12px;
+  font-weight: normal;
   color: #aaa;
 }
 
@@ -312,28 +328,23 @@ defineProps({
 }
 
 .value {
-  width: 26px;
+  width: 24px;
   text-align: right;
-  font-weight: bold;
+  color: #ddd;
 }
 
-/* Farbverlauf ist die Skala der Werte 1–10; die Maske deckt den Rest ab. */
-.bar {
-  position: relative;
+.segs {
   flex-grow: 1;
-  height: 8px;
-  margin: 0 2px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: linear-gradient(90deg, #620c03, #f1c40f, #00ff6c);
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 2px;
+  margin: 0 4px;
 }
 
-.bar-mask {
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  background: #000;
+.segs i {
+  height: 7px;
+  border-radius: 1px;
+  background-color: rgb(255 255 255 / 10%);
 }
 
 .extra {
