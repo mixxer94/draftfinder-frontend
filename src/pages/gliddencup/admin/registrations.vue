@@ -17,7 +17,7 @@
           <template v-if="revealed[p.id]">
             <div v-if="nameEdit.id !== p.id" class="d-flex align-center ga-1">
               <span>{{ revealed[p.id].displayName ?? '—' }}</span>
-              <v-btn v-if="setup" icon="mdi-pencil" size="x-small" variant="text" :aria-label="`Anzeigename bearbeiten: ${rowName(p, i)}`" @click="editName(p)" />
+              <v-btn icon="mdi-pencil" size="x-small" variant="text" :aria-label="`Anzeigename bearbeiten: ${rowName(p, i)}`" @click="editName(p)" />
             </div>
             <div v-else class="d-flex align-center ga-2 py-1">
               <v-text-field
@@ -102,14 +102,6 @@ import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 const players = ref([])
-/*
- * Turnierzustand aus der eigenen Antwort statt aus hcSession.tournamentState:
- * Das setzt das Layout erst nach einem Dashboard-Abruf, beim direkten Aufruf
- * der Seite also womöglich später oder gar nicht.
- */
-const tournamentState = ref(null)
-// Nach der Auslosung steht der Anzeigename fest, an ihm hängen die Tipps (409 NAME_FIXED).
-const setup = computed(() => tournamentState.value === 'SETUP')
 const loading = ref(false)
 const error = ref('')
 const info = ref('')
@@ -130,7 +122,6 @@ async function load () {
   try {
     const data = (await hcApi.get('/registrations')).data
     players.value = data.players
-    tournamentState.value = data.tournament?.state ?? null
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
