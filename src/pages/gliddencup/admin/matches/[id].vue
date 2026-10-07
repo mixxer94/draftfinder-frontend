@@ -25,6 +25,15 @@
       >
         Termin festlegen
       </v-btn>
+      <v-btn
+        v-if="RESETTABLE.includes(m.state) && !m.blocked"
+        variant="text"
+        color="error"
+        :loading="busy === 'reset'"
+        @click="resetSchedule"
+      >
+        Terminfindung neu starten
+      </v-btn>
     </PageHeader>
     <p class="mb-6">
       {{ m.roundLabel }} · Bo{{ m.bestOf }}
@@ -236,8 +245,9 @@ const chat = reactive({ messages: null, error: '' })
 const MAX_MB = 64
 const EVENTS = { ...MATCH_STATES, ACTIVATED: 'Freigegeben', SCHEDULED_BY_ADMIN: 'Termin von der Turnierleitung festgelegt' }
 const DRAFT_KINDS = { MAP: 'Map', CIV: 'Civ', INVALID: 'ungültig' }
-// Wie STARTABLE im Backend; die API prüft ohnehin selbst.
+// Wie STARTABLE und RESETTABLE im Backend; die API prüft ohnehin selbst.
 const STARTABLE = ['INVITED', 'COLLECTING', 'PROPOSED', 'HALF_CONFIRMED', 'CONFIRMED', 'ESCALATED']
+const RESETTABLE = ['CONFIRMED', 'AWAITING_RESULT', 'ESCALATED']
 const upload = reactive({ file: null, progress: 0 })
 // v-file-input liefert je nach Vuetify-Version eine Datei oder ein Array.
 const uploadFile = computed(() => (Array.isArray(upload.file) ? upload.file[0] : upload.file) ?? null)
@@ -358,6 +368,23 @@ Der bisherige Termin am ${fmt(m.value.scheduledAt, true)} entfällt.` : ''
   if (!res) return
   scheduling.open = false
   info.value = `Termin für ${m.value.slotCode} festgelegt: ${fmt(res.data.scheduledAt, true)}.`
+}
+
+/** Etwa nach einem No-Show: Nach Beginn können die Spieler selbst nicht mehr absagen. */
+async function resetSchedule () {
+  const termin = m.value.scheduledAt ? ` Der Termin am ${fmt(m.value.scheduledAt, true)} entfällt.` : ''
+  const ok = await confirmAction({
+    title: `Terminfindung für ${m.value.slotCode} neu starten?`,
+    text: `${name.value.A} vs. ${name.value.B}:${termin} Verfügbarkeiten und Presets werden verworfen, beide tragen neu ein.`,
+    confirmText: 'Neu starten',
+    color: 'error',
+  })
+  if (!ok) return
+  const res = await run('reset', () => hcApi.post(`/matches/${m.value.id}/reset`))
+  if (!res) return
+  info.value = res.data.windowOpen
+    ? `Terminfindung für ${m.value.slotCode} neu gestartet.`
+    : `Terminfindung für ${m.value.slotCode} neu gestartet — das Terminfenster ist abgelaufen, bitte einen Termin festlegen.`
 }
 
 function classify (d, kind) {
