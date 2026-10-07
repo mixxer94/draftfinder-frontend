@@ -5,6 +5,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "dev:twitch": "vite -c vite.twitch.config.mjs",
+    "dev:twitch:obs": "vite -c vite.twitch.config.mjs --mode obs",
+    "build:twitch": "vite build -c vite.twitch.config.mjs && cd dist-twitch && %SystemRoot%\\System32\\tar.exe -a -cf ../twitch.zip video_overlay.html assets gliddencup",
     "lint": "eslint . --fix --ignore-path .gitignore"
   },
   "dependencies": {
@@ -16,6 +19,8 @@
     "vuetify": "^3.6.11"
   },
   "devDependencies": {
+    "@mdi/js": "^7.4.47",
+    "@vitejs/plugin-basic-ssl": "^1.2.0",
     "@vitejs/plugin-vue": "^5.0.5",
     "eslint": "^8.57.0",
     "eslint-config-standard": "^17.1.0",

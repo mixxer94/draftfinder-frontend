@@ -94,7 +94,10 @@ export function ambitionText (player) {
   return AMBITION_TEXTS[text] ?? text
 }
 
-const UNKNOWN_ICON = '/gliddencup/icons/unknown.svg'
+// Über BASE_URL, weil die Twitch-Extension unter einem Unterpfad gehostet wird (vite.twitch.config.mjs).
+const ASSETS = `${import.meta.env.BASE_URL}gliddencup`
+
+const UNKNOWN_ICON = `${ASSETS}/icons/unknown.svg`
 
 export function metaItems (player) {
   const item = (kind, raw, icons, file) => {
@@ -103,9 +106,9 @@ export function metaItems (player) {
     return { kind, text, src: icon ? file(icon) : (text === '???' ? UNKNOWN_ICON : null) }
   }
   return [
-    item('civ', player?.civ, CIV_ICONS, icon => `/gliddencup/civ/${icon}.webp`),
+    item('civ', player?.civ, CIV_ICONS, icon => `${ASSETS}/civ/${icon}.webp`),
     {
-      ...item('unit', player?.unit, UNIT_ICONS, icon => `/gliddencup/units/${icon}-p${playerColor(player)}.webp`),
+      ...item('unit', player?.unit, UNIT_ICONS, icon => `${ASSETS}/units/${icon}-p${playerColor(player)}.webp`),
       badge: UNIT_BADGES[player?.unit?.trim()],
     },
   ]

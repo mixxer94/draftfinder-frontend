@@ -91,7 +91,8 @@ const currentSort = ref('elo')
 function sortPlayers() {
   const key = currentSort.value
   const valueOf = p => {
-    if (key === 'elo') return p.elo || 0
+    // Number(), weil manche Einträge „???“ statt einer Zahl haben; NaN würde die Sortierung durcheinanderbringen.
+    if (key === 'elo') return Number(p.elo) || 0
     if (key === 'color') return Number(p.color) ? -Number(p.color) : -Infinity
     return p.median?.[key] ?? -Infinity
   }
