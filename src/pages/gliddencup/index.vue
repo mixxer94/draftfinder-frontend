@@ -6,6 +6,7 @@
       <v-tab value="tippen" :prepend-icon="smAndUp ? 'mdi-pencil-outline' : undefined">Tippen</v-tab>
       <v-tab value="teilnehmer" :prepend-icon="smAndUp ? 'mdi-cards-outline' : undefined">Teilnehmer</v-tab>
       <v-tab value="turnierbaum" :prepend-icon="smAndUp ? 'mdi-tournament' : undefined">Turnierbaum</v-tab>
+      <v-tab value="turnierbaum-s1" :prepend-icon="smAndUp ? 'mdi-history' : undefined">Turnierbaum (S1)</v-tab>
       <v-tab v-if="resolved" value="tipps" :prepend-icon="smAndUp ? 'mdi-format-list-checks' : undefined">Tipps</v-tab>
       <v-tab v-if="resolved" value="auswertungen" :prepend-icon="smAndUp ? 'mdi-chart-bar' : undefined">Auswertungen</v-tab>
     </v-tabs>
@@ -26,6 +27,10 @@
         <v-alert v-else-if="notFound" type="info" variant="tonal">Der Turnierbaum erscheint nach der Auslosung.</v-alert>
         <v-alert v-else-if="error" type="warning" variant="tonal">{{ error }} Die Seite versucht es alle paar Sekunden erneut.</v-alert>
         <div v-else class="d-flex justify-center pa-8"><v-progress-circular indeterminate /></div>
+      </v-window-item>
+
+      <v-window-item value="turnierbaum-s1">
+        <PublicBracket :tournament="seasonOne" />
       </v-window-item>
 
       <template v-if="resolved">
@@ -54,6 +59,8 @@ import TipStats from '@/components/gliddencup/public/TipStats.vue'
 import PlayerCharacteristics from '@/components/PlayerCharacteristics.vue'
 import PlayerCharacteristicsMobile from '@/components/PlayerCharacteristicsMobile.vue'
 import { gcApi, usePublicTournament } from '@/services/gliddencupApi'
+// Abgeschlossene Saison 1, aus dem damaligen matches.json ins Format der HC-Projektion übertragen.
+import seasonOne from '@/assets/gliddencup-s1.json'
 
 const { tournament, error, notFound } = usePublicTournament()
 

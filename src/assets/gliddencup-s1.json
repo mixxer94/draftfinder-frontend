@@ -1,0 +1,205 @@
+{
+  "tournamentName": "Gliddencup S1",
+  "rounds": [
+    {
+      "label": "Achtelfinale",
+      "matches": [
+        {
+          "slotCode": "R1-M1",
+          "a": "Haydn",
+          "b": "Gustav Klimt",
+          "aName": "Kelar",
+          "bName": "Tropfzahn",
+          "guessA": "Tropfzahn",
+          "guessB": "ovoin",
+          "score": "2:0",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M2",
+          "a": "Hans Moser",
+          "b": "Conchita Wurst",
+          "aName": "Blackrock",
+          "bName": "CroZzby",
+          "guessA": "Makrobean",
+          "guessB": "Makrobean",
+          "score": "2:1",
+          "winner": "B",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M3",
+          "a": "Hundertwasser",
+          "b": "Mozart",
+          "aName": "ovoin",
+          "bName": "onkyox",
+          "guessA": "Tasty",
+          "guessB": "Thorb0",
+          "score": "2:0",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M4",
+          "a": "DJ Ötzi",
+          "b": "Falco",
+          "aName": "Gleipdonir",
+          "bName": "Kloerb",
+          "guessA": "Kloerb",
+          "guessB": "Gleipdonir",
+          "score": "2:0",
+          "winner": "B",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M5",
+          "a": "Sigmund Freud",
+          "b": "Wittgenstein",
+          "aName": "Tasty",
+          "bName": "Koerbel",
+          "guessA": "Koerbel",
+          "guessB": "Tasty",
+          "score": "2:1",
+          "winner": "B",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M6",
+          "a": "SchubertFranzl",
+          "b": "David Alaba",
+          "aName": "Hansdampf",
+          "bName": "Hannesthemenace",
+          "guessA": "CroZzby",
+          "guessB": "Hansdampf",
+          "score": "2:1",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M7",
+          "a": "Christoph Waltz",
+          "b": "Romy Schneider",
+          "aName": "Atomfritz",
+          "bName": "Thorb0",
+          "guessA": "Tropfzahn",
+          "guessB": "Peter_Pahn",
+          "score": "2:0",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R1-M8",
+          "a": "Niki Lauda",
+          "b": "Johann Strauss",
+          "aName": "Peter_Pahn",
+          "bName": "Makrobean",
+          "guessA": "Kloerb",
+          "guessB": "CroZzby",
+          "score": "2:0",
+          "winner": "A",
+          "revealLevel": 5
+        }
+      ]
+    },
+    {
+      "label": "Viertelfinale",
+      "matches": [
+        {
+          "slotCode": "R2-M1",
+          "a": "Haydn",
+          "b": "Conchita Wurst",
+          "aName": "Kelar",
+          "bName": "CroZzby",
+          "guessA": "Blackrock",
+          "guessB": "Onkyox",
+          "score": "2:1",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R2-M2",
+          "a": "Hundertwasser",
+          "b": "Falco",
+          "aName": "ovoin",
+          "bName": "Kloerb",
+          "guessA": "Blackrock",
+          "guessB": "Koerbel",
+          "score": "2:0",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R2-M3",
+          "a": "Wittgenstein",
+          "b": "SchubertFranzl",
+          "aName": "Koerbel",
+          "bName": "Hansdampf",
+          "guessA": "Hansdampf",
+          "guessB": "Tasty",
+          "score": "2:1",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R2-M4",
+          "a": "Christoph Waltz",
+          "b": "Niki Lauda",
+          "aName": "Atomfritz",
+          "bName": "Peter_Pahn",
+          "guessA": "Makrobean",
+          "guessB": "Makrobean",
+          "score": "2:0",
+          "winner": "B",
+          "revealLevel": 5
+        }
+      ]
+    },
+    {
+      "label": "Halbfinale",
+      "matches": [
+        {
+          "slotCode": "R3-M1",
+          "a": "Haydn",
+          "b": "Hundertwasser",
+          "aName": "Kelar",
+          "bName": "ovoin",
+          "guessA": "ovoin",
+          "guessB": "Koerbel",
+          "score": "2:1",
+          "winner": "A",
+          "revealLevel": 5
+        },
+        {
+          "slotCode": "R3-M2",
+          "a": "Wittgenstein",
+          "b": "Niki Lauda",
+          "aName": "Koerbel",
+          "bName": "Peter_Pahn",
+          "guessA": "Peter_Pahn",
+          "guessB": "Koerbel",
+          "score": "2:1",
+          "winner": "A",
+          "revealLevel": 5
+        }
+      ]
+    },
+    {
+      "label": "Finale",
+      "matches": [
+        {
+          "slotCode": "R4-M1",
+          "a": "Haydn",
+          "b": "Wittgenstein",
+          "aName": "Kelar",
+          "bName": "Koerbel",
+          "guessA": "Koerbel",
+          "guessB": "Kelar",
+          "score": "3:0",
+          "winner": "A",
+          "revealLevel": 5
+        }
+      ]
+    }
+  ]
+}

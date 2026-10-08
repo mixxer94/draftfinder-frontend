@@ -2,7 +2,7 @@
   <div class="hc-tree-scroll">
     <div class="hc-tree" :style="{ width: `${layout.width}px`, height: `${layout.height}px` }">
       <svg class="hc-tree-lines" :width="layout.width" :height="layout.height" aria-hidden="true">
-        <path v-for="(d, i) in layout.lines" :key="i" :d="d" />
+        <path v-for="(link, i) in layout.links" :key="i" :d="link.d" />
       </svg>
 
       <div
@@ -51,6 +51,7 @@
 <script setup>
 import { computed, useSlots } from 'vue'
 import MatchStateChip from './MatchStateChip.vue'
+import { layoutTree } from './treeLayout'
 
 /**
  * Turnierbaum einer Bracket-Seite. `rounds` wie in admin/bracket.vue:
@@ -87,54 +88,10 @@ const sideScore = (match, side) => {
 // Die Ergebnisspalte gibt es erst, wenn irgendein Match eins hat, sonst wären alle Namen grundlos eingerückt.
 const hasScores = computed(() => props.rounds.some(r => r.slots.some(s => s.match?.score)))
 
-// Position in der Runde steckt im Code (WB-R2-M3); GF und GF-RESET haben keine.
-const indexOf = code => Number(code.match(/-M(\d+)$/)?.[1] ?? 1)
-
-/**
- * Karten absolut positioniert, Verbindungen als SVG-Pfade. Ein Match steht
- * mittig zwischen den Matches der Vorrunde, die in es münden. Welche das sind,
- * folgt aus dem Größenverhältnis der Runden: gleich groß heißt 1:1 (Loser
- * Bracket), halb so groß heißt 2:1. So braucht es kein `feedsWinnerTo` aus der API.
- */
-const layout = computed(() => {
-  const CARD_H = cardH.value
-  const CARD_W = cardW.value
-  const COL_W = CARD_W + 48
-  const ROW_H = CARD_H + 16
-  const cards = []
-  const lines = []
-  let prev = []
-
-  props.rounds.forEach((round, c) => {
-    const slots = [...round.slots].sort((x, y) => indexOf(x.code) - indexOf(y.code))
-    const x = c * COL_W
-    const current = slots.map((slot, i) => {
-      const ratio = slots.length / (prev.length || 1)
-      const feeders = prev.filter((_, p) => Math.ceil((p + 1) * ratio) === i + 1)
-      const y = feeders.length
-        ? feeders.reduce((sum, f) => sum + f.y, 0) / feeders.length
-        : TOP + i * ROW_H
-      for (const f of feeders) {
-        const y1 = f.y + CARD_H / 2
-        const y2 = y + CARD_H / 2
-        const xm = f.x + CARD_W + (COL_W - CARD_W) / 2
-        lines.push(`M${f.x + CARD_W} ${y1}H${xm}V${y2}H${x}`)
-      }
-      return { slot, x, y }
-    })
-    cards.push(...current)
-    prev = current
-  })
-
-  return {
-    colW: COL_W,
-    cards,
-    lines,
-    columns: props.rounds.map(r => ({ key: r.key, label: r.label })),
-    width: props.rounds.length * COL_W - (COL_W - CARD_W),
-    height: Math.max(TOP, ...cards.map(card => card.y + CARD_H)),
-  }
-})
+const layout = computed(() => ({
+  ...layoutTree(props.rounds, { cardW: cardW.value, cardH: cardH.value, top: TOP }),
+  columns: props.rounds.map(r => ({ key: r.key, label: r.label })),
+}))
 </script>
 
 <style scoped>
