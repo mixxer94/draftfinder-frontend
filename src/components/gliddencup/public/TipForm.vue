@@ -77,6 +77,23 @@
         </ul>
       </v-alert>
 
+      <h2 class="hc-h2 mt-8 mb-1">Wer ist Guy Glidden?</h2>
+      <p class="text-body-2 text-medium-emphasis mb-3">
+        In dieser Ausgabe ist ein Spieler angetreten, von dem weder Zuschauer noch Spieler die Identität kennen.
+      </p>
+      <v-text-field
+        v-model="mystery"
+        label="Dein Tipp"
+        :disabled="!editable"
+        :counter="MYSTERY_MAX_LENGTH"
+        :maxlength="MYSTERY_MAX_LENGTH"
+        persistent-placeholder
+        placeholder="Nicht getippt"
+        clearable
+        density="comfortable"
+        class="gc-mystery"
+      />
+
       <div v-if="account === 'in' && tournament.tipsOpen" class="gc-savebar d-flex align-center justify-end flex-wrap ga-3 mt-4 py-3">
         <v-alert v-if="saveError" type="error" variant="tonal" density="compact" class="flex-grow-1">{{ saveError }}</v-alert>
         <span v-else-if="dirty" class="text-body-2 text-medium-emphasis">Ungespeicherte Änderungen</span>
@@ -146,9 +163,14 @@ const saving = ref(false)
 const saveError = ref('')
 const savedAt = ref('')
 
+const MYSTERY_MAX_LENGTH = 60
+const mystery = ref('')
+const savedMystery = ref('')
+
 const clean = s => (s ?? '').trim()
 const current = () => Object.fromEntries(pseudonyms.value.map(ps => [ps, clean(picks[ps])]))
-const dirty = computed(() => pseudonyms.value.some(ps => clean(picks[ps]) !== (saved.value[ps] ?? '')))
+const dirty = computed(() => clean(mystery.value) !== savedMystery.value ||
+  pseudonyms.value.some(ps => clean(picks[ps]) !== (saved.value[ps] ?? '')))
 const filled = computed(() => pseudonyms.value.filter(ps => clean(picks[ps])).length)
 const duplicates = computed(() => duplicateNames(current()))
 const duplicatePseudonyms = computed(() => new Set(duplicates.value.flatMap(d => d.pseudonyms)))
@@ -160,11 +182,12 @@ function autoFill (ps) {
   if (match) picks[ps] = match
 }
 
-function applyPicks (list) {
+function applyTips ({ picks: list, mysteryGuess } = {}) {
   const map = Object.fromEntries((list ?? []).map(p => [p.pseudonym, clean(p.playerName)]))
   for (const ps of Object.keys(picks)) delete picks[ps]
   Object.assign(picks, map)
   saved.value = map
+  mystery.value = savedMystery.value = clean(mysteryGuess)
 }
 
 async function loadMe () {
@@ -181,7 +204,7 @@ async function loadMe () {
 
 async function loadTips () {
   try {
-    applyPicks((await gcApi.get('/tips/me')).data?.picks)
+    applyTips((await gcApi.get('/tips/me')).data)
   } catch (e) {
     // Ohne gespeicherte Tipps ist das Formular leer; das ist kein Fehler, den man anzeigen muss.
     if (e.response?.status === 401) signedOut()
@@ -197,10 +220,10 @@ async function save () {
   saving.value = true
   saveError.value = ''
   try {
-    const sent = current()
-    const res = await gcApi.put('/tips', { picks: Object.entries(sent).map(([pseudonym, playerName]) => ({ pseudonym, playerName })) })
-    if (Array.isArray(res.data?.picks)) applyPicks(res.data.picks)
-    else saved.value = sent
+    const picks = Object.entries(current()).map(([pseudonym, playerName]) => ({ pseudonym, playerName }))
+    const sent = { picks, mysteryGuess: clean(mystery.value) }
+    const res = await gcApi.put('/tips', sent)
+    applyTips(Array.isArray(res.data?.picks) ? res.data : sent)
     savedAt.value = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
   } catch (e) {
     saveError.value = saveErrorText(e)
@@ -226,7 +249,7 @@ async function logout () {
   await gcApi.post('/auth/logout').catch(() => {})
   loggingOut.value = false
   signedOut()
-  applyPicks([])
+  applyTips()
 }
 
 const nameDialog = reactive({ open: false, value: '', error: '', saving: false })
@@ -267,6 +290,7 @@ onMounted(loadMe)
 
 <style scoped>
 .gc-list { padding-left: 1.25rem; }
+.gc-mystery { max-width: 28rem; }
 
 /* Auf dem Handy liegen 16 Felder untereinander; der Speichern-Button bleibt in Reichweite. */
 .gc-savebar {

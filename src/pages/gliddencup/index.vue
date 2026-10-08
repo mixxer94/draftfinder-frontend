@@ -38,8 +38,13 @@
           <v-alert v-if="overviewError" type="warning" variant="tonal" class="mb-4">{{ overviewError }}</v-alert>
           <div v-else-if="!overview" class="d-flex justify-center pa-8"><v-progress-circular indeterminate /></div>
           <template v-else>
-            <TipsOverview v-if="t === 'tipps'" :tournament="tournament" :users="overview.users" :picks-by-user="overview.picksByUser" />
-            <TipStats v-else :tournament="tournament" :users="overview.users" :picks-by-user="overview.picksByUser" />
+            <component
+              :is="t === 'tipps' ? TipsOverview : TipStats"
+              :tournament="tournament"
+              :users="overview.users"
+              :picks-by-user="overview.picksByUser"
+              :mystery-by-user="overview.mysteryByUser"
+            />
           </template>
         </v-window-item>
       </template>
@@ -87,9 +92,13 @@ async function loadOverview () {
   try {
     const data = (await gcApi.get('/overview')).data
     if (!data?.tipsVisible) return
+    const users = (data.users ?? []).map(u => u.displayName).sort((a, b) => a.localeCompare(b))
+    const mystery = data.mysteryByUser ?? {}
     overview.value = {
-      users: (data.users ?? []).map(u => u.displayName).sort((a, b) => a.localeCompare(b)),
+      users,
       picksByUser: data.picksByUser ?? {},
+      // Für jeden Tipper ein eigener Eintrag: Sonst liefert ein Tipper namens „__proto__“ ohne Antwort den Objekt-Prototyp.
+      mysteryByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(mystery, u) ? mystery[u] : ''])),
     }
     overviewError.value = ''
   } catch {

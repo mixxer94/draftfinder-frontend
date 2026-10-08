@@ -73,6 +73,12 @@
           </tr>
         </tbody>
       </v-table>
+
+      <p v-if="selected" class="mt-4">
+        Wer ist Guy Glidden?
+        <strong v-if="mysteryByUser[selected]">{{ mysteryByUser[selected] }}</strong>
+        <span v-else class="text-medium-emphasis">nicht getippt</span>
+      </p>
     </v-col>
   </v-row>
 </template>
@@ -88,6 +94,7 @@ const props = defineProps({
   tournament: { type: Object, required: true },
   users: { type: Array, required: true },
   picksByUser: { type: Object, required: true },
+  mysteryByUser: { type: Object, default: () => ({}) },
 })
 
 const { mdAndUp } = useDisplay()

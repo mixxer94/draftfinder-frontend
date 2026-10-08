@@ -12,7 +12,7 @@ import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     VueRouter(),
     Layouts(),
@@ -66,6 +66,8 @@ export default defineConfig({
     proxy: {
       // Gliddencup (hidden-communicator, eigener Dienst) — muss vor /api stehen
       '/api/hc': { target: 'http://localhost:3100' },
+      // `npm run dev:mock`: Das Tippspiel kommt aus der Attrappe im hidden-communicator-Mock (50 Tipper).
+      ...(mode === 'mock' ? { '/api/gliddencup': { target: 'http://localhost:3100' } } : {}),
       '/api': {
         target: 'http://localhost:3000/',
         changeOrigin: true,
@@ -73,4 +75,4 @@ export default defineConfig({
       }
     }
   },
-})
+}))
