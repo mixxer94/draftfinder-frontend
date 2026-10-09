@@ -58,6 +58,7 @@
                 Vergeben
               </v-btn>
             </template>
+            <v-btn v-if="canReplace(p)" size="small" variant="tonal" :aria-label="`Ersetzen: ${rowName(p, i)}`" @click="openReplace(p)">Ersetzen</v-btn>
             <v-btn v-if="!isOut(p)" size="small" color="error" variant="text" :aria-label="`Entfernen: ${rowName(p, i)}`" @click="openRemove(p)">Entfernen</v-btn>
             <v-btn v-else size="small" variant="tonal" :loading="busy === `re-${p.id}`" :aria-label="`Wieder aufnehmen: ${rowName(p, i)}`" @click="readmit(p)">
               Wieder aufnehmen
@@ -93,6 +94,35 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <v-dialog v-model="replaceDialog.open" max-width="520">
+    <v-card class="hc-dialog pa-2" :title="`${replaceDialog.player?.pseudonym} ersetzen`">
+      <v-card-text>
+        <p class="mb-3">
+          Der Ersatz übernimmt Pseudonym, Platz im Bracket und das laufende Match und bekommt die Eröffnungs-DMs.
+          Der Gegner erfährt nichts. Geht nur, solange das Match in der Terminfindung ist.
+        </p>
+        <p class="mb-3 text-medium-emphasis">
+          Der Ersatz meldet sich vorher über #anmeldung an. Ihm kein Pseudonym vergeben — hier steht er als Anmeldung ohne Pseudonym.
+        </p>
+        <v-select
+          v-if="candidates.length"
+          v-model="replaceDialog.replacementId"
+          :items="candidates"
+          label="Ersatz"
+          autofocus
+        />
+        <v-alert v-else type="info" variant="tonal">Keine Anmeldung ohne Pseudonym vorhanden.</v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="replaceDialog.open = false">Abbrechen</v-btn>
+        <v-btn color="secondary" variant="flat" :disabled="!replaceDialog.replacementId" :loading="busy === 'replace'" @click="replace">
+          Ersetzen
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -102,6 +132,7 @@ import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 
 const players = ref([])
+const tournament = ref(null)
 const loading = ref(false)
 const error = ref('')
 const info = ref('')
@@ -110,6 +141,7 @@ const pseudonymInput = reactive({})
 const revealed = reactive({})
 const timers = []
 const removeDialog = reactive({ open: false, player: null, reason: '', permanent: false })
+const replaceDialog = reactive({ open: false, player: null, replacementId: null })
 
 const isOut = p => p.status === 'ENTFERNT' || p.status === 'GESPERRT'
 // Zeilenname für Screenreader; ohne Pseudonym bleibt nur die Position, der Discord-Name ist verdeckt.
@@ -122,6 +154,7 @@ async function load () {
   try {
     const data = (await hcApi.get('/registrations')).data
     players.value = data.players
+    tournament.value = data.tournament
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
@@ -169,6 +202,25 @@ async function remove () {
   const { player, reason, permanent } = removeDialog
   const done = await run('remove', () => hcApi.post(`/registrations/${player.id}/remove`, { reason, permanent }))
   if (done) removeDialog.open = false
+}
+
+// Ob der Spieler im Bracket steht und sein Match in der Terminfindung ist, prüft der Server.
+const canReplace = p =>
+  !!p.pseudonym && !isOut(p) && p.status !== 'AUSGESCHIEDEN' && !!tournament.value && tournament.value.state !== 'SETUP'
+
+const candidates = computed(() =>
+  players.value.flatMap((p, i) => !p.pseudonym && !isOut(p)
+    ? [{ value: p.id, title: `${rowName(p, i)} · angemeldet ${new Date(p.registeredAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}` }]
+    : []))
+
+function openReplace (p) {
+  Object.assign(replaceDialog, { open: true, player: p, replacementId: candidates.value.length === 1 ? candidates.value[0].value : null })
+}
+
+async function replace () {
+  const { player, replacementId } = replaceDialog
+  const done = await run('replace', () => hcApi.post(`/players/${player.id}/replace`, { replacementId }), `${player.pseudonym} ersetzt.`)
+  if (done) replaceDialog.open = false
 }
 
 /** Klarname nur bis zum Ablauf des Reveal-Fensters, dann wieder verdeckt. */
