@@ -64,6 +64,10 @@
       <v-text-field :model-value="overlayUrls.all('back')" label="Alle Karten, Rückseite" readonly density="compact" hide-details
         append-inner-icon="mdi-content-copy" @click:append-inner="copy(overlayUrls.all('back'))" />
     </v-col>
+    <v-col cols="12" md="6">
+      <v-text-field :model-value="overlayUrls.bracket()" label="Turnierbaum, aktualisiert sich selbst" readonly density="compact" hide-details
+        append-inner-icon="mdi-content-copy" @click:append-inner="copy(overlayUrls.bracket())" />
+    </v-col>
   </v-row>
 
   <v-table density="compact">

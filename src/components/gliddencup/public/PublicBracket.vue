@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="hasGuesses" class="d-flex align-center flex-wrap ga-3 mb-4">
+    <div v-if="hasGuesses && !overlay" class="d-flex align-center flex-wrap ga-3 mb-4">
       <v-switch
         v-model="showAll"
         label="Vermutungen anzeigen"
@@ -13,11 +13,11 @@
       <span class="text-body-2 text-medium-emphasis">Klick auf ein Match blendet nur dessen Vermutungen ein oder aus.</span>
     </div>
 
-    <p v-if="!trees.length" class="text-medium-emphasis">Noch keine Matches im Turnierbaum.</p>
+    <p v-if="!trees.length && !overlay" class="text-medium-emphasis">Noch keine Matches im Turnierbaum.</p>
 
-    <section v-for="tree in trees" :key="tree.bracket" class="mb-8">
-      <h2 v-if="trees.length > 1" class="hc-h2">{{ tree.title }}</h2>
-      <div class="gc-scroll">
+    <section v-for="tree in trees" :key="tree.bracket" :class="overlay ? 'gc-ov-section' : 'mb-8'">
+      <h2 v-if="trees.length > 1" :class="overlay ? 'gc-ov-title' : 'hc-h2'">{{ tree.title }}</h2>
+      <div :class="{ 'gc-scroll': !overlay }">
         <div class="gc-tree" :style="{ width: `${tree.width}px`, height: `${tree.height}px` }">
           <div v-for="(label, c) in tree.labels" :key="c" class="gc-label" :style="{ left: `${c * tree.colW}px` }">{{ label }}</div>
 
@@ -95,9 +95,13 @@ import { bracketSides, truthMap } from '@/services/gliddencupApi'
  * ist und die Vermutung stimmt; vorher würden sie im Stream die Auflösung
  * vorwegnehmen. Hover über einen Spieler hebt seine Matches in allen Runden
  * hervor.
+ *
+ * Mit `overlay` ohne Schalter, Hinweistext und Scrollbereich, für die
+ * OBS-Browserquelle; `size` liefert dann die Gesamtgröße für OverlayStage.
  */
 const props = defineProps({
   tournament: { type: Object, required: true },
+  overlay: { type: Boolean, default: false },
 })
 
 const CARD_W = 300
@@ -105,6 +109,9 @@ const CARD_H = 104
 const COL_GAP = 56
 const TOP = 32 // Platz für die Rundennamen
 const CHAMP_W = 176
+// Feste Maße im Overlay, damit `size` ohne Messen stimmt; passend zu .gc-ov-*.
+const OV_TITLE_H = 40
+const OV_GAP = 32
 
 const sides = computed(() => bracketSides(props.tournament))
 const slots = computed(() => sides.value.flatMap(s => s.rounds.flatMap(r => r.slots)))
@@ -192,10 +199,22 @@ const trees = computed(() => sides.value.map((side, index) => {
     height: layout.height,
   }
 }))
+
+const size = computed(() => {
+  const titleH = trees.value.length > 1 ? OV_TITLE_H : 0
+  return {
+    width: Math.max(1, ...trees.value.map(t => t.width)),
+    height: Math.max(1, trees.value.reduce((h, t, i) => h + (i ? OV_GAP : 0) + titleH + t.height, 0)),
+  }
+})
+
+defineExpose({ size })
 </script>
 
 <style scoped>
 .gc-scroll { overflow-x: auto; padding-bottom: 8px; }
+.gc-ov-section + .gc-ov-section { margin-top: 32px; }
+.gc-ov-title { height: 40px; margin: 0; font-size: 1.25rem; line-height: 40px; color: rgb(var(--v-theme-on-surface)); }
 .gc-tree {
   --accent: rgb(var(--v-theme-secondary));
   --rule: rgba(var(--v-theme-on-surface), 0.25);

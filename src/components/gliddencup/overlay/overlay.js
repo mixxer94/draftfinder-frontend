@@ -22,6 +22,7 @@ export const overlayUrls = {
   live: view => `${base()}/live/${view}`,
   player: (nr, side = 'front') => `${base()}/player/${nr}${side === 'back' ? '?side=back' : ''}`,
   all: (side = 'front') => `${base()}/all${side === 'back' ? '?side=back' : ''}`,
+  bracket: () => `${base()}/bracket`,
 }
 
 const EMPTY_VIEWS = [{ player: null, side: 'front' }, { player: null, side: 'front' }]

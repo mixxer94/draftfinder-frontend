@@ -53,11 +53,12 @@ export function normalizeTournament (raw) {
  * Ruft `fn` sofort und dann alle `ms` Millisekunden auf, aber nur bei
  * sichtbarem Tab: Hintergrund-Tabs sollen hc-web nicht belasten. Wird der Tab
  * wieder sichtbar, gibt es sofort frische Daten statt bis zu 10 s alter.
- * Endet mit der Komponente.
+ * `always` fragt auch unsichtbar ab, für OBS-Browserquellen, die sich nicht
+ * zuverlässig als sichtbar melden. Endet mit der Komponente.
  */
-export function usePolling (fn, ms = 10_000) {
+export function usePolling (fn, ms = 10_000, { always = false } = {}) {
   let timer = null
-  const tick = () => { if (document.visibilityState === 'visible') fn() }
+  const tick = () => { if (always || document.visibilityState === 'visible') fn() }
   const onVisible = () => { if (document.visibilityState === 'visible') fn() }
 
   onMounted(() => {
@@ -76,7 +77,7 @@ export function usePolling (fn, ms = 10_000) {
  * erfolgreichen Laden lässt die alten Daten stehen; `error` sagt dann nur,
  * dass die Anzeige veraltet sein kann.
  */
-export function usePublicTournament (slug) {
+export function usePublicTournament (slug, { always = false } = {}) {
   const tournament = ref(null)
   const error = ref('')
   const notFound = ref(false)
@@ -94,7 +95,7 @@ export function usePublicTournament (slug) {
     } finally {
       loaded.value = true
     }
-  })
+  }, 10_000, { always })
 
   return { tournament, error, notFound, loaded }
 }
