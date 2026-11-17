@@ -132,6 +132,7 @@ export const HC_NAV = [
   { to: '/gliddencup/admin/draw', title: 'Auslosung', icon: 'mdi-dice-multiple', doneAfterDraw: true },
   { to: '/gliddencup/admin/activation', title: 'Matches freigeben', icon: 'mdi-play-circle', showReady: true },
   { to: '/gliddencup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', helper: true },
+  { to: '/gliddencup/admin/questions', title: 'Tippspiel-Fragen', icon: 'mdi-help-circle-outline' },
   { to: '/gliddencup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', helper: true },
   { to: '/gliddencup/admin/replays', title: 'Replays', icon: 'mdi-folder-zip' },
   { to: '/gliddencup/admin/stream', title: 'Stream-Overlays', icon: 'mdi-twitch' },

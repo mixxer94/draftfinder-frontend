@@ -40,6 +40,7 @@ export function normalizeTournament (raw) {
     pseudonyms: Array.isArray(t.pseudonyms) ? t.pseudonyms : [],
     participants: Array.isArray(t.participants) ? t.participants : [],
     identities: Array.isArray(t.identities) ? t.identities : [],
+    questions: Array.isArray(t.questions) ? t.questions : [],
     rounds: (Array.isArray(t.rounds) ? t.rounds : []).map(r => ({
       ...r,
       matches: Array.isArray(r.matches) ? r.matches : [],

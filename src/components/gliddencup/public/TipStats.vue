@@ -6,7 +6,7 @@
       <v-select
         v-if="!mdAndUp"
         v-model="view"
-        :items="VIEWS"
+        :items="views"
         item-title="title"
         item-value="value"
         label="Auswertung"
@@ -15,7 +15,7 @@
       />
       <v-list v-else density="compact" nav class="py-0" bg-color="transparent" aria-label="Auswertungen">
         <v-list-item
-          v-for="v in VIEWS"
+          v-for="v in views"
           :key="v.value"
           :active="view === v.value"
           color="secondary"
@@ -34,7 +34,9 @@
           <tr>
             <th class="gc-rank">#</th>
             <th>Tipper</th>
-            <th class="text-right">Richtig</th>
+            <th v-if="results.length" class="text-right">Punkte</th>
+            <th class="text-right">{{ results.length ? 'Pseudonyme' : 'Richtig' }}</th>
+            <th v-if="results.length" class="text-right">Zusatzfragen</th>
             <th class="text-right">Allein richtig</th>
             <th class="text-right">Quote</th>
           </tr>
@@ -43,12 +45,37 @@
           <tr v-for="u in rankingRows" :key="u.crowd ? '' : u.user" :class="{ 'gc-crowd': u.crowd }">
             <td class="gc-rank text-medium-emphasis">{{ u.rank }}</td>
             <td>{{ u.crowd ? 'Schwarm (Mehrheitstipp)' : u.user }}</td>
+            <td v-if="results.length" class="text-right font-weight-medium">{{ u.crowd ? '' : u.points }}</td>
             <td class="text-right">{{ u.correct }} / {{ total }}</td>
+            <td v-if="results.length" class="text-right">{{ u.crowd ? '' : u.extra }}</td>
             <td class="text-right">{{ u.crowd ? '' : u.solo }}</td>
             <td class="text-right">{{ pct((u.correct / (total || 1)) * 100) }}</td>
           </tr>
         </tbody>
       </v-table>
+
+      <template v-else-if="view === 'questions'">
+        <section v-for="r in results" :key="r.question.id" class="mb-6">
+          <h3 class="text-subtitle-1 font-weight-medium mb-1">{{ r.question.text }}</h3>
+          <p class="text-body-2 mb-2">
+            <template v-if="r.solution !== null">Lösung: <strong>{{ r.solution }} {{ r.question.unit }}</strong> · </template>
+            {{ r.answered }} von {{ users.length }} Tippern haben geantwortet<template v-if="winnersOf(r).length">
+              · {{ r.question.points }} {{ r.question.points === 1 ? 'Punkt' : 'Punkte' }} für {{ winnersOf(r).join(', ') }}
+            </template>
+          </p>
+          <v-chip
+            v-for="[value, count] in r.counts"
+            :key="value"
+            size="small"
+            label
+            class="ma-1"
+            :variant="value === r.solution ? 'flat' : 'tonal'"
+            :color="value === r.solution ? 'success' : undefined"
+          >
+            {{ value }} × {{ count }}
+          </v-chip>
+        </section>
+      </template>
 
       <template v-else-if="view === 'distribution'">
         <p class="mb-3">Im Schnitt <strong>{{ avg.toFixed(2).replace('.', ',') }}</strong> von {{ total }} richtig.</p>
@@ -160,7 +187,7 @@ import { useDisplay } from 'vuetify'
 import { truthMap } from '@/services/gliddencupApi'
 import {
   average, chameleons, crowdCorrect, distribution,
-  globalConfusions, mysteryGroups, playerGuesses, playerStats, userStats,
+  globalConfusions, mysteryGroups, playerGuesses, playerStats, questionResult, totalRanking, userStats,
 } from '@/services/gliddencupStats'
 
 /** Auswertungen des Tippspiels; erst mit veröffentlichter Zuordnung sinnvoll. */
@@ -169,10 +196,12 @@ const props = defineProps({
   users: { type: Array, required: true },
   picksByUser: { type: Object, required: true },
   mysteryByUser: { type: Object, default: () => ({}) },
+  answersByUser: { type: Object, default: () => ({}) },
 })
 
 const VIEWS = [
   { value: 'ranking', title: 'Rangliste', text: 'Wer am meisten Pseudonyme richtig zugeordnet hat. „Allein richtig“ zählt Treffer, die sonst niemand hatte. Der Schwarm tippt bei jedem Pseudonym den häufigsten Namen.' },
+  { value: 'questions', title: 'Zusatzfragen', text: 'Lösung und Antworten je Frage. Bei Zahlen bekommt die Punkte, wer am nächsten liegt; grün ist die richtige Antwort.' },
   { value: 'distribution', title: 'Trefferverteilung', text: 'Wie viele Tipper wie viele Treffer haben.' },
   { value: 'chameleons', title: 'Verwandlungskünstler', text: 'Wie oft jeder Spieler richtig getippt wurde und für wen man ihn sonst hielt: oben die besten Verwandlungskünstler, unten die schlechtesten Schauspieler. Grün ist der richtige Name.' },
   { value: 'players', title: 'Spieler-Vermutungen', text: 'Wen die Spieler nach ihrem Match hinter ihrem Gegner vermutet haben.' },
@@ -181,6 +210,10 @@ const VIEWS = [
 
 const { mdAndUp } = useDisplay()
 const view = ref('ranking')
+const results = computed(() => (props.tournament.questions ?? [])
+  .map(q => questionResult(q, props.users, props.answersByUser)))
+const winnersOf = r => props.users.filter(u => r.byUser.get(u)?.points)
+const views = computed(() => VIEWS.filter(v => v.value !== 'questions' || results.value.length))
 const current = computed(() => VIEWS.find(v => v.value === view.value))
 
 const truth = computed(() => truthMap(props.tournament))
@@ -202,11 +235,12 @@ const players = computed(() => playerGuesses({ rounds: props.tournament.rounds, 
 const mysteryAnswers = computed(() => props.users.map(u => props.mysteryByUser[u]).filter(Boolean))
 const mysteryList = computed(() => mysteryGroups(mysteryAnswers.value, props.tournament.participants))
 
-// Der Schwarm steht hinter allen Tippern mit gleich vielen Treffern und bekommt keinen Platz.
+// Gereiht wird nach Punkten: Pseudonyme plus Zusatzfragen. Der Schwarm tippt nur
+// Pseudonyme, steht hinter allen Tippern mit mindestens so vielen Punkten und bekommt keinen Platz.
 const rankingRows = computed(() => {
-  const rows = uStats.value.map((u, i) => ({ ...u, rank: i + 1 }))
+  const rows = totalRanking(uStats.value, results.value).map((u, i) => ({ ...u, rank: i + 1 }))
   const crowd = { crowd: true, correct: crowdCorrect(pStats.value), rank: '' }
-  const at = rows.findIndex(u => u.correct < crowd.correct)
+  const at = rows.findIndex(u => u.points < crowd.correct)
   rows.splice(at === -1 ? rows.length : at, 0, crowd)
   return rows
 })

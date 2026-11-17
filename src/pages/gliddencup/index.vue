@@ -44,6 +44,7 @@
               :users="overview.users"
               :picks-by-user="overview.picksByUser"
               :mystery-by-user="overview.mysteryByUser"
+              :answers-by-user="overview.answersByUser"
             />
           </template>
         </v-window-item>
@@ -99,6 +100,7 @@ async function loadOverview () {
       picksByUser: data.picksByUser ?? {},
       // Für jeden Tipper ein eigener Eintrag: Sonst liefert ein Tipper namens „__proto__“ ohne Antwort den Objekt-Prototyp.
       mysteryByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(mystery, u) ? mystery[u] : ''])),
+      answersByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(data.answersByUser ?? {}, u) ? data.answersByUser[u] : []])),
     }
     overviewError.value = ''
   } catch {

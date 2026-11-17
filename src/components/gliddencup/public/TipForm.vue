@@ -39,9 +39,74 @@
     </v-alert>
     <div v-else-if="!tournament" class="d-flex justify-center pa-8"><v-progress-circular indeterminate /></div>
 
-    <template v-else>
+    <!-- Sind die Pseudonym-Tipps zu, stehen die Zusatzfragen oben: Nur dort gibt es noch etwas zu tun. -->
+    <div v-else class="d-flex flex-column">
+      <section v-if="questions.length" class="mb-10" :class="{ 'order-first': !tournament.tipsOpen }">
+        <div class="d-flex align-baseline flex-wrap ga-2 mb-1">
+          <h2 class="hc-h2 mb-0">Zusatzfragen</h2>
+          <span class="text-body-2 text-medium-emphasis">{{ answered }} von {{ questions.length }} beantwortet</span>
+        </div>
+        <p class="text-body-2 text-medium-emphasis mb-4">
+          Jede Frage schließt für sich. Bis dahin kannst du deine Antwort ändern.
+        </p>
+
+        <v-row dense>
+          <v-col v-for="q in questions" :key="q.id" cols="12" md="6">
+            <div class="d-flex align-center flex-wrap ga-2 mb-1">
+              <span class="font-weight-medium">{{ q.text }}</span>
+              <v-chip size="x-small" label variant="tonal">{{ q.points }} {{ q.points === 1 ? 'Punkt' : 'Punkte' }}</v-chip>
+              <v-chip v-if="!q.open" size="x-small" label>geschlossen</v-chip>
+            </div>
+            <v-text-field
+              v-if="q.type === 'NUMBER'"
+              v-model="answers[q.id]"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              :suffix="q.unit"
+              :aria-label="q.text"
+              :disabled="!answerable(q)"
+              :error="!validNumber(answers[q.id])"
+              persistent-placeholder
+              placeholder="Nicht getippt"
+              density="comfortable"
+              hide-details
+              class="gc-answer"
+            />
+            <v-autocomplete
+              v-else
+              v-model="answers[q.id]"
+              :items="q.options"
+              :aria-label="q.text"
+              :disabled="!answerable(q)"
+              persistent-placeholder
+              placeholder="Nicht getippt"
+              clearable
+              density="comfortable"
+              hide-details
+              auto-select-first
+              class="gc-answer"
+            />
+          </v-col>
+        </v-row>
+
+        <div v-if="account === 'in' && questions.some(q => q.open)" class="d-flex align-center justify-end flex-wrap ga-3 mt-4">
+          <v-alert v-if="answerError" type="error" variant="tonal" density="compact" class="flex-grow-1">{{ answerError }}</v-alert>
+          <span v-else-if="answersDirty" class="text-body-2 text-medium-emphasis">Ungespeicherte Änderungen</span>
+          <span v-else-if="answersSavedAt" class="text-body-2 text-medium-emphasis">
+            <v-icon icon="mdi-check" size="small" color="success" /> Gespeichert um {{ answersSavedAt }}
+          </span>
+          <v-btn color="secondary" variant="flat" :loading="savingAnswers" :disabled="!answersDirty || !answersValid" @click="saveAnswers">
+            Antworten speichern
+          </v-btn>
+        </div>
+      </section>
+
+      <!-- Eigener Abschnitt, damit die klebende Speicherleiste nicht über die Zusatzfragen wandert. -->
+      <section>
       <v-alert v-if="!tournament.tipsOpen" type="info" variant="tonal" class="mb-4">
-        Tippen ist geschlossen.
+        Die Tipps auf die Pseudonyme sind geschlossen.
       </v-alert>
 
       <div class="d-flex align-baseline flex-wrap ga-2 mb-3">
@@ -102,7 +167,8 @@
         </span>
         <v-btn color="secondary" variant="flat" :loading="saving" :disabled="!dirty" @click="save">Tipps speichern</v-btn>
       </div>
-    </template>
+      </section>
+    </div>
 
     <!-- Anzeigename -->
     <v-dialog v-model="nameDialog.open" max-width="440">
@@ -177,12 +243,66 @@ const duplicatePseudonyms = computed(() => new Set(duplicates.value.flatMap(d =>
 
 watch(dirty, d => { if (d) savedAt.value = '' })
 
+// Zusatzfragen: Antworten als Frage-ID → Wert, getrennt gespeichert, weil
+// jede Frage ihren eigenen Tippschluss hat.
+const questions = computed(() => props.tournament?.questions ?? [])
+const answers = reactive({})
+const savedAnswers = ref({})
+const savingAnswers = ref(false)
+const answerError = ref('')
+const answersSavedAt = ref('')
+
+// Zahlenfelder liefern Text; leer heißt „nicht getippt“
+const answerValue = q => {
+  const raw = answers[q.id]
+  if (raw == null || raw === '') return null
+  return q.type === 'NUMBER' ? Number(raw) : raw
+}
+const validNumber = raw => raw == null || raw === '' || (Number.isInteger(Number(raw)) && Number(raw) >= 0 && Number(raw) <= 1_000_000)
+const answerable = q => account.value === 'in' && q.open
+const openQuestions = computed(() => questions.value.filter(q => q.open))
+const answered = computed(() => questions.value.filter(q => answerValue(q) !== null).length)
+const answersDirty = computed(() => openQuestions.value.some(q => answerValue(q) !== (savedAnswers.value[q.id] ?? null)))
+const answersValid = computed(() => openQuestions.value.every(q => q.type !== 'NUMBER' || validNumber(answers[q.id])))
+
+watch(answersDirty, d => { if (d) answersSavedAt.value = '' })
+
+function applyAnswers (list) {
+  const map = Object.fromEntries((list ?? []).map(a => [a.questionId, a.value]))
+  for (const id of Object.keys(answers)) delete answers[id]
+  Object.assign(answers, map)
+  savedAnswers.value = map
+}
+
+async function saveAnswers () {
+  savingAnswers.value = true
+  answerError.value = ''
+  try {
+    const sent = openQuestions.value.map(q => ({ questionId: q.id, value: answerValue(q) }))
+    const res = await gcApi.put('/answers', { answers: sent })
+    applyAnswers(res.data?.answers)
+    if (res.data?.closed?.length) {
+      answerError.value = 'Eine Frage wurde inzwischen geschlossen. Dort zählt deine zuletzt gespeicherte Antwort.'
+    } else {
+      answersSavedAt.value = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    }
+  } catch (e) {
+    answerError.value = e.response?.status === 400
+      ? 'Eine Antwort ist ungültig. Lade die Seite neu und prüf deine Eingaben.'
+      : saveErrorText(e)
+  } finally {
+    savingAnswers.value = false
+  }
+}
+
 function autoFill (ps) {
   const match = bestMatch(searches[ps] || picks[ps], participants.value)
   if (match) picks[ps] = match
 }
 
-function applyTips ({ picks: list, mysteryGuess } = {}) {
+function applyTips ({ picks: list, mysteryGuess, answers: answerList } = {}) {
+  // Die Antwort von PUT /tips kennt keine Zusatzfragen; nur ein ausdrücklich geliefertes Feld ersetzt sie.
+  if (answerList !== undefined) applyAnswers(answerList)
   const map = Object.fromEntries((list ?? []).map(p => [p.pseudonym, clean(p.playerName)]))
   for (const ps of Object.keys(picks)) delete picks[ps]
   Object.assign(picks, map)
@@ -249,7 +369,7 @@ async function logout () {
   await gcApi.post('/auth/logout').catch(() => {})
   loggingOut.value = false
   signedOut()
-  applyTips()
+  applyTips({ answers: [] })
 }
 
 const nameDialog = reactive({ open: false, value: '', error: '', saving: false })
@@ -291,6 +411,7 @@ onMounted(loadMe)
 <style scoped>
 .gc-list { padding-left: 1.25rem; }
 .gc-mystery { max-width: 28rem; }
+.gc-answer { max-width: 28rem; }
 
 /* Auf dem Handy liegen 16 Felder untereinander; der Speichern-Button bleibt in Reichweite. */
 .gc-savebar {

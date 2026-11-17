@@ -74,6 +74,32 @@
         </tbody>
       </v-table>
 
+      <v-table v-if="selected && results.length" density="compact" class="mt-6">
+        <thead>
+          <tr>
+            <th>Zusatzfrage</th>
+            <th>Antwort</th>
+            <th v-if="spoilers">Lösung</th>
+            <th v-if="spoilers" class="text-right">Punkte</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="r in answerRows"
+            :key="r.id"
+            :class="spoilers && r.value !== null && r.solution !== null && (r.points ? 'gc-hit' : 'gc-miss')"
+          >
+            <td class="font-weight-medium">{{ r.text }}</td>
+            <td>
+              <span v-if="r.value !== null">{{ r.value }} {{ r.unit }}</span>
+              <span v-else class="text-medium-emphasis">nicht getippt</span>
+            </td>
+            <td v-if="spoilers">{{ r.solution ?? '—' }} {{ r.solution === null ? '' : r.unit }}</td>
+            <td v-if="spoilers" class="text-right gc-num">{{ r.points }}</td>
+          </tr>
+        </tbody>
+      </v-table>
+
       <p v-if="selected" class="mt-4">
         Wer ist Guy Glidden?
         <strong v-if="mysteryByUser[selected]">{{ mysteryByUser[selected] }}</strong>
@@ -87,7 +113,7 @@
 import { computed, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import { truthMap } from '@/services/gliddencupApi'
-import { userStats } from '@/services/gliddencupStats'
+import { questionResult, userStats } from '@/services/gliddencupStats'
 
 /** Tipps aller Tipper nach der Veröffentlichung der Zuordnung. */
 const props = defineProps({
@@ -95,6 +121,7 @@ const props = defineProps({
   users: { type: Array, required: true },
   picksByUser: { type: Object, required: true },
   mysteryByUser: { type: Object, default: () => ({}) },
+  answersByUser: { type: Object, default: () => ({}) },
 })
 
 const { mdAndUp } = useDisplay()
@@ -108,6 +135,16 @@ const correctBy = computed(() => new Map(userStats({
   users: props.users,
   picksByUser: props.picksByUser,
 }).map(s => [s.user, s.correct])))
+
+const results = computed(() => (props.tournament.questions ?? [])
+  .map(q => questionResult(q, props.users, props.answersByUser)))
+const answerRows = computed(() => results.value.map(r => ({
+  id: r.question.id,
+  text: r.question.text,
+  unit: r.question.unit,
+  solution: r.solution,
+  ...r.byUser.get(selected.value),
+})))
 
 const rows = computed(() => {
   const picks = props.picksByUser[selected.value] ?? []

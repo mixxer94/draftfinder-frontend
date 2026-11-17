@@ -32,6 +32,53 @@ export function userStats ({ pseudonyms, truth, users, picksByUser }) {
   }).sort((a, b) => (b.correct - a.correct) || a.user.localeCompare(b.user))
 }
 
+const answerOf = (answersByUser, user, question) =>
+  (answersByUser[user] ?? []).find(a => a.questionId === question.id)?.value ?? null
+
+/**
+ * Auswertung einer Zusatzfrage: je Tipper Antwort und Punkte, dazu die
+ * Antworten nach Häufigkeit. Auswahl: Punkte bei Treffer. Zahl: Punkte für
+ * alle, die der Lösung am nächsten liegen. Ohne Lösung gibt es keine Punkte.
+ */
+export function questionResult (question, users, answersByUser) {
+  const solution = question.solution ?? null
+  const answers = users.map(user => ({ user, value: answerOf(answersByUser, user, question) }))
+  const given = answers.filter(a => a.value !== null)
+  let hit = () => false
+  if (solution !== null && question.type === 'NUMBER') {
+    const best = Math.min(...given.map(a => Math.abs(a.value - solution)))
+    hit = a => Math.abs(a.value - solution) === best
+  } else if (solution !== null) {
+    hit = a => a.value === solution
+  }
+  const counts = new Map()
+  for (const a of given) counts.set(a.value, (counts.get(a.value) ?? 0) + 1)
+  return {
+    question,
+    solution,
+    answered: given.length,
+    byUser: new Map(answers.map(a => [a.user, {
+      value: a.value,
+      points: a.value !== null && hit(a) ? question.points : 0,
+    }])),
+    // Zahlen aufsteigend, Auswahl nach Häufigkeit
+    counts: [...counts.entries()].sort((a, b) => question.type === 'NUMBER'
+      ? a[0] - b[0]
+      : (b[1] - a[1]) || String(a[0]).localeCompare(String(b[0]))),
+  }
+}
+
+/**
+ * Gesamtwertung: ein Punkt je richtigem Pseudonym plus die Punkte aus den
+ * Zusatzfragen. `stats` kommt aus userStats, `results` aus questionResult.
+ */
+export function totalRanking (stats, results) {
+  return stats.map(s => {
+    const extra = results.reduce((sum, r) => sum + (r.byUser.get(s.user)?.points ?? 0), 0)
+    return { ...s, extra, points: s.correct + extra }
+  }).sort((a, b) => (b.points - a.points) || (b.correct - a.correct) || a.user.localeCompare(b.user))
+}
+
 /**
  * Treffer des Mehrheitstipps: Pseudonyme, bei denen der richtige Name allein
  * die meisten Tipps hat. Bei Gleichstand zählt es nicht, die Mehrheit war
