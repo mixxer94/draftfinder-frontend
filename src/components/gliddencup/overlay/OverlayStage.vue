@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 /**
  * Bühne für OBS-Browserquellen: transparenter Hintergrund, keine Scrollbalken,
@@ -33,6 +33,9 @@ function updateFit () {
   const h = window.innerHeight - 2 * props.padding
   fit.value = Math.max(0.1, Math.min(w / props.width, h / props.height))
 }
+
+// Die Größe kann sich nach dem Laden ändern, etwa wenn die Turnierdaten eintreffen.
+watch(() => [props.width, props.height], updateFit)
 
 onMounted(() => {
   document.documentElement.classList.add('gc-overlay')
