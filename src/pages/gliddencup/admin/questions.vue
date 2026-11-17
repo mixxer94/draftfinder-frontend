@@ -107,7 +107,7 @@
       <tr><th>Frage</th><th>Typ</th><th class="text-right">Punkte</th><th>Schließt</th><th>Zustand</th><th>Lösung</th><th /></tr>
     </thead>
     <tbody>
-      <tr v-for="q in questions" :key="q.id" :class="{ 'text-medium-emphasis': q.hidden }">
+      <tr v-for="q in sorted" :key="q.id" :class="{ 'text-medium-emphasis': q.hidden }">
         <td>{{ q.text }}</td>
         <td class="text-no-wrap">{{ q.type === 'NUMBER' ? `Zahl${q.unit ? ` (${q.unit})` : ''}` : `Auswahl (${q.options.length})` }}</td>
         <td class="text-right">{{ q.points }}</td>
@@ -147,6 +147,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { errorMessage, hcApi } from '@/services/hcApi'
 import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
+import { byCloseOrder } from '@/services/gliddencupStats'
 
 const TYPES = [
   { value: 'CHOICE', title: 'Auswahl' },
@@ -161,6 +162,9 @@ const TEMPLATES = [
 const questions = ref([])
 const rounds = ref([])
 const templates = ref({})
+// Runden mit Bracket, damit die Fragen wie im Tippspiel nach Tippschluss stehen.
+const bracketRounds = ref([])
+const sorted = computed(() => byCloseOrder(questions.value, bracketRounds.value))
 const loaded = ref(false)
 const error = ref('')
 const info = ref('')
@@ -270,6 +274,10 @@ async function toggleHidden (q) {
 }
 
 onMounted(async () => {
+  // Ohne Runden bleibt nur die Sortierung aus; die Fragen sollen trotzdem erscheinen.
+  hcApi.get('/rounds')
+    .then(res => { bracketRounds.value = [...res.data.rounds].sort((a, b) => a.number - b.number) })
+    .catch(() => {})
   try {
     apply((await hcApi.get('/questions')).data)
   } catch (e) {
