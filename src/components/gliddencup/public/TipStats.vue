@@ -77,24 +77,6 @@
         </section>
       </template>
 
-      <template v-else-if="view === 'distribution'">
-        <p class="mb-3">Im Schnitt <strong>{{ avg.toFixed(2).replace('.', ',') }}</strong> von {{ total }} richtig.</p>
-        <v-table density="compact">
-          <thead>
-            <tr><th class="text-right gc-rank">Richtig</th><th class="text-right gc-rank">Tipper</th><th><span class="d-sr-only">Anteil</span></th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in dist" :key="row.correct">
-              <td class="text-right">{{ row.correct }}</td>
-              <td class="text-right">{{ row.users }}</td>
-              <td>
-                <div class="gc-bar" :style="{ width: `${(row.users / maxBucket) * 100}%` }" />
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
-      </template>
-
       <template v-else-if="view === 'chameleons'">
         <div v-if="topConfusions.length" class="mb-4">
           <h3 class="text-subtitle-1 font-weight-medium mb-1">Größte Verwechslungen</h3>
@@ -191,7 +173,7 @@ import { computed, h, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import { truthMap } from '@/services/gliddencupApi'
 import {
-  average, chameleons, crowdCorrect, distribution,
+  chameleons, crowdCorrect,
   globalConfusions, mysteryGroups, mysteryResult, playerGuesses, playerStats, questionResult, totalRanking, userStats,
 } from '@/services/gliddencupStats'
 
@@ -207,7 +189,6 @@ const props = defineProps({
 const VIEWS = [
   { value: 'ranking', title: 'Rangliste', text: 'Ein Punkt je richtig zugeordnetem Pseudonym, dazu die Punkte aus den Zusatzfragen und für Guy Glidden. „Allein richtig“ zählt Treffer, die sonst niemand hatte. Der Schwarm tippt bei jedem Pseudonym den häufigsten Namen.' },
   { value: 'questions', title: 'Zusatzfragen', text: 'Lösung und Antworten je Frage. Bei Zahlen bekommt die Punkte, wer am nächsten liegt; grün ist die richtige Antwort.' },
-  { value: 'distribution', title: 'Trefferverteilung', text: 'Wie viele Tipper wie viele Treffer haben.' },
   { value: 'chameleons', title: 'Verwandlungskünstler', text: 'Wie oft jeder Spieler richtig getippt wurde und für wen man ihn sonst hielt: oben die besten Verwandlungskünstler, unten die schlechtesten Schauspieler. Grün ist der richtige Name.' },
   { value: 'players', title: 'Spieler-Vermutungen', text: 'Wen die Spieler nach ihrem Match hinter ihrem Gegner vermutet haben.' },
   { value: 'mystery', title: 'Wer ist Guy Glidden?', text: 'Die Antworten der Tipper; gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.' },
@@ -235,9 +216,6 @@ const uStats = computed(() => userStats(input.value))
 const pStats = computed(() => playerStats(input.value))
 const chameleonList = computed(() => chameleons(pStats.value))
 const topConfusions = computed(() => globalConfusions(pStats.value).slice(0, 3))
-const dist = computed(() => distribution(uStats.value, total.value))
-const maxBucket = computed(() => Math.max(1, ...dist.value.map(d => d.users)))
-const avg = computed(() => average(uStats.value))
 const players = computed(() => playerGuesses({ rounds: props.tournament.rounds, truth: truth.value, stats: pStats.value }))
 const mysteryAnswers = computed(() => props.users.map(u => props.mysteryByUser[u]).filter(Boolean))
 const mysteryList = computed(() => mysteryGroups(mysteryAnswers.value, props.tournament.participants))
@@ -266,9 +244,4 @@ PseudonymCell.props = ['pseudonym', 'truth']
 .gc-rank { width: 4.5rem; }
 .gc-list { padding-left: 1.25rem; }
 .gc-crowd { font-style: italic; background: rgba(var(--v-theme-secondary), 0.08); }
-.gc-bar {
-  height: 8px;
-  border-radius: 4px;
-  background: rgb(var(--v-theme-secondary));
-}
 </style>

@@ -258,17 +258,6 @@ export function mysteryGroups (answers, participants = []) {
   }).sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label))
 }
 
-/** Wie viele Tipper wie viele Treffer haben, von 0 bis alle. */
-export function distribution (uStats, total) {
-  const buckets = new Array(total + 1).fill(0)
-  for (const s of uStats) buckets[s.correct]++
-  return buckets.map((users, correct) => ({ correct, users }))
-}
-
-export function average (uStats) {
-  return uStats.length ? uStats.reduce((n, s) => n + s.correct, 0) / uStats.length : 0
-}
-
 /** Namen, die in den eigenen Tipps mehrfach vorkommen, mit den betroffenen Pseudonymen. */
 export function duplicateNames (picks) {
   const seen = new Map()
