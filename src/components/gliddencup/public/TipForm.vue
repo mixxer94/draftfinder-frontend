@@ -159,8 +159,8 @@
         </v-row>
 
         <v-alert v-if="duplicates.length" type="info" variant="tonal" density="compact" class="mt-4">
-          Deine Tipps sind gespeichert, nur ein kleiner Hinweis: Jeder Spieler hat genau ein Pseudonym.
-          Von diesen Tipps kann deshalb höchstens einer stimmen.
+          Deine Tipps wurden gespeichert.<br>
+          Hinweis: Du hast einen oder mehrere Spieler mehrfach eingetragen:
           <ul class="gc-list mt-1">
             <li v-for="d in duplicates" :key="d.name">
               <strong>{{ d.name }}</strong> bei {{ d.pseudonyms.join(', ') }}
