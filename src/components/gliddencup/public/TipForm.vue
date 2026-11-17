@@ -75,6 +75,7 @@
             placeholder="Nicht getippt"
             density="compact"
             hide-details
+            @blur="flush"
           />
           <v-autocomplete
             v-else
@@ -115,6 +116,7 @@
             clearable
             density="compact"
             hide-details
+            @blur="flush"
           />
         </div>
       </div>
@@ -144,7 +146,7 @@
               :label="ps"
               :items="participants"
               :disabled="!editable"
-              :error="duplicatePseudonyms.has(ps)"
+              :base-color="duplicatePseudonyms.has(ps) ? 'warning' : undefined"
               persistent-placeholder
               placeholder="Nicht getippt"
               clearable
@@ -156,7 +158,9 @@
           </v-col>
         </v-row>
 
-        <v-alert v-if="duplicates.length" type="warning" variant="tonal" class="mt-4" title="Derselbe Name steht mehrmals in deinen Tipps">
+        <v-alert v-if="duplicates.length" type="info" variant="tonal" density="compact" class="mt-4">
+          Deine Tipps sind gespeichert, nur ein kleiner Hinweis: Jeder Spieler hat genau ein Pseudonym.
+          Von diesen Tipps kann deshalb höchstens einer stimmen.
           <ul class="gc-list mt-1">
             <li v-for="d in duplicates" :key="d.name">
               <strong>{{ d.name }}</strong> bei {{ d.pseudonyms.join(', ') }}
@@ -166,12 +170,18 @@
       </div>
 
       <div v-if="account === 'in' && canSave" class="gc-savebar d-flex align-center justify-end flex-wrap ga-3 mt-2 py-3">
-        <v-alert v-if="saveError" type="error" variant="tonal" density="compact" class="flex-grow-1">{{ saveError }}</v-alert>
-        <span v-else-if="anyDirty" class="text-body-2 text-medium-emphasis">Ungespeicherte Änderungen</span>
+        <v-alert v-if="saveError" type="error" variant="tonal" density="compact" class="flex-grow-1">
+          {{ saveError }}
+          <template #append>
+            <v-btn v-if="anyDirty && !saving" variant="text" size="small" @click="flush">Erneut versuchen</v-btn>
+          </template>
+        </v-alert>
+        <span v-else-if="!answersValid" class="text-body-2 text-error">Schätzungen brauchen eine ganze Zahl ab 0, sonst werden sie nicht gespeichert.</span>
+        <span v-else-if="saving || anyDirty" class="text-body-2 text-medium-emphasis">Speichert …</span>
         <span v-else-if="savedAt" class="text-body-2 text-medium-emphasis">
           <v-icon icon="mdi-check" size="small" color="success" /> Gespeichert um {{ savedAt }}
         </span>
-        <v-btn color="secondary" variant="flat" :loading="saving" :disabled="!anyDirty || !answersValid" @click="saveAll">Speichern</v-btn>
+        <span v-else class="text-body-2 text-medium-emphasis">Jede Eingabe wird automatisch gespeichert.</span>
       </div>
     </template>
 
@@ -201,7 +211,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { gcApi, LOGIN_URL } from '@/services/gliddencupApi'
 import { bestMatch, duplicateNames } from '@/services/gliddencupStats'
@@ -285,15 +295,17 @@ const answered = computed(() => questions.value.filter(q => answerValue(q) !== n
 const answersDirty = computed(() => openQuestions.value.some(q => answerValue(q) !== (savedAnswers.value[q.id] ?? null)))
 const answersValid = computed(() => openQuestions.value.every(q => q.type !== 'NUMBER' || validNumber(answers[q.id])))
 
-// Ein Knopf für beides; gespeichert wird nur, was offen und geändert ist.
+// Gespeichert wird nur, was offen und geändert ist.
 const tipsDirty = computed(() => editable.value && dirty.value)
-const anyDirty = computed(() => tipsDirty.value || answersDirty.value)
+const anyDirty = computed(() => account.value === 'in' && (tipsDirty.value || answersDirty.value))
 const canSave = computed(() => !!props.tournament?.tipsOpen || openQuestions.value.length > 0)
 
 watch(anyDirty, d => { if (d) savedAt.value = '' })
 
+const answerMap = list => Object.fromEntries((list ?? []).map(a => [a.questionId, a.value]))
+
 function applyAnswers (list) {
-  const map = Object.fromEntries((list ?? []).map(a => [a.questionId, a.value]))
+  const map = answerMap(list)
   for (const id of Object.keys(answers)) delete answers[id]
   Object.assign(answers, map)
   savedAnswers.value = map
@@ -304,14 +316,19 @@ function autoFill (ps) {
   if (match) picks[ps] = match
 }
 
-function applyTips ({ picks: list, mysteryGuess, answers: answerList } = {}) {
+/** Merkt sich den Stand des Servers, ohne die Eingabefelder anzufassen. */
+function rememberTips ({ picks: list, mysteryGuess }) {
+  saved.value = Object.fromEntries((list ?? []).map(p => [p.pseudonym, clean(p.playerName)]))
+  savedMystery.value = clean(mysteryGuess)
+}
+
+function applyTips (data = {}) {
   // Die Antwort von PUT /tips kennt keine Zusatzfragen; nur ein ausdrücklich geliefertes Feld ersetzt sie.
-  if (answerList !== undefined) applyAnswers(answerList)
-  const map = Object.fromEntries((list ?? []).map(p => [p.pseudonym, clean(p.playerName)]))
+  if (data.answers !== undefined) applyAnswers(data.answers)
+  rememberTips(data)
   for (const ps of Object.keys(picks)) delete picks[ps]
-  Object.assign(picks, map)
-  saved.value = map
-  mystery.value = savedMystery.value = clean(mysteryGuess)
+  Object.assign(picks, saved.value)
+  mystery.value = savedMystery.value
 }
 
 async function loadMe () {
@@ -340,43 +357,98 @@ function signedOut () {
   account.value = 'anon'
 }
 
+const tipsPayload = () => ({
+  picks: Object.entries(current()).map(([pseudonym, playerName]) => ({ pseudonym, playerName })),
+  mysteryGuess: clean(mystery.value),
+})
+const answersPayload = () => openQuestions.value.map(q => ({ questionId: q.id, value: answerValue(q) }))
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+
+// Wurde während einer Anfrage weitergetippt, übernimmt die Antwort nur den
+// gespeicherten Stand; die Felder bleiben, der nächste Durchlauf speichert sie.
 async function saveTips () {
-  const list = Object.entries(current()).map(([pseudonym, playerName]) => ({ pseudonym, playerName }))
-  const sent = { picks: list, mysteryGuess: clean(mystery.value) }
+  const sent = tipsPayload()
   const res = await gcApi.put('/tips', sent)
-  applyTips(Array.isArray(res.data?.picks) ? res.data : sent)
+  const stored = Array.isArray(res.data?.picks) ? res.data : sent
+  if (same(tipsPayload(), sent)) applyTips(stored)
+  else rememberTips(stored)
 }
 
 /** Liefert einen Hinweis, wenn eine Frage beim Speichern schon geschlossen war. */
 async function saveAnswers () {
-  const sent = openQuestions.value.map(q => ({ questionId: q.id, value: answerValue(q) }))
+  const sent = answersPayload()
   const res = await gcApi.put('/answers', { answers: sent })
-  applyAnswers(res.data?.answers)
+  if (same(answersPayload(), sent)) applyAnswers(res.data?.answers)
+  else savedAnswers.value = answerMap(res.data?.answers)
   return res.data?.closed?.length
     ? 'Eine Frage wurde inzwischen geschlossen. Dort zählt deine zuletzt gespeicherte Antwort.'
     : ''
 }
 
-async function saveAll () {
-  saving.value = true
+async function saveOnce () {
+  if (!anyDirty.value) return
   saveError.value = ''
   try {
     // Nacheinander: Beide Anfragen schreiben denselben Datensatz.
     if (tipsDirty.value) await saveTips()
-    if (answersDirty.value) saveError.value = await saveAnswers()
+    // Eine ungültige Schätzung bleibt nur im Feld stehen, bis sie korrigiert ist.
+    if (answersDirty.value && answersValid.value) saveError.value = await saveAnswers()
     if (!saveError.value) savedAt.value = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
   } catch (e) {
     saveError.value = saveErrorText(e)
+  }
+}
+
+// Jede Änderung speichert sich selbst. Es läuft immer nur eine Anfrage; was
+// währenddessen geändert wird, geht danach in einem weiteren Durchlauf raus.
+const TYPING_DELAY = 1000
+let timer = null
+let again = false
+
+function saveSoon (delay) {
+  clearTimeout(timer)
+  timer = setTimeout(flush, delay)
+}
+
+async function flush () {
+  clearTimeout(timer)
+  if (saving.value) {
+    again = true
+    return
+  }
+  saving.value = true
+  try {
+    do {
+      again = false
+      await saveOnce()
+    } while (again && !saveError.value)
   } finally {
     saving.value = false
   }
 }
 
+// Auswahlfelder speichern sofort, Freitext und Zahlen erst nach einer Tipppause oder beim Verlassen des Felds.
+watch(() => JSON.stringify(current()), () => saveSoon(0))
+watch(mystery, () => saveSoon(TYPING_DELAY))
+watch(() => ({ ...answers }), (now, before) => {
+  const typed = questions.value.some(q => q.type === 'NUMBER' && now[q.id] !== before[q.id])
+  saveSoon(typed ? TYPING_DELAY : 0)
+})
+
+function warnUnsaved (e) {
+  if (anyDirty.value) e.preventDefault()
+}
+onMounted(() => window.addEventListener('beforeunload', warnUnsaved))
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', warnUnsaved)
+  flush()
+})
+
 function saveErrorText (e) {
   const status = e.response?.status
   if (status === 401) {
     signedOut()
-    return 'Deine Anmeldung ist abgelaufen. Melde dich neu an und speichere noch einmal.'
+    return 'Deine Anmeldung ist abgelaufen. Melde dich neu an; deine letzten Eingaben sind noch nicht gespeichert.'
   }
   if (status === 409) return 'Tippen ist inzwischen geschlossen. Es zählen deine zuletzt gespeicherten Tipps.'
   if (status === 400) return 'Eine Eingabe passt nicht mehr zum Turnier. Lade die Seite neu und prüf deine Auswahl.'
@@ -469,7 +541,7 @@ onMounted(loadMe)
   .gc-closed { padding-left: 0; }
 }
 
-/* Auf dem Handy liegen viele Felder untereinander; der Speichern-Button bleibt in Reichweite. */
+/* Auf dem Handy liegen viele Felder untereinander; der Speicherstand bleibt sichtbar. */
 .gc-savebar {
   position: sticky;
   bottom: 0;
