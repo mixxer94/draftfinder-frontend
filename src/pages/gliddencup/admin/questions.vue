@@ -1,7 +1,7 @@
 <template>
   <PageHeader
     title="Tippspiel-Fragen"
-    text="Zusatzfragen für die Zuschauer. Eine Frage schließt von selbst, sobald ihre Runde im Bracket komplett auf „Ergebnis“ steht, oder von Hand. Lösungen bleiben verdeckt, bis die Zuordnung veröffentlicht ist."
+    text="Zusatzfragen für die Zuschauer."
   >
     <v-switch v-model="showSolutions" label="Lösungen zeigen" color="secondary" density="compact" hide-details inset />
   </PageHeader>
@@ -73,7 +73,6 @@
       </v-col>
     </v-row>
     <div class="d-flex flex-wrap align-center ga-3 mt-2">
-      <span v-if="!showSolutions" class="text-body-2 text-medium-emphasis">Die Lösung trägst du mit „Lösungen zeigen“ ein.</span>
       <v-spacer />
       <v-btn v-if="editing" variant="text" @click="reset">Abbrechen</v-btn>
       <v-btn color="secondary" variant="flat" :loading="saving" :disabled="!form.text.trim()" @click="save">
@@ -101,7 +100,6 @@
     <div class="d-flex flex-wrap align-center ga-3 mt-2">
       <span class="text-body-2 text-medium-emphasis">
         {{ mysteryCount ? `${mysteryCount} ${mysteryCount === 1 ? 'Antwort' : 'Antworten'} eingetragen.` : 'Noch nichts eingetragen.' }}
-        <template v-if="!showSolutions">Zum Bearbeiten „Lösungen zeigen“ einschalten.</template>
       </span>
       <v-spacer />
       <v-btn v-if="showSolutions" color="secondary" variant="flat" :loading="savingMystery" @click="saveMystery">Speichern</v-btn>
