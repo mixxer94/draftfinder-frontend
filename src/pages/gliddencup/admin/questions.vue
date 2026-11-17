@@ -47,6 +47,17 @@
       <v-col cols="12" md="4">
         <v-select v-model="form.closeAfterRound" :items="closeItems" item-title="title" item-value="value" label="Schließt" density="compact" />
       </v-col>
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="form.closeNote"
+          label="Hinweis zum Tippschluss"
+          placeholder="z. B. nach dem Raid"
+          maxlength="80"
+          hint="Steht bei der Frage als „Offen bis: …“. Leer: Die Runde wird genannt."
+          persistent-hint
+          density="compact"
+        />
+      </v-col>
       <v-col v-if="showSolutions" cols="12" md="4">
         <v-text-field
           v-if="form.type === 'NUMBER'"
@@ -80,7 +91,10 @@
         <td>{{ q.text }}</td>
         <td class="text-no-wrap">{{ q.type === 'NUMBER' ? `Zahl${q.unit ? ` (${q.unit})` : ''}` : `Auswahl (${q.options.length})` }}</td>
         <td class="text-right">{{ q.points }}</td>
-        <td class="text-no-wrap">{{ q.closeAfterRound ? `nach ${q.closeAfterRound}` : 'nur von Hand' }}</td>
+        <td>
+          {{ q.closeAfterRound ? `nach ${q.closeAfterRound}` : 'nur von Hand' }}
+          <div v-if="q.closeNote" class="text-caption text-medium-emphasis">Hinweis: {{ q.closeNote }}</div>
+        </td>
         <td><v-chip size="small" variant="tonal" :color="stateOf(q).color">{{ stateOf(q).text }}</v-chip></td>
         <td class="text-no-wrap">
           <span v-if="q.solution === null" class="text-medium-emphasis">offen</span>
@@ -134,7 +148,7 @@ const saving = ref(false)
 // Aus, damit im Stream oder beim Teilen des Bildschirms keine Lösung zu sehen ist.
 const showSolutions = ref(false)
 
-const EMPTY = { text: '', type: 'CHOICE', points: 1, unit: '', options: '', closeAfterRound: null, solution: null }
+const EMPTY = { text: '', type: 'CHOICE', points: 1, unit: '', options: '', closeAfterRound: null, closeNote: '', solution: null }
 const form = reactive({ ...EMPTY })
 const editing = ref(null)
 
@@ -175,6 +189,7 @@ function edit (q) {
     unit: q.unit,
     options: q.options.join('\n'),
     closeAfterRound: q.closeAfterRound,
+    closeNote: q.closeNote,
     solution: q.solution,
   })
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -197,6 +212,7 @@ async function save () {
     text: form.text,
     points: form.points,
     closeAfterRound: form.closeAfterRound,
+    closeNote: form.closeNote,
     ...(form.type === 'NUMBER' ? { unit: form.unit } : { options: formOptions.value }),
     // Ohne den Schalter ist das Feld nicht zu sehen; dann bleibt die gespeicherte Lösung unberührt.
     ...(showSolutions.value ? { solution: form.solution ?? null } : {}),

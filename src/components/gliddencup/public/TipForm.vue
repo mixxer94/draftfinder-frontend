@@ -47,7 +47,7 @@
           <span class="text-body-2 text-medium-emphasis">{{ answered }} von {{ questions.length }} beantwortet</span>
         </div>
         <p class="text-body-2 text-medium-emphasis mb-4">
-          Jede Frage schließt für sich. Bis dahin kannst du deine Antwort ändern.
+          Bei jeder Frage steht, bis wann du antworten kannst. Bis dahin kannst du deine Antwort ändern.
         </p>
 
         <v-row dense>
@@ -57,6 +57,10 @@
               <v-chip size="x-small" label variant="tonal">{{ q.points }} {{ q.points === 1 ? 'Punkt' : 'Punkte' }}</v-chip>
               <v-chip v-if="!q.open" size="x-small" label>geschlossen</v-chip>
             </div>
+            <p class="text-body-2 text-medium-emphasis mb-2">
+              <template v-if="q.open">{{ closesText(q) }}</template>
+              <template v-if="q.type === 'NUMBER'"> Schätzfrage.</template>
+            </p>
             <v-text-field
               v-if="q.type === 'NUMBER'"
               v-model="answers[q.id]"
@@ -260,6 +264,13 @@ const answerValue = q => {
 }
 const validNumber = raw => raw == null || raw === '' || (Number.isInteger(Number(raw)) && Number(raw) >= 0 && Number(raw) <= 1_000_000)
 const answerable = q => account.value === 'in' && q.open
+
+/** Wann die Frage schließt: der Hinweis der Turnierleitung, sonst die Runde. */
+function closesText (q) {
+  if (q.closeNote) return `Offen bis: ${q.closeNote}.`
+  if (q.closeAfterRound) return `Offen, bis das ${q.closeAfterRound} gespielt ist.`
+  return 'Die Turnierleitung schließt diese Frage von Hand.'
+}
 const openQuestions = computed(() => questions.value.filter(q => q.open))
 const answered = computed(() => questions.value.filter(q => answerValue(q) !== null).length)
 const answersDirty = computed(() => openQuestions.value.some(q => answerValue(q) !== (savedAnswers.value[q.id] ?? null)))
