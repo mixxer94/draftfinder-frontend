@@ -82,6 +82,32 @@
     </div>
   </v-sheet>
 
+  <v-sheet border rounded class="pa-4 mb-8">
+    <h2 class="hc-h2">Wer ist Guy Glidden?</h2>
+    <p class="text-body-2 text-medium-emphasis mb-3">
+      1 Punkt für jeden, dessen Tipp einer dieser Antworten gleicht. Groß- und Kleinschreibung, Akzente, Sonderzeichen
+      und ein Clan-Präfix spielen keine Rolle; Tippfehler zählen nur, wenn du sie hier einträgst.
+    </p>
+    <v-textarea
+      v-if="showSolutions"
+      v-model="mystery"
+      label="Akzeptierte Antworten, eine je Zeile"
+      placeholder="Name und alle Nicknames, die zählen"
+      rows="3"
+      auto-grow
+      density="compact"
+      hide-details
+    />
+    <div class="d-flex flex-wrap align-center ga-3 mt-2">
+      <span class="text-body-2 text-medium-emphasis">
+        {{ mysteryCount ? `${mysteryCount} ${mysteryCount === 1 ? 'Antwort' : 'Antworten'} eingetragen.` : 'Noch nichts eingetragen.' }}
+        <template v-if="!showSolutions">Zum Bearbeiten „Lösungen zeigen“ einschalten.</template>
+      </span>
+      <v-spacer />
+      <v-btn v-if="showSolutions" color="secondary" variant="flat" :loading="savingMystery" @click="saveMystery">Speichern</v-btn>
+    </div>
+  </v-sheet>
+
   <v-table density="compact">
     <thead>
       <tr><th>Frage</th><th>Typ</th><th class="text-right">Punkte</th><th>Schließt</th><th>Zustand</th><th>Lösung</th><th /></tr>
@@ -158,7 +184,13 @@ const closeItems = computed(() => [
 ])
 const formOptions = computed(() => form.options.split('\n').map(o => o.trim()).filter(Boolean))
 
+const mystery = ref('')
+const mysteryCount = ref(0)
+const savingMystery = ref(false)
+
 function apply (data) {
+  mystery.value = (data.mysteryAnswers ?? []).join('\n')
+  mysteryCount.value = (data.mysteryAnswers ?? []).length
   questions.value = data.questions
   rounds.value = data.rounds
   templates.value = data.templates
@@ -223,6 +255,13 @@ async function save () {
     : await send(() => hcApi.post('/questions', { ...body, type: form.type }), 'Frage als Entwurf angelegt. Zuschauer sehen sie erst nach „Veröffentlichen“.')
   saving.value = false
   if (ok) reset()
+}
+
+async function saveMystery () {
+  savingMystery.value = true
+  const answers = mystery.value.split('\n').map(a => a.trim()).filter(Boolean)
+  await send(() => hcApi.put('/questions/mystery', { answers }), 'Antworten auf „Wer ist Guy Glidden?“ gespeichert.')
+  savingMystery.value = false
 }
 
 const patch = (q, body, done) => send(() => hcApi.put(`/questions/${q.id}`, body), `„${q.text}“ ${done}.`)

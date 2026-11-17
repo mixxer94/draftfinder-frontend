@@ -69,6 +69,27 @@ export function questionResult (question, users, answersByUser) {
 }
 
 /**
+ * „Wer ist Guy Glidden?“ in der Form von questionResult: 1 Punkt, wenn der
+ * Freitext einer akzeptierten Antwort gleicht. Verglichen wird mit nameKey,
+ * also ohne Groß/Klein, Akzente, Sonderzeichen und Clan-Präfix, aber ohne
+ * Tippfehler-Toleranz: Die entscheidet die Turnierleitung über die Liste.
+ */
+export function mysteryResult (users, mysteryByUser, accepted) {
+  const keys = new Set(accepted.map(nameKey).filter(Boolean))
+  const answers = users.map(user => ({ user, value: clean(mysteryByUser[user]) || null }))
+  return {
+    question: { id: 'mystery', text: 'Wer ist Guy Glidden?', type: 'TEXT', unit: '', points: 1 },
+    solution: accepted.length ? accepted.join(', ') : null,
+    answered: answers.filter(a => a.value !== null).length,
+    byUser: new Map(answers.map(a => [a.user, {
+      value: a.value,
+      points: a.value !== null && keys.has(nameKey(a.value)) ? 1 : 0,
+    }])),
+    counts: [],
+  }
+}
+
+/**
  * Gesamtwertung: ein Punkt je richtigem Pseudonym plus die Punkte aus den
  * Zusatzfragen. `stats` kommt aus userStats, `results` aus questionResult.
  */

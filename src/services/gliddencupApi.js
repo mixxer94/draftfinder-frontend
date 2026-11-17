@@ -41,6 +41,7 @@ export function normalizeTournament (raw) {
     participants: Array.isArray(t.participants) ? t.participants : [],
     identities: Array.isArray(t.identities) ? t.identities : [],
     questions: Array.isArray(t.questions) ? t.questions : [],
+    mysteryAnswers: Array.isArray(t.mysteryAnswers) ? t.mysteryAnswers : [],
     rounds: (Array.isArray(t.rounds) ? t.rounds : []).map(r => ({
       ...r,
       matches: Array.isArray(r.matches) ? r.matches : [],

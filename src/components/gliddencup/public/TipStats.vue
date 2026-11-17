@@ -34,9 +34,9 @@
           <tr>
             <th class="gc-rank">#</th>
             <th>Tipper</th>
-            <th v-if="results.length" class="text-right">Punkte</th>
-            <th class="text-right">{{ results.length ? 'Pseudonyme' : 'Richtig' }}</th>
-            <th v-if="results.length" class="text-right">Zusatzfragen</th>
+            <th class="text-right">Punkte</th>
+            <th class="text-right">Pseudonyme</th>
+            <th class="text-right">Zusatzfragen</th>
             <th class="text-right">Allein richtig</th>
             <th class="text-right">Quote</th>
           </tr>
@@ -45,9 +45,9 @@
           <tr v-for="u in rankingRows" :key="u.crowd ? '' : u.user" :class="{ 'gc-crowd': u.crowd }">
             <td class="gc-rank text-medium-emphasis">{{ u.rank }}</td>
             <td>{{ u.crowd ? 'Schwarm (Mehrheitstipp)' : u.user }}</td>
-            <td v-if="results.length" class="text-right font-weight-medium">{{ u.crowd ? '' : u.points }}</td>
+            <td class="text-right font-weight-medium">{{ u.crowd ? '' : u.points }}</td>
             <td class="text-right">{{ u.correct }} / {{ total }}</td>
-            <td v-if="results.length" class="text-right">{{ u.crowd ? '' : u.extra }}</td>
+            <td class="text-right">{{ u.crowd ? '' : u.extra }}</td>
             <td class="text-right">{{ u.crowd ? '' : u.solo }}</td>
             <td class="text-right">{{ pct((u.correct / (total || 1)) * 100) }}</td>
           </tr>
@@ -156,7 +156,12 @@
       <template v-else-if="view === 'mystery'">
         <p v-if="!mysteryList.length" class="text-medium-emphasis">Niemand hat auf Guy Glidden getippt.</p>
         <template v-else>
-          <p class="mb-3">{{ mysteryAnswers.length }} von {{ users.length }} Tippern haben eine Antwort abgegeben.</p>
+          <p class="mb-3">
+            {{ mysteryAnswers.length }} von {{ users.length }} Tippern haben eine Antwort abgegeben.
+            <template v-if="mystery.solution">
+              1 Punkt für: <strong>{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length"> – das hatten {{ winnersOf(mystery).join(', ') }}</template>.
+            </template>
+          </p>
           <v-table density="compact">
             <thead>
               <tr><th>Antwort</th><th class="text-right">Tipps</th><th>Schreibweisen</th></tr>
@@ -187,7 +192,7 @@ import { useDisplay } from 'vuetify'
 import { truthMap } from '@/services/gliddencupApi'
 import {
   average, chameleons, crowdCorrect, distribution,
-  globalConfusions, mysteryGroups, playerGuesses, playerStats, questionResult, totalRanking, userStats,
+  globalConfusions, mysteryGroups, mysteryResult, playerGuesses, playerStats, questionResult, totalRanking, userStats,
 } from '@/services/gliddencupStats'
 
 /** Auswertungen des Tippspiels; erst mit veröffentlichter Zuordnung sinnvoll. */
@@ -200,7 +205,7 @@ const props = defineProps({
 })
 
 const VIEWS = [
-  { value: 'ranking', title: 'Rangliste', text: 'Wer am meisten Pseudonyme richtig zugeordnet hat. „Allein richtig“ zählt Treffer, die sonst niemand hatte. Der Schwarm tippt bei jedem Pseudonym den häufigsten Namen.' },
+  { value: 'ranking', title: 'Rangliste', text: 'Ein Punkt je richtig zugeordnetem Pseudonym, dazu die Punkte aus den Zusatzfragen und für Guy Glidden. „Allein richtig“ zählt Treffer, die sonst niemand hatte. Der Schwarm tippt bei jedem Pseudonym den häufigsten Namen.' },
   { value: 'questions', title: 'Zusatzfragen', text: 'Lösung und Antworten je Frage. Bei Zahlen bekommt die Punkte, wer am nächsten liegt; grün ist die richtige Antwort.' },
   { value: 'distribution', title: 'Trefferverteilung', text: 'Wie viele Tipper wie viele Treffer haben.' },
   { value: 'chameleons', title: 'Verwandlungskünstler', text: 'Wie oft jeder Spieler richtig getippt wurde und für wen man ihn sonst hielt: oben die besten Verwandlungskünstler, unten die schlechtesten Schauspieler. Grün ist der richtige Name.' },
@@ -213,6 +218,8 @@ const view = ref('ranking')
 const results = computed(() => (props.tournament.questions ?? [])
   .map(q => questionResult(q, props.users, props.answersByUser)))
 const winnersOf = r => props.users.filter(u => r.byUser.get(u)?.points)
+// Guy Glidden zählt in der Rangliste mit, hat aber seine eigene Auswertung
+const mystery = computed(() => mysteryResult(props.users, props.mysteryByUser, props.tournament.mysteryAnswers ?? []))
 const views = computed(() => VIEWS.filter(v => v.value !== 'questions' || results.value.length))
 const current = computed(() => VIEWS.find(v => v.value === view.value))
 
@@ -238,7 +245,7 @@ const mysteryList = computed(() => mysteryGroups(mysteryAnswers.value, props.tou
 // Gereiht wird nach Punkten: Pseudonyme plus Zusatzfragen. Der Schwarm tippt nur
 // Pseudonyme, steht hinter allen Tippern mit mindestens so vielen Punkten und bekommt keinen Platz.
 const rankingRows = computed(() => {
-  const rows = totalRanking(uStats.value, results.value).map((u, i) => ({ ...u, rank: i + 1 }))
+  const rows = totalRanking(uStats.value, [...results.value, mystery.value]).map((u, i) => ({ ...u, rank: i + 1 }))
   const crowd = { crowd: true, correct: crowdCorrect(pStats.value), rank: '' }
   const at = rows.findIndex(u => u.points < crowd.correct)
   rows.splice(at === -1 ? rows.length : at, 0, crowd)

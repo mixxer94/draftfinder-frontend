@@ -74,7 +74,7 @@
         </tbody>
       </v-table>
 
-      <v-table v-if="selected && results.length" density="compact" class="mt-6">
+      <v-table v-if="selected" density="compact" class="mt-6">
         <thead>
           <tr>
             <th>Zusatzfrage</th>
@@ -100,11 +100,6 @@
         </tbody>
       </v-table>
 
-      <p v-if="selected" class="mt-4">
-        Wer ist Guy Glidden?
-        <strong v-if="mysteryByUser[selected]">{{ mysteryByUser[selected] }}</strong>
-        <span v-else class="text-medium-emphasis">nicht getippt</span>
-      </p>
     </v-col>
   </v-row>
 </template>
@@ -113,7 +108,7 @@
 import { computed, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import { truthMap } from '@/services/gliddencupApi'
-import { questionResult, userStats } from '@/services/gliddencupStats'
+import { mysteryResult, questionResult, userStats } from '@/services/gliddencupStats'
 
 /** Tipps aller Tipper nach der Veröffentlichung der Zuordnung. */
 const props = defineProps({
@@ -136,8 +131,10 @@ const correctBy = computed(() => new Map(userStats({
   picksByUser: props.picksByUser,
 }).map(s => [s.user, s.correct])))
 
-const results = computed(() => (props.tournament.questions ?? [])
-  .map(q => questionResult(q, props.users, props.answersByUser)))
+const results = computed(() => [
+  ...(props.tournament.questions ?? []).map(q => questionResult(q, props.users, props.answersByUser)),
+  mysteryResult(props.users, props.mysteryByUser, props.tournament.mysteryAnswers ?? []),
+])
 const answerRows = computed(() => results.value.map(r => ({
   id: r.question.id,
   text: r.question.text,
