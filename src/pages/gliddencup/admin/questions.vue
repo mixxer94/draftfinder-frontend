@@ -83,10 +83,6 @@
 
   <v-sheet border rounded class="pa-4 mb-8">
     <h2 class="hc-h2">Wer ist Guy Glidden?</h2>
-    <p class="text-body-2 text-medium-emphasis mb-3">
-      1 Punkt für jeden, dessen Tipp einer dieser Antworten gleicht. Groß- und Kleinschreibung, Akzente, Sonderzeichen
-      und ein Clan-Präfix spielen keine Rolle; Tippfehler zählen nur, wenn du sie hier einträgst.
-    </p>
     <v-textarea
       v-if="showSolutions"
       v-model="mystery"
