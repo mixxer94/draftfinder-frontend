@@ -75,7 +75,7 @@ export function questionResult (question, users, answersByUser) {
  * Tippfehler-Toleranz: Die entscheidet die Turnierleitung über die Liste.
  */
 export function mysteryResult (users, mysteryByUser, accepted) {
-  const keys = new Set(accepted.map(nameKey).filter(Boolean))
+  const keys = acceptedKeys(accepted)
   const answers = users.map(user => ({ user, value: clean(mysteryByUser[user]) || null }))
   return {
     question: { id: 'mystery', text: 'Wer ist Guy Glidden?', type: 'TEXT', unit: '', points: 1 },
@@ -88,6 +88,11 @@ export function mysteryResult (users, mysteryByUser, accepted) {
     counts: [],
   }
 }
+
+const acceptedKeys = accepted => new Set(accepted.map(nameKey).filter(Boolean))
+
+/** Ob ein Freitext auf „Wer ist Guy Glidden?“ zählt; Vergleich wie in mysteryResult. */
+export const isAccepted = (text, accepted) => acceptedKeys(accepted).has(nameKey(text))
 
 /**
  * Gesamtwertung: ein Punkt je richtigem Pseudonym plus die Punkte aus den

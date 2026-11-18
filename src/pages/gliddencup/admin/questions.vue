@@ -100,6 +100,39 @@
       <v-spacer />
       <v-btn v-if="showSolutions" color="secondary" variant="flat" :loading="savingMystery" @click="saveMystery">Speichern</v-btn>
     </div>
+
+    <template v-if="guesses">
+      <h3 class="text-subtitle-1 font-weight-medium mt-6 mb-1">Abgegebene Antworten</h3>
+      <p class="text-body-2 text-medium-emphasis mb-2">
+        {{ guessStats.answered }} von {{ guesses.userCount }} Tippern haben geantwortet, {{ guessStats.winners }} bekommen
+        mit den eingetragenen Antworten einen Punkt (grün). Gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.
+      </p>
+      <v-table v-if="guessRows.length" density="compact">
+        <thead>
+          <tr><th>Antwort</th><th class="text-right">Tipps</th><th>Schreibweise: Tipper</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="g in guessRows" :key="g.label">
+            <td class="font-weight-medium">{{ g.label }}</td>
+            <td class="text-right">{{ g.count }}</td>
+            <td class="py-1">
+              <v-chip
+                v-for="v in g.variants"
+                :key="v.text"
+                size="small"
+                label
+                class="ma-1 gc-guess"
+                :variant="v.hit ? 'flat' : 'tonal'"
+                :color="v.hit ? 'success' : undefined"
+              >
+                {{ v.text }}: {{ v.users.join(', ') }}
+              </v-chip>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </template>
+    <p v-else-if="guessesHint" class="text-body-2 text-medium-emphasis mt-4 mb-0">{{ guessesHint }}</p>
   </v-sheet>
 
   <v-table density="compact">
@@ -147,7 +180,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { errorMessage, hcApi } from '@/services/hcApi'
 import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
-import { byCloseOrder } from '@/services/gliddencupStats'
+import { gcApi, loadPublicTournament } from '@/services/gliddencupApi'
+import { byCloseOrder, mysteryGroups, mysteryResult } from '@/services/gliddencupStats'
 
 const TYPES = [
   { value: 'CHOICE', title: 'Auswahl' },
@@ -185,6 +219,51 @@ const formOptions = computed(() => form.options.split('\n').map(o => o.trim()).f
 const mystery = ref('')
 const mysteryCount = ref(0)
 const savingMystery = ref(false)
+const acceptedList = computed(() => mystery.value.split('\n').map(a => a.trim()).filter(Boolean))
+
+// Abgegebene Antworten auf „Wer ist Guy Glidden?“. Sie liegen im Tippspiel, und
+// das gibt sie erst nach der Veröffentlichung der Zuordnung heraus.
+const guesses = ref(null) // { byUser: { Tipper: Antwort }, userCount, participants }
+const guessesHint = ref('')
+// Gewertet wird gegen die Liste im Textfeld, damit eine Änderung schon vor dem Speichern sichtbar ist.
+const guessResult = computed(() => guesses.value &&
+  mysteryResult(Object.keys(guesses.value.byUser), guesses.value.byUser, acceptedList.value))
+const guessStats = computed(() => {
+  const points = [...(guessResult.value?.byUser.values() ?? [])]
+  return { answered: guessResult.value?.answered ?? 0, winners: points.filter(p => p.points).length }
+})
+const guessRows = computed(() => {
+  if (!guesses.value) return []
+  const usersByText = new Map()
+  for (const [user, raw] of Object.entries(guesses.value.byUser)) {
+    const text = raw.trim()
+    if (text) usersByText.set(text, [...(usersByText.get(text) ?? []), user])
+  }
+  return mysteryGroups(Object.values(guesses.value.byUser), guesses.value.participants).map(g => ({
+    ...g,
+    variants: g.variants.map(([text]) => {
+      const users = usersByText.get(text) ?? []
+      return { text, users, hit: !!guessResult.value.byUser.get(users[0])?.points }
+    }),
+  }))
+})
+
+async function loadGuesses () {
+  try {
+    const [overview, tournament] = await Promise.all([gcApi.get('/overview'), loadPublicTournament()])
+    if (!overview.data?.tipsVisible) {
+      guessesHint.value = 'Die abgegebenen Antworten erscheinen hier, sobald die Zuordnung veröffentlicht ist.'
+      return
+    }
+    guesses.value = {
+      byUser: Object.fromEntries(Object.entries(overview.data.mysteryByUser ?? {}).filter(([, v]) => typeof v === 'string')),
+      userCount: overview.data.users?.length ?? 0,
+      participants: tournament.participants,
+    }
+  } catch {
+    guessesHint.value = 'Die abgegebenen Antworten sind gerade nicht erreichbar.'
+  }
+}
 
 function apply (data) {
   mystery.value = (data.mysteryAnswers ?? []).join('\n')
@@ -257,8 +336,7 @@ async function save () {
 
 async function saveMystery () {
   savingMystery.value = true
-  const answers = mystery.value.split('\n').map(a => a.trim()).filter(Boolean)
-  await send(() => hcApi.put('/questions/mystery', { answers }), 'Antworten auf „Wer ist Guy Glidden?“ gespeichert.')
+  await send(() => hcApi.put('/questions/mystery', { answers: acceptedList.value }), 'Antworten auf „Wer ist Guy Glidden?“ gespeichert.')
   savingMystery.value = false
 }
 
@@ -278,6 +356,7 @@ onMounted(async () => {
   hcApi.get('/rounds')
     .then(res => { bracketRounds.value = [...res.data.rounds].sort((a, b) => a.number - b.number) })
     .catch(() => {})
+  loadGuesses()
   try {
     apply((await hcApi.get('/questions')).data)
   } catch (e) {
@@ -287,3 +366,8 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+/* Bei vielen Tippern mit derselben Schreibweise umbrechen statt die Tabelle zu sprengen. */
+.gc-guess { height: auto !important; min-height: 24px; white-space: normal; }
+</style>
