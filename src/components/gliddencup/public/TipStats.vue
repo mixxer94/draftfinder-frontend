@@ -3,6 +3,22 @@
 
   <v-row v-else>
     <v-col cols="12" md="3">
+      <v-btn
+        block
+        color="secondary"
+        variant="flat"
+        prepend-icon="mdi-presentation-play"
+        class="mb-4"
+        @click="showOpen = true"
+      >
+        Auflösung im Vollbild
+      </v-btn>
+      <RevealShow
+        v-model:open="showOpen"
+        :tournament="tournament"
+        :overview="{ users, answersByUser, mysteryByUser }"
+        :start="view === 'mystery' ? 'mystery' : null"
+      />
       <v-select
         v-if="!mdAndUp"
         v-model="view"
@@ -26,8 +42,9 @@
     </v-col>
 
     <v-col cols="12" md="9">
-      <h2 class="hc-h2">{{ current.title }}</h2>
-      <p class="text-body-2 text-medium-emphasis mb-4">{{ current.text }}</p>
+      <!-- Der Titel steht schon im gewählten Menüpunkt; sichtbar wäre er doppelt. -->
+      <h2 class="d-sr-only">{{ current.title }}</h2>
+      <p v-if="current.text" class="text-body-2 text-medium-emphasis mb-4">{{ current.text }}</p>
 
       <v-table v-if="view === 'ranking'" density="compact">
         <thead>
@@ -56,11 +73,24 @@
 
       <template v-else-if="view === 'questions'">
         <section v-for="r in results" :key="r.question.id" class="mb-6">
-          <h3 class="text-subtitle-1 font-weight-medium mb-1">{{ r.question.text }}</h3>
-          <p class="text-body-2 mb-2">
-            <template v-if="r.solution !== null">Lösung: <strong>{{ r.solution }} {{ r.question.unit }}</strong> · </template>
-            {{ r.answered }} von {{ users.length }} Tippern haben geantwortet<template v-if="winnersOf(r).length">
-              · {{ r.question.points }} {{ r.question.points === 1 ? 'Punkt' : 'Punkte' }} für {{ winnersOf(r).join(', ') }}
+          <div class="d-flex align-start ga-4 mb-1">
+            <h3 class="text-subtitle-1 font-weight-medium flex-grow-1">
+              {{ r.question.text }} <span class="text-medium-emphasis font-weight-regular">({{ tipsText(r.answered) }})</span>
+            </h3>
+            <v-btn
+              v-if="r.solution !== null"
+              size="small"
+              variant="outlined"
+              color="secondary"
+              class="flex-shrink-0"
+              @click="toggleSolution(r.question.id)"
+            >
+              {{ isShown(r) ? 'Lösung verbergen' : 'Lösung zeigen' }}
+            </v-btn>
+          </div>
+          <p v-if="isShown(r)" class="text-body-2 mb-2">
+            <strong class="text-success">{{ r.solution }} {{ r.question.unit }}</strong><template v-if="winnersOf(r).length">
+              <br>Korrekt: {{ winnersOf(r).join(', ') }}
             </template>
           </p>
           <v-chip
@@ -69,8 +99,8 @@
             size="small"
             label
             class="ma-1"
-            :variant="value === r.solution ? 'flat' : 'tonal'"
-            :color="value === r.solution ? 'success' : undefined"
+            :variant="isShown(r) && value === r.solution ? 'flat' : 'tonal'"
+            :color="isShown(r) && value === r.solution ? 'success' : undefined"
           >
             {{ value }} × {{ count }}
           </v-chip>
@@ -138,10 +168,11 @@
       <template v-else-if="view === 'mystery'">
         <p v-if="!mysteryList.length" class="text-medium-emphasis">Niemand hat auf Guy Glidden getippt.</p>
         <template v-else>
-          <p class="mb-3">
-            {{ mysteryAnswers.length }} von {{ users.length }} Tippern haben eine Antwort abgegeben.
+          <p class="text-body-2 mb-3">
+            <span class="text-medium-emphasis">({{ tipsText(mysteryAnswers.length) }})</span>
             <template v-if="mystery.solution">
-              1 Punkt für: <strong>{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length"> – das hatten {{ winnersOf(mystery).join(', ') }}</template>.
+              · <strong class="text-success">{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length">
+                <br>Korrekt: {{ winnersOf(mystery).join(', ') }}</template>
             </template>
           </p>
           <v-table density="compact">
@@ -172,6 +203,7 @@
 import { computed, h, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import { truthMap } from '@/services/gliddencupApi'
+import RevealShow from './reveal/RevealShow.vue'
 import {
   chameleons, crowdCorrect,
   globalConfusions, mysteryGroups, mysteryResult, playerGuesses, playerStats, questionResult, totalRanking, userStats,
@@ -186,22 +218,34 @@ const props = defineProps({
   answersByUser: { type: Object, default: () => ({}) },
 })
 
+// Die Rangliste steht zuletzt: Wer die Auswertung öffnet, soll nicht als Erstes das Endergebnis sehen.
 const VIEWS = [
-  { value: 'ranking', title: 'Rangliste', text: 'Ein Punkt je richtig zugeordnetem Pseudonym, dazu die Punkte aus den Zusatzfragen und für Guy Glidden. „Allein richtig“ zählt Treffer, die sonst niemand hatte. Der Schwarm tippt bei jedem Pseudonym den häufigsten Namen.' },
-  { value: 'questions', title: 'Zusatzfragen', text: 'Lösung und Antworten je Frage. Bei Zahlen bekommt die Punkte, wer am nächsten liegt; grün ist die richtige Antwort.' },
-  { value: 'chameleons', title: 'Verwandlungskünstler', text: 'Wie oft jeder Spieler richtig getippt wurde und für wen man ihn sonst hielt: oben die besten Verwandlungskünstler, unten die schlechtesten Schauspieler. Grün ist der richtige Name.' },
+  { value: 'questions', title: 'Zusatzfragen', text: '' },
+  { value: 'mystery', title: 'Wer ist Guy Glidden?', text: 'Gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.' },
+  { value: 'chameleons', title: 'Verwandlungskünstler', text: 'Am seltensten richtig getippt zuerst. Grün ist der richtige Name.' },
   { value: 'players', title: 'Spieler-Vermutungen', text: 'Wen die Spieler nach ihrem Match hinter ihrem Gegner vermutet haben.' },
-  { value: 'mystery', title: 'Wer ist Guy Glidden?', text: 'Die Antworten der Tipper; gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.' },
+  { value: 'ranking', title: 'Rangliste', text: 'Ein Punkt je richtigem Pseudonym plus die Punkte aus Zusatzfragen und Guy Glidden. „Allein richtig“ zählt Treffer, die sonst niemand hatte; der Schwarm tippt je Pseudonym den häufigsten Namen.' },
 ]
 
 const { mdAndUp } = useDisplay()
-const view = ref('ranking')
+const showOpen = ref(false)
 const results = computed(() => (props.tournament.questions ?? [])
   .map(q => questionResult(q, props.users, props.answersByUser)))
 const winnersOf = r => props.users.filter(u => r.byUser.get(u)?.points)
+const tipsText = n => `${n} ${n === 1 ? 'Tipp' : 'Tipps'}`
+
+// Lösungen erst auf Klick, damit man beim Stream mitraten kann, statt sie hier vorher zu lesen.
+const shownSolutions = ref(new Set())
+const isShown = r => r.solution !== null && shownSolutions.value.has(r.question.id)
+function toggleSolution (id) {
+  const next = new Set(shownSolutions.value)
+  if (!next.delete(id)) next.add(id)
+  shownSolutions.value = next
+}
 // Guy Glidden zählt in der Rangliste mit, hat aber seine eigene Auswertung
 const mystery = computed(() => mysteryResult(props.users, props.mysteryByUser, props.tournament.mysteryAnswers ?? []))
 const views = computed(() => VIEWS.filter(v => v.value !== 'questions' || results.value.length))
+const view = ref(views.value[0].value)
 const current = computed(() => VIEWS.find(v => v.value === view.value))
 
 const truth = computed(() => truthMap(props.tournament))

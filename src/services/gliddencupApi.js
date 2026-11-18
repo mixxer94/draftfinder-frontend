@@ -100,6 +100,25 @@ export function usePublicTournament (slug, { always = false } = {}) {
   return { tournament, error, notFound, loaded }
 }
 
+/**
+ * Tipps aller Tipper; das Tippspiel gibt sie erst nach der Veröffentlichung
+ * der Zuordnung heraus, vorher liefert das null. Wirft wie axios.
+ */
+export async function loadTipsOverview () {
+  const data = (await gcApi.get('/overview')).data
+  if (!data?.tipsVisible) return null
+  const users = (data.users ?? []).map(u => u.displayName).sort((a, b) => a.localeCompare(b))
+  const mystery = data.mysteryByUser ?? {}
+  const answers = data.answersByUser ?? {}
+  return {
+    users,
+    picksByUser: data.picksByUser ?? {},
+    // Für jeden Tipper ein eigener Eintrag: Sonst liefert ein Tipper namens „__proto__“ ohne Antwort den Objekt-Prototyp.
+    mysteryByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(mystery, u) ? mystery[u] : ''])),
+    answersByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(answers, u) ? answers[u] : []])),
+  }
+}
+
 /** Die Wahrheit Pseudonym → Klarname, sobald die Zuordnung veröffentlicht ist. */
 export function truthMap (tournament) {
   return new Map((tournament?.identities ?? []).map(i => [i.pseudonym, i.name]))

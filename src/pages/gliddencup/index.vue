@@ -64,7 +64,7 @@ import TipsOverview from '@/components/gliddencup/public/TipsOverview.vue'
 import TipStats from '@/components/gliddencup/public/TipStats.vue'
 import PlayerCharacteristics from '@/components/PlayerCharacteristics.vue'
 import PlayerCharacteristicsMobile from '@/components/PlayerCharacteristicsMobile.vue'
-import { gcApi, usePublicTournament } from '@/services/gliddencupApi'
+import { loadTipsOverview, usePublicTournament } from '@/services/gliddencupApi'
 // Abgeschlossene Saison 1, aus dem damaligen matches.json ins Format der HC-Projektion übertragen.
 import seasonOne from '@/assets/gliddencup-s1.json'
 
@@ -91,17 +91,9 @@ const overviewError = ref('')
 
 async function loadOverview () {
   try {
-    const data = (await gcApi.get('/overview')).data
-    if (!data?.tipsVisible) return
-    const users = (data.users ?? []).map(u => u.displayName).sort((a, b) => a.localeCompare(b))
-    const mystery = data.mysteryByUser ?? {}
-    overview.value = {
-      users,
-      picksByUser: data.picksByUser ?? {},
-      // Für jeden Tipper ein eigener Eintrag: Sonst liefert ein Tipper namens „__proto__“ ohne Antwort den Objekt-Prototyp.
-      mysteryByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(mystery, u) ? mystery[u] : ''])),
-      answersByUser: Object.fromEntries(users.map(u => [u, Object.hasOwn(data.answersByUser ?? {}, u) ? data.answersByUser[u] : []])),
-    }
+    const data = await loadTipsOverview()
+    if (!data) return
+    overview.value = data
     overviewError.value = ''
   } catch {
     overviewError.value = 'Die Tipps sind gerade nicht erreichbar. Versuch es in ein paar Minuten noch einmal.'
