@@ -1,31 +1,49 @@
 <template>
   <div class="rv-stage">
-    <Transition name="rv-swap" mode="out-in">
-      <NameWall
-        v-if="item === 'mystery'"
-        key="mystery"
-        :groups="mystery.groups"
-        :answered="mystery.answered"
-        :winners="mystery.winners"
-        :solved="solved"
-      />
-      <NumberLine
-        v-else-if="question?.type === 'NUMBER'"
-        :key="question.id"
-        :question="question"
-        :result="result"
-        :solved="solved"
-        :users="overview.users"
-      />
-      <ChoiceBars
-        v-else-if="question"
-        :key="question.id"
-        :question="question"
-        :result="result"
-        :solved="solved"
-        :users="overview.users"
-      />
-    </Transition>
+    <NameWall
+      v-if="item === 'mystery'"
+      key="mystery"
+      :groups="mystery.groups"
+      :answered="mystery.answered"
+      :winners="mystery.winners"
+      :solved="solved"
+    />
+    <RankingPanel
+      v-else-if="summary && item === 'ranking'"
+      key="ranking"
+      :rows="summary.rankingPages[page]"
+      :page-count="summary.rankingPages.length"
+      :max="summary.rankingMax"
+    />
+    <RecognizedPanel
+      v-else-if="summary && item === 'recognized'"
+      :key="`recognized-${page}`"
+      :entries="summary.recognizedPages[page]"
+      :page-count="summary.recognizedPages.length"
+      :from="page * summary.recognizedPages[0].length + 1"
+      :total="summary.recognized.length"
+    />
+    <PlayerGuessPanel v-else-if="summary && item === 'players'" key="players" :players="summary.players" />
+    <NumberLine
+      v-else-if="question?.type === 'NUMBER'"
+      :key="question.id"
+      :question="question"
+      :result="result"
+      :solved="solved"
+      :users="overview.users"
+    />
+    <ChoiceBars
+      v-else-if="question"
+      :key="question.id"
+      :question="question"
+      :result="result"
+      :solved="solved"
+      :users="overview.users"
+    />
+    <!-- Sitzt in der unteren rechten Ecke des Panels; alle Panels sind gleich groß. -->
+    <button v-if="solvable" type="button" class="rv-solve" @click.stop="emit('toggle')">
+      {{ solved ? 'Lösung verbergen' : 'Lösung zeigen' }}
+    </button>
   </div>
 </template>
 
@@ -35,25 +53,36 @@ import { isAccepted, mysteryGroups, mysteryResult, questionResult } from '@/serv
 import ChoiceBars from './ChoiceBars.vue'
 import NameWall from './NameWall.vue'
 import NumberLine from './NumberLine.vue'
+import PlayerGuessPanel from './PlayerGuessPanel.vue'
+import RankingPanel from './RankingPanel.vue'
+import RecognizedPanel from './RecognizedPanel.vue'
+import { summarize } from './reveal'
 
 /**
- * Eine Folie der Auflösung: Zusatzfrage oder „Wer ist Guy Glidden?“ auf einer
- * Fläche von 1920 × 1080 px, mit oder ohne Lösung. Ohne Daten oder mit
- * unbekannter Frage bleibt sie leer. Skaliert wird sie von RevealShow.
+ * Eine Folie der Auflösung auf einer Fläche von 1920 × 1080 px: eine
+ * Zusatzfrage (ihre ID) oder „mystery“, je mit oder ohne Lösung, oder eine
+ * Seite (`page`) der Gesamtauswertungen „recognized“, „players“, „ranking“.
+ * Ohne Daten oder mit unbekannter Frage bleibt sie leer. Mit `solvable` gibt
+ * es in der Folie einen Knopf, der `toggle` meldet.
  */
 const props = defineProps({
   tournament: { type: Object, default: null },
   // Aus loadTipsOverview; null, solange die Zuordnung nicht veröffentlicht ist.
   overview: { type: Object, default: null },
   item: { type: String, default: null },
+  page: { type: Number, default: 0 },
   solved: { type: Boolean, default: false },
+  solvable: { type: Boolean, default: false },
 })
+const emit = defineEmits(['toggle'])
 
+const SUMMARIES = ['recognized', 'players', 'ranking']
 const ready = computed(() => !!(props.tournament && props.overview))
-const question = computed(() => (ready.value && props.item !== 'mystery'
+const question = computed(() => (ready.value && props.item !== 'mystery' && !SUMMARIES.includes(props.item)
   ? props.tournament.questions.find(q => q.id === props.item) ?? null
   : null))
 const result = computed(() => question.value && questionResult(question.value, props.overview.users, props.overview.answersByUser))
+const summary = computed(() => (ready.value && SUMMARIES.includes(props.item) ? summarize(props.tournament, props.overview) : null))
 
 const mystery = computed(() => {
   if (!ready.value || props.item !== 'mystery') return { groups: [], answered: 0, winners: [] }
@@ -83,8 +112,18 @@ const mystery = computed(() => {
   font-family: Roboto, sans-serif;
 }
 
+/* Dunkler Grund mit der Kartenrückseite, gedämpft, damit das Panel davor klar steht. */
+.rv-backdrop {
+  background: linear-gradient(rgb(14 13 17 / 90%), rgb(14 13 17 / 90%)), url('/gliddencup/card.webp') center / cover #0e0d11;
+}
+
+/* Alle Panels gleich groß, damit beim Blättern nichts springt. */
 .rv-panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 1680px;
+  height: 1000px;
   padding: 44px 56px;
   background: rgb(20 19 23 / 92%);
   border: 1px solid rgb(255 255 255 / 22%);
@@ -111,18 +150,27 @@ const mystery = computed(() => {
 
 .rv-meta b { color: var(--rv-ochre); font-weight: 700; }
 
+/* Wie der Hauptknopf der Vollbild-Leiste, in der unteren rechten Ecke des Panels (1680 × 1000, mittig). */
+.rv-solve {
+  position: absolute;
+  right: 160px;
+  bottom: 64px;
+  padding: 12px 28px;
+  border: 1px solid var(--rv-ochre);
+  border-radius: 4px;
+  background: rgb(20 19 23 / 92%);
+  color: var(--rv-ochre);
+  font: 500 26px Roboto, sans-serif;
+  cursor: pointer;
+}
+
+.rv-solve:hover { background: rgb(208 138 69 / 14%); }
+.rv-solve:focus-visible { outline: 3px solid var(--rv-ochre); outline-offset: 3px; }
+
 /* Aufdecken: alles läuft gemeinsam in dieselbe Richtung, ohne Federn. */
 .rv-fade { transition: color 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
 
-.rv-swap-enter-active,
-.rv-swap-leave-active { transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-
-.rv-swap-enter-from,
-.rv-swap-leave-to { opacity: 0; transform: translateY(16px); }
-
 @media (prefers-reduced-motion: reduce) {
-  .rv-fade,
-  .rv-swap-enter-active,
-  .rv-swap-leave-active { transition: none; }
+  .rv-fade { transition: none; }
 }
 </style>

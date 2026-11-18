@@ -47,13 +47,7 @@ const size = count => Math.round(30 + 80 * Math.sqrt(count / max.value))
 </script>
 
 <style scoped>
-.nw-panel {
-  width: 1480px;
-  min-height: 780px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
+.nw-panel { justify-content: center; }
 
 .nw-title { font-size: 64px; text-align: center; }
 

@@ -106,6 +106,18 @@ export function totalRanking (stats, results) {
 }
 
 /**
+ * Rangliste mit Plätzen und der Community (Mehrheitstipp) als eigener Zeile
+ * ohne Platz: Sie tippt nur Pseudonyme und steht hinter allen Tippern mit
+ * mindestens so vielen Punkten. `crowd` kommt aus crowdCorrect.
+ */
+export function rankingWithCrowd (stats, results, crowd) {
+  const rows = totalRanking(stats, results).map((u, i) => ({ ...u, rank: i + 1 }))
+  const at = rows.findIndex(u => u.points < crowd)
+  rows.splice(at === -1 ? rows.length : at, 0, { crowd: true, user: '', correct: crowd, points: crowd, rank: '' })
+  return rows
+}
+
+/**
  * Treffer des Mehrheitstipps: Pseudonyme, bei denen der richtige Name allein
  * die meisten Tipps hat. Bei Gleichstand zählt es nicht, die Mehrheit war
  * sich dann nicht einig.
@@ -141,10 +153,6 @@ export function playerStats ({ pseudonyms, truth, users, picksByUser }) {
     }
   })
 }
-
-/** „Verwandlungskünstler“: am seltensten richtig getippt zuerst. */
-export const chameleons = stats => [...stats].sort((a, b) =>
-  (a.pct - b.pct) || a.pseudonym.localeCompare(b.pseudonym))
 
 /** Häufigste falsche Paare Pseudonym → getippter Name über alle Tipper. */
 export function globalConfusions (stats) {

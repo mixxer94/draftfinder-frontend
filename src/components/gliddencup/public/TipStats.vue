@@ -16,13 +16,13 @@
       <RevealShow
         v-model:open="showOpen"
         :tournament="tournament"
-        :overview="{ users, answersByUser, mysteryByUser }"
-        :start="view === 'mystery' ? 'mystery' : null"
+        :overview="overview"
+        :start="view === 'questions' ? null : view"
       />
       <v-select
         v-if="!mdAndUp"
         v-model="view"
-        :items="views"
+        :items="VIEWS"
         item-title="title"
         item-value="value"
         label="Auswertung"
@@ -31,7 +31,7 @@
       />
       <v-list v-else density="compact" nav class="py-0" bg-color="transparent" aria-label="Auswertungen">
         <v-list-item
-          v-for="v in views"
+          v-for="v in VIEWS"
           :key="v.value"
           :active="view === v.value"
           color="secondary"
@@ -44,9 +44,37 @@
     <v-col cols="12" md="9">
       <!-- Der Titel steht schon im gewählten Menüpunkt; sichtbar wäre er doppelt. -->
       <h2 class="d-sr-only">{{ current.title }}</h2>
-      <p v-if="current.text" class="text-body-2 text-medium-emphasis mb-4">{{ current.text }}</p>
+      <!-- Die Folien erklären sich selbst; die Tabellen in der schmalen Ansicht brauchen den Hinweis. -->
+      <p v-if="!mdAndUp && current.text" class="text-body-2 text-medium-emphasis mb-4">{{ current.text }}</p>
 
-      <v-table v-if="view === 'ranking'" density="compact">
+      <!-- Ab mittlerer Breite dieselben Folien wie im Vollbild; schmaler wären sie zu klein zum Lesen, dort bleiben die Tabellen. -->
+      <SlidePager v-if="mdAndUp && view === 'questions'" :slides="slides" :label="current.title">
+        <template #default="{ slide }">
+          <StageFit>
+            <RevealStage
+              :tournament="tournament"
+              :overview="overview"
+              :item="slide.item"
+              :page="slide.page"
+              :solvable="slide.solvable"
+              :solved="slide.solvable && shownSolutions.has(slide.item)"
+              @toggle="toggleSolution(slide.item)"
+            />
+          </StageFit>
+        </template>
+      </SlidePager>
+      <template v-else-if="mdAndUp">
+        <StageFit>
+          <RevealStage :tournament="tournament" :overview="overview" :item="view" :page="page" />
+        </StageFit>
+        <div v-if="pageCount > 1" class="d-flex align-center justify-end ga-1 mt-1">
+          <v-btn icon="mdi-chevron-left" size="small" variant="text" :disabled="page === 0" aria-label="Vorherige Seite" @click="page--" />
+          <span class="text-body-2 text-medium-emphasis gc-page">{{ page + 1 }} / {{ pageCount }}</span>
+          <v-btn icon="mdi-chevron-right" size="small" variant="text" :disabled="page === pageCount - 1" aria-label="Nächste Seite" @click="page++" />
+        </div>
+      </template>
+
+      <v-table v-else-if="view === 'ranking'" density="compact">
         <thead>
           <tr>
             <th class="gc-rank">#</th>
@@ -59,9 +87,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="u in rankingRows" :key="u.crowd ? '' : u.user" :class="{ 'gc-crowd': u.crowd }">
+          <tr v-for="u in summary.ranking" :key="u.crowd ? '' : u.user" :class="{ 'gc-crowd': u.crowd }">
             <td class="gc-rank text-medium-emphasis">{{ u.rank }}</td>
-            <td>{{ u.crowd ? 'Schwarm (Mehrheitstipp)' : u.user }}</td>
+            <td>{{ u.crowd ? 'Die Community (Mehrheitstipp)' : u.user }}</td>
             <td class="text-right font-weight-medium">{{ u.crowd ? '' : u.points }}</td>
             <td class="text-right">{{ u.correct }} / {{ total }}</td>
             <td class="text-right">{{ u.crowd ? '' : u.extra }}</td>
@@ -105,13 +133,38 @@
             {{ value }} × {{ count }}
           </v-chip>
         </section>
+        <section>
+          <div class="d-flex align-start ga-4 mb-1">
+            <h3 class="text-subtitle-1 font-weight-medium flex-grow-1">
+              Wer ist Guy Glidden? <span class="text-medium-emphasis font-weight-regular">({{ tipsText(mystery.answered) }})</span>
+            </h3>
+            <v-btn
+              v-if="mystery.solution !== null"
+              size="small"
+              variant="outlined"
+              color="secondary"
+              class="flex-shrink-0"
+              @click="toggleSolution('mystery')"
+            >
+              {{ isShown(mystery) ? 'Lösung verbergen' : 'Lösung zeigen' }}
+            </v-btn>
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-2">Gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.</p>
+          <p v-if="isShown(mystery)" class="text-body-2 mb-2">
+            <strong class="text-success">{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length">
+              <br>Korrekt: {{ winnersOf(mystery).join(', ') }}</template>
+          </p>
+          <v-chip v-for="g in mysteryList" :key="g.label" size="small" label variant="tonal" class="ma-1">
+            {{ g.label }} × {{ g.count }}
+          </v-chip>
+        </section>
       </template>
 
-      <template v-else-if="view === 'chameleons'">
-        <div v-if="topConfusions.length" class="mb-4">
+      <template v-else-if="view === 'recognized'">
+        <div v-if="summary.confusions.length" class="mb-4">
           <h3 class="text-subtitle-1 font-weight-medium mb-1">Größte Verwechslungen</h3>
           <ol class="gc-list">
-            <li v-for="c in topConfusions" :key="`${c.pseudonym}→${c.guess}`">
+            <li v-for="c in summary.confusions" :key="`${c.pseudonym}→${c.guess}`">
               <strong>{{ c.pseudonym }}</strong> ({{ c.truth }}) wurde {{ c.count }}× für <strong>{{ c.guess }}</strong> gehalten
             </li>
           </ol>
@@ -121,7 +174,7 @@
             <tr><th>Pseudonym</th><th class="text-right">Richtig</th><th>Tipps</th></tr>
           </thead>
           <tbody>
-            <tr v-for="p in chameleonList" :key="p.pseudonym">
+            <tr v-for="p in summary.recognized" :key="p.pseudonym">
               <td><PseudonymCell :pseudonym="p.pseudonym" :truth="p.truth" /></td>
               <td class="text-right text-no-wrap">{{ pct(p.pct) }}</td>
               <td class="py-1">
@@ -143,18 +196,18 @@
       </template>
 
       <template v-else-if="view === 'players'">
-        <p v-if="!players.total" class="text-medium-emphasis">Es sind noch keine Vermutungen aufgedeckt.</p>
+        <p v-if="!summary.players.total" class="text-medium-emphasis">Es sind noch keine Vermutungen aufgedeckt.</p>
         <template v-else>
           <p class="mb-3">
-            Die Spieler lagen bei <strong>{{ players.correct }} von {{ players.total }}</strong> Vermutungen richtig
-            ({{ pct(players.pct) }}). Die Zuschauer haben dieselben Gegner zu {{ pct(players.spectatorPct) }} erkannt.
+            Die Spieler lagen bei <strong>{{ summary.players.correct }} von {{ summary.players.total }}</strong> Vermutungen richtig
+            ({{ pct(summary.players.pct) }}). Die Tipper haben dieselben Gegner zu {{ pct(summary.players.spectatorPct) }} erkannt.
           </p>
           <v-table density="compact">
             <thead>
               <tr><th class="gc-rank">#</th><th>Vermutet wurde</th><th class="text-right">Anzahl</th><th class="text-right">Davon richtig</th></tr>
             </thead>
             <tbody>
-              <tr v-for="(p, i) in players.ranking" :key="p.name">
+              <tr v-for="(p, i) in summary.players.ranking" :key="p.name">
                 <td class="gc-rank text-medium-emphasis">{{ i + 1 }}</td>
                 <td>{{ p.name }}</td>
                 <td class="text-right">{{ p.count }}</td>
@@ -165,49 +218,19 @@
         </template>
       </template>
 
-      <template v-else-if="view === 'mystery'">
-        <p v-if="!mysteryList.length" class="text-medium-emphasis">Niemand hat auf Guy Glidden getippt.</p>
-        <template v-else>
-          <p class="text-body-2 mb-3">
-            <span class="text-medium-emphasis">({{ tipsText(mysteryAnswers.length) }})</span>
-            <template v-if="mystery.solution">
-              · <strong class="text-success">{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length">
-                <br>Korrekt: {{ winnersOf(mystery).join(', ') }}</template>
-            </template>
-          </p>
-          <v-table density="compact">
-            <thead>
-              <tr><th>Antwort</th><th class="text-right">Tipps</th><th>Schreibweisen</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="g in mysteryList" :key="g.label">
-                <td class="font-weight-medium">{{ g.label }}</td>
-                <td class="text-right">{{ g.count }}</td>
-                <td class="py-1">
-                  <template v-if="g.variants.length > 1 || g.variants[0][0] !== g.label">
-                    <v-chip v-for="[text, count] in g.variants" :key="text" size="small" label variant="tonal" class="ma-1">
-                      {{ text }} × {{ count }}
-                    </v-chip>
-                  </template>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-        </template>
-      </template>
     </v-col>
   </v-row>
 </template>
 
 <script setup>
-import { computed, h, ref } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import { truthMap } from '@/services/gliddencupApi'
 import RevealShow from './reveal/RevealShow.vue'
-import {
-  chameleons, crowdCorrect,
-  globalConfusions, mysteryGroups, mysteryResult, playerGuesses, playerStats, questionResult, totalRanking, userStats,
-} from '@/services/gliddencupStats'
+import RevealStage from './reveal/RevealStage.vue'
+import SlidePager from './reveal/SlidePager.vue'
+import StageFit from './reveal/StageFit.vue'
+import { pct, summarize } from './reveal/reveal'
+import { mysteryGroups, mysteryResult, questionResult } from '@/services/gliddencupStats'
 
 /** Auswertungen des Tippspiels; erst mit veröffentlichter Zuordnung sinnvoll. */
 const props = defineProps({
@@ -219,20 +242,32 @@ const props = defineProps({
 })
 
 // Die Rangliste steht zuletzt: Wer die Auswertung öffnet, soll nicht als Erstes das Endergebnis sehen.
+// „Wer ist Guy Glidden?“ gehört zu den Zusatzfragen, wie beim Tippen.
 const VIEWS = [
   { value: 'questions', title: 'Zusatzfragen', text: '' },
-  { value: 'mystery', title: 'Wer ist Guy Glidden?', text: 'Gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.' },
-  { value: 'chameleons', title: 'Verwandlungskünstler', text: 'Am seltensten richtig getippt zuerst. Grün ist der richtige Name.' },
+  { value: 'recognized', title: 'Wer wurde erkannt?', text: 'Wer hinter welchem Pseudonym steckte und wie viele es erkannt haben, am häufigsten erkannt zuerst.' },
   { value: 'players', title: 'Spieler-Vermutungen', text: 'Wen die Spieler nach ihrem Match hinter ihrem Gegner vermutet haben.' },
-  { value: 'ranking', title: 'Rangliste', text: 'Ein Punkt je richtigem Pseudonym plus die Punkte aus Zusatzfragen und Guy Glidden. „Allein richtig“ zählt Treffer, die sonst niemand hatte; der Schwarm tippt je Pseudonym den häufigsten Namen.' },
+  { value: 'ranking', title: 'Rangliste', text: 'Ein Punkt je richtigem Pseudonym plus die Punkte aus Zusatzfragen und Guy Glidden. „Allein richtig“ zählt Treffer, die sonst niemand hatte; „Die Community“ tippt je Pseudonym den häufigsten Namen.' },
 ]
 
 const { mdAndUp } = useDisplay()
 const showOpen = ref(false)
+const view = ref(VIEWS[0].value)
+const current = computed(() => VIEWS.find(v => v.value === view.value))
+const overview = computed(() => ({
+  users: props.users,
+  picksByUser: props.picksByUser,
+  answersByUser: props.answersByUser,
+  mysteryByUser: props.mysteryByUser,
+}))
+const summary = computed(() => summarize(props.tournament, overview.value))
 const results = computed(() => (props.tournament.questions ?? [])
   .map(q => questionResult(q, props.users, props.answersByUser)))
+const mystery = computed(() => mysteryResult(props.users, props.mysteryByUser, props.tournament.mysteryAnswers ?? []))
+const mysteryList = computed(() => mysteryGroups(props.users.map(u => props.mysteryByUser[u]).filter(Boolean), props.tournament.participants))
 const winnersOf = r => props.users.filter(u => r.byUser.get(u)?.points)
 const tipsText = n => `${n} ${n === 1 ? 'Tipp' : 'Tipps'}`
+const total = computed(() => props.tournament.pseudonyms.length)
 
 // Lösungen erst auf Klick, damit man beim Stream mitraten kann, statt sie hier vorher zu lesen.
 const shownSolutions = ref(new Set())
@@ -242,39 +277,18 @@ function toggleSolution (id) {
   if (!next.delete(id)) next.add(id)
   shownSolutions.value = next
 }
-// Guy Glidden zählt in der Rangliste mit, hat aber seine eigene Auswertung
-const mystery = computed(() => mysteryResult(props.users, props.mysteryByUser, props.tournament.mysteryAnswers ?? []))
-const views = computed(() => VIEWS.filter(v => v.value !== 'questions' || results.value.length))
-const view = ref(views.value[0].value)
-const current = computed(() => VIEWS.find(v => v.value === view.value))
 
-const truth = computed(() => truthMap(props.tournament))
-const input = computed(() => ({
-  pseudonyms: props.tournament.pseudonyms,
-  truth: truth.value,
-  users: props.users,
-  picksByUser: props.picksByUser,
-}))
-const total = computed(() => props.tournament.pseudonyms.length)
-const uStats = computed(() => userStats(input.value))
-const pStats = computed(() => playerStats(input.value))
-const chameleonList = computed(() => chameleons(pStats.value))
-const topConfusions = computed(() => globalConfusions(pStats.value).slice(0, 3))
-const players = computed(() => playerGuesses({ rounds: props.tournament.rounds, truth: truth.value, stats: pStats.value }))
-const mysteryAnswers = computed(() => props.users.map(u => props.mysteryByUser[u]).filter(Boolean))
-const mysteryList = computed(() => mysteryGroups(mysteryAnswers.value, props.tournament.participants))
+// Die Zusatzfragen werden als Folien geblättert, Guy Glidden zuletzt.
+const slides = computed(() => [...results.value, mystery.value]
+  .map(r => ({ key: r.question.id, item: r.question.id, solvable: r.solution !== null })))
 
-// Gereiht wird nach Punkten: Pseudonyme plus Zusatzfragen. Der Schwarm tippt nur
-// Pseudonyme, steht hinter allen Tippern mit mindestens so vielen Punkten und bekommt keinen Platz.
-const rankingRows = computed(() => {
-  const rows = totalRanking(uStats.value, [...results.value, mystery.value]).map((u, i) => ({ ...u, rank: i + 1 }))
-  const crowd = { crowd: true, correct: crowdCorrect(pStats.value), rank: '' }
-  const at = rows.findIndex(u => u.points < crowd.correct)
-  rows.splice(at === -1 ? rows.length : at, 0, crowd)
-  return rows
-})
-
-const pct = v => `${v.toFixed(1).replace('.', ',')} %`
+// Rangliste und „Wer wurde erkannt?“ haben ab 17 Einträgen mehrere Seiten.
+const page = ref(0)
+const pageCount = computed(() => ({
+  ranking: summary.value.rankingPages.length,
+  recognized: summary.value.recognizedPages.length,
+})[view.value] ?? 1)
+watch(view, () => { page.value = 0 })
 
 /** Pseudonym mit dem Klarnamen darunter, in allen Tabellen gleich. */
 const PseudonymCell = p => h('div', [
@@ -287,5 +301,6 @@ PseudonymCell.props = ['pseudonym', 'truth']
 <style scoped>
 .gc-rank { width: 4.5rem; }
 .gc-list { padding-left: 1.25rem; }
+.gc-page { min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
 .gc-crowd { font-style: italic; background: rgba(var(--v-theme-secondary), 0.08); }
 </style>

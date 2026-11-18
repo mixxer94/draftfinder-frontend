@@ -57,11 +57,10 @@ const state = r => (showSolution.value ? (r.hit ? 'cb-on' : 'cb-off') : '')
 </script>
 
 <style scoped>
-.cb-panel { width: 1100px; }
 
 .cb-rows {
   display: grid;
-  grid-template-columns: minmax(0, 300px) 1fr 64px;
+  grid-template-columns: minmax(0, 460px) 1fr 64px;
   gap: 18px 24px;
   align-items: center;
   margin-top: 36px;

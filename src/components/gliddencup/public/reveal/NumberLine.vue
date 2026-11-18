@@ -173,7 +173,6 @@ const points = computed(() => {
 </script>
 
 <style scoped>
-.nl-panel { width: 1680px; }
 
 .nl-axis { position: relative; margin-top: 24px; }
 

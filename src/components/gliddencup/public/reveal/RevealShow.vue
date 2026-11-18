@@ -3,21 +3,21 @@
     <div
       v-if="open"
       ref="root"
-      class="rs-root"
+      class="rv-backdrop rs-root"
       role="dialog"
       aria-modal="true"
       aria-label="Auflösung"
       @click="next"
     >
       <div class="rs-fit" :style="{ zoom: fit }">
-        <RevealStage :tournament="tournament" :overview="overview" :item="step.item" :solved="step.solved" />
+        <RevealStage :tournament="tournament" :overview="overview" :item="step.item" :page="step.page ?? 0" :solved="step.solved" />
       </div>
 
       <div class="rs-bar" @click.stop>
         <button type="button" class="rs-btn" :disabled="index === 0" @click="prev">Zurück</button>
         <span class="rs-count">{{ index + 1 }} / {{ steps.length }}</span>
         <button v-if="index < steps.length - 1" ref="nextButton" type="button" class="rs-btn rs-btn--main" @click="next">
-          {{ steps[index + 1].item === step.item ? 'Auflösen' : 'Nächste Frage' }}
+          {{ steps[index + 1].solved ? 'Auflösen' : 'Weiter' }}
         </button>
         <span v-else class="rs-count">Ende</span>
         <button type="button" class="rs-btn" @click="close">Schließen</button>
@@ -29,22 +29,25 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import RevealStage from './RevealStage.vue'
+import { summarize } from './reveal'
 
 /**
  * Auflösung im Vollbild zum Durchklicken: je Frage erst die Tipps, dann die
- * Lösung, am Ende „Wer ist Guy Glidden?“. Klick, Leertaste oder → geht
- * weiter, ← zurück, Esc schließt. `start` ist die Frage-ID oder „mystery“,
- * bei der es losgeht.
+ * Lösung, danach „Wer ist Guy Glidden?“, „Wer wurde erkannt?“ (seitenweise),
+ * die Spieler-Vermutungen und zuletzt die Rangliste (seitenweise). Klick,
+ * Leertaste oder → geht weiter, ← zurück, Esc schließt.
+ * `start` ist die Folie (wie `item` in RevealStage), bei der es losgeht.
  */
 const props = defineProps({
   tournament: { type: Object, required: true },
-  // { users, answersByUser, mysteryByUser } wie aus loadTipsOverview
+  // Wie aus loadTipsOverview
   overview: { type: Object, required: true },
   start: { type: String, default: null },
 })
 const open = defineModel('open', { type: Boolean, default: false })
 
 // Ohne Lösung gibt es nichts aufzudecken; dann bleibt es bei der Folie mit den Tipps.
+const summary = computed(() => summarize(props.tournament, props.overview))
 const steps = computed(() => [
   ...props.tournament.questions.flatMap(q => [
     { item: q.id, solved: false },
@@ -52,6 +55,9 @@ const steps = computed(() => [
   ]),
   { item: 'mystery', solved: false },
   ...(props.tournament.mysteryAnswers.length ? [{ item: 'mystery', solved: true }] : []),
+  ...summary.value.recognizedPages.map((_, page) => ({ item: 'recognized', page, solved: false })),
+  { item: 'players', solved: false },
+  ...summary.value.rankingPages.map((_, page) => ({ item: 'ranking', page, solved: false })),
 ])
 const index = ref(0)
 const step = computed(() => steps.value[index.value] ?? steps.value[0])
@@ -116,7 +122,6 @@ onBeforeUnmount(cleanup)
 </script>
 
 <style scoped>
-/* Dunkler Grund mit der Kartenrückseite, gedämpft, damit das Panel davor klar steht. */
 .rs-root {
   position: fixed;
   inset: 0;
@@ -124,7 +129,6 @@ onBeforeUnmount(cleanup)
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(rgb(14 13 17 / 90%), rgb(14 13 17 / 90%)), url('/gliddencup/card.webp') center / cover #0e0d11;
   cursor: pointer;
   user-select: none;
 }
