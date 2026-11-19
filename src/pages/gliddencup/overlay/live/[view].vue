@@ -16,7 +16,7 @@ import { playerByNumber, useStreamOverlay } from '@/components/gliddencup/overla
 
 /**
  * OBS-Browserquelle für eine der beiden Live-Views (/gliddencup/overlay/live/1
- * und /live/2). Spieler und Kartenseite setzt die Turnierleitung unter
+ * und /live/2). Spieler und Kartenseite setzen Turnierleitung oder Caster unter
  * /gliddencup/admin/stream; ohne Spieler bleibt die Quelle leer.
  */
 const route = useRoute()

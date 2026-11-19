@@ -7,7 +7,7 @@
       <span class="text-body-2 mr-2 d-none d-sm-inline">
         {{ hcSession.user.username }}
         <v-chip size="small" class="ml-1" variant="tonal">
-          {{ admin ? 'Admin' : 'Helfer' }}
+          {{ admin ? 'Admin' : hasRole('HELPER') ? 'Helfer' : 'Caster' }}
         </v-chip>
       </span>
       <v-btn variant="text" @click="doLogout">
@@ -49,7 +49,7 @@
       <v-card-title>Anmeldung</v-card-title>
       <v-card-text>
         <v-alert v-if="loginError" type="error" variant="tonal" class="mb-4">{{ loginError }}</v-alert>
-        Nur für Turnierleitung und Helfer. Die Anmeldung läuft über Discord.
+        Nur für Turnierleitung, Helfer und Caster. Die Anmeldung läuft über Discord.
       </v-card-text>
       <v-card-actions>
         <v-btn color="secondary" variant="flat" @click="login">
@@ -70,7 +70,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay, useTheme } from 'vuetify'
-import { HC_NAV, hcApi, hcSession, isAdmin, login, logout } from '@/services/hcApi'
+import { hasRole, HC_NAV, hcApi, hcSession, isAdmin, login, logout, mayOpen } from '@/services/hcApi'
 import ConfirmDialog from '@/components/gliddencup/ConfirmDialog.vue'
 
 const route = useRoute()
@@ -80,7 +80,7 @@ const { mobile } = useDisplay()
 const drawer = ref(!mobile.value)
 
 const admin = computed(() => isAdmin())
-const nav = computed(() => HC_NAV.filter(n => admin.value || n.helper))
+const nav = computed(() => hcSession.user ? HC_NAV.filter(n => mayOpen(n.to)) : [])
 const drawn = computed(() => !!hcSession.tournamentState && hcSession.tournamentState !== 'SETUP')
 
 /*
@@ -88,7 +88,8 @@ const drawn = computed(() => !!hcSession.tournamentState && hcSession.tournament
  * weil Ergebnisse über den Bot jederzeit neue Matches freigabebereit machen.
  */
 watch([() => hcSession.user, () => route.path], ([user]) => {
-  if (!user) return
+  // Caster dürfen das Dashboard nicht abfragen.
+  if (!user || !hasRole('HELPER')) return
   hcApi.get('/dashboard')
     .then(res => {
       hcSession.tournamentState = res.data.tournament?.state ?? null
@@ -98,7 +99,7 @@ watch([() => hcSession.user, () => route.path], ([user]) => {
 }, { immediate: true })
 
 const loginError = computed(() => ({
-  denied: 'Kein Zugriff. Dir fehlt die Rolle Turnierleitung oder Helfer.',
+  denied: 'Kein Zugriff. Dir fehlt die Rolle Turnierleitung, Helfer oder Caster.',
   failed: 'Die Anmeldung ist fehlgeschlagen. Bitte noch einmal versuchen.',
 })[route.query.login] ?? '')
 

@@ -20,7 +20,10 @@ export const hcSession = reactive({
   readyCount: 0,
 })
 
-export const isAdmin = () => hcSession.user?.roles?.includes('ADMIN') ?? false
+/** Admins haben jede Rolle; Helfer und Caster sind getrennt, damit Caster nichts vorab sehen. */
+export const hasRole = role => ['ADMIN', role].some(r => hcSession.user?.roles?.includes(r))
+
+export const isAdmin = () => hasRole('ADMIN')
 
 let pending = null
 
@@ -124,22 +127,27 @@ export const BRACKETS = {
   GRAND_FINAL: 'Grand Final',
 }
 
-/** Seiten, die auch Helfer sehen; alles andere unter /gliddencup/admin ist Admin. */
+/** `roles`: wer außer Admins die Seite sieht; alles andere unter /gliddencup/admin ist Admin. */
 export const HC_NAV = [
-  { to: '/gliddencup/admin', title: 'Übersicht', icon: 'mdi-view-dashboard', helper: true },
+  { to: '/gliddencup/admin', title: 'Übersicht', icon: 'mdi-view-dashboard', roles: ['HELPER'] },
   { to: '/gliddencup/admin/registrations', title: 'Anmeldungen', icon: 'mdi-account-multiple' },
   { to: '/gliddencup/admin/rounds', title: 'Runden', icon: 'mdi-format-list-numbered' },
   { to: '/gliddencup/admin/draw', title: 'Auslosung', icon: 'mdi-dice-multiple', doneAfterDraw: true },
   { to: '/gliddencup/admin/activation', title: 'Matches freigeben', icon: 'mdi-play-circle', showReady: true },
-  { to: '/gliddencup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', helper: true },
+  { to: '/gliddencup/admin/bracket', title: 'Bracket', icon: 'mdi-tournament', roles: ['HELPER'] },
   { to: '/gliddencup/admin/questions', title: 'Tippspiel-Fragen', icon: 'mdi-help-circle-outline' },
-  { to: '/gliddencup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', helper: true },
+  { to: '/gliddencup/admin/schedule', title: 'Termine', icon: 'mdi-calendar', roles: ['HELPER'] },
   { to: '/gliddencup/admin/replays', title: 'Replays', icon: 'mdi-folder-zip' },
-  { to: '/gliddencup/admin/stream', title: 'Stream-Overlays', icon: 'mdi-twitch' },
+  { to: '/gliddencup/admin/stream', title: 'Stream-Overlays', icon: 'mdi-twitch', roles: ['CASTER'] },
   { to: '/gliddencup/admin/audit', title: 'Audit-Log', icon: 'mdi-shield-search' },
 ]
 
-export function helperMayOpen (path) {
+export function mayOpen (path) {
+  if (isAdmin()) return true
   const clean = path.replace(/\/+$/, '') || '/'
-  return HC_NAV.some(n => n.helper && n.to === clean)
+  return HC_NAV.some(n => n.to === clean && n.roles?.some(hasRole))
 }
+
+/** Erste Seite, die die angemeldete Person sehen darf: für Helfer die Übersicht, für Caster die Overlays. */
+export const homePath = () => HC_NAV.find(n => mayOpen(n.to))?.to
+
