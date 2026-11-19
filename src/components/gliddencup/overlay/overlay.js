@@ -31,16 +31,28 @@ const EMPTY_VIEWS = [{ player: null, side: 'front' }, { player: null, side: 'fro
  * Zustand der beiden Live-Views, jede Sekunde neu abgefragt. Ohne
  * Sichtbarkeitsprüfung wie in usePolling: OBS meldet Browserquellen nicht
  * zuverlässig als sichtbar. Ein Fehler lässt den letzten Stand stehen.
+ *
+ * `apply` übernimmt die Antwort einer Änderung sofort. Eine Abfrage, die
+ * davor losgeschickt wurde, wird verworfen, damit sie den Stand nicht kurz
+ * zurückdreht.
  */
 export function useStreamOverlay (ms = 1000) {
   const views = ref(EMPTY_VIEWS)
   let rev = -1
+  let applied = 0
   let timer = null
 
+  function apply (data) {
+    applied++
+    rev = data.rev
+    views.value = data.views
+  }
+
   async function load () {
+    const before = applied
     try {
       const { data } = await hcApi.get('/stream')
-      if (data.rev === rev) return
+      if (before !== applied || data.rev === rev) return
       rev = data.rev
       views.value = data.views
     } catch {}
@@ -52,5 +64,5 @@ export function useStreamOverlay (ms = 1000) {
   })
   onBeforeUnmount(() => clearInterval(timer))
 
-  return views
+  return { views, apply }
 }

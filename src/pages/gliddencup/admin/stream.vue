@@ -1,6 +1,6 @@
 <template>
   <PageHeader title="Stream-Overlays" text="Zwei OBS-Browserquellen zum Vergleichen zweier Spieler. Jede Änderung erscheint nach spätestens einer Sekunde im Stream.">
-    <v-btn color="secondary" variant="flat" prepend-icon="mdi-rotate-3d-variant" :disabled="!loaded" @click="flipBoth">
+    <v-btn color="secondary" variant="flat" prepend-icon="mdi-rotate-3d-variant" @click="flipBoth">
       Beide umdrehen
     </v-btn>
   </PageHeader>
@@ -18,7 +18,6 @@
             label="Spieler"
             clearable
             density="compact"
-            :disabled="!loaded"
             class="mb-3"
             @update:model-value="nr => update(i, { player: nr ?? null })"
           />
@@ -29,7 +28,7 @@
             density="compact"
             variant="outlined"
             divided
-            :disabled="!loaded || !view.player"
+            :disabled="!view.player"
             class="mb-4"
             @update:model-value="side => update(i, { side })"
           >
@@ -88,45 +87,34 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { errorMessage, hcApi } from '@/services/hcApi'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import PlayerCard from '@/components/gliddencup/public/PlayerCard.vue'
-import { overlayUrls, playerByNumber, PLAYERS } from '@/components/gliddencup/overlay/overlay'
+import { overlayUrls, playerByNumber, PLAYERS, useStreamOverlay } from '@/components/gliddencup/overlay/overlay'
 
-const views = ref([{ player: null, side: 'front' }, { player: null, side: 'front' }])
-const loaded = ref(false)
+// Mehrere Leute steuern gleichzeitig: Die Seite fragt wie die Overlays jede Sekunde ab.
+const { views, apply } = useStreamOverlay()
 const error = ref('')
 const copied = ref(false)
 
-const playerItems = PLAYERS.map(p => ({ title: `${p.nr} · ${p.player.user}`, value: p.nr }))
+const playerItems = PLAYERS
+  .map(p => ({ title: `${p.nr} · ${p.player.user}`, value: p.nr, name: p.player.user }))
+  .sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }))
 
-async function load () {
+/** Antwort des Servers sofort übernehmen, statt auf die nächste Abfrage zu warten. */
+async function send (request) {
   try {
-    views.value = (await hcApi.get('/stream')).data.views
-    loaded.value = true
+    apply((await request).data)
   } catch (e) {
     error.value = errorMessage(e)
   }
 }
 
-/** Sofort lokal anzeigen, dann speichern; scheitert das, gilt wieder der Stand des Servers. */
-async function save (next) {
-  views.value = next
-  try {
-    views.value = (await hcApi.put('/stream', { views: next })).data.views
-  } catch (e) {
-    error.value = errorMessage(e)
-    await load()
-  }
-}
+// Nur die geänderte View geht an den Server, damit niemand die andere mit einem alten Stand überschreibt.
+const update = (i, patch) => send(hcApi.put(`/stream/${i + 1}`, { ...views.value[i], ...patch }))
 
-const update = (i, patch) => save(views.value.map((v, j) => (j === i ? { ...v, ...patch } : v)))
-
-// Jede View dreht für sich um; bei ungleichen Seiten tauschen beide.
-const flipBoth = () => save(views.value.map(v => ({ ...v, side: v.side === 'back' ? 'front' : 'back' })))
-
-onMounted(load)
+const flipBoth = () => send(hcApi.post('/stream/flip'))
 
 async function copy (url) {
   try {

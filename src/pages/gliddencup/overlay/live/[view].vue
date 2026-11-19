@@ -20,7 +20,7 @@ import { playerByNumber, useStreamOverlay } from '@/components/gliddencup/overla
  * /gliddencup/admin/stream; ohne Spieler bleibt die Quelle leer.
  */
 const route = useRoute()
-const views = useStreamOverlay()
+const { views } = useStreamOverlay()
 
 const current = computed(() => views.value[Number(route.params.view) === 2 ? 1 : 0] ?? {})
 const player = computed(() => playerByNumber(current.value.player))
