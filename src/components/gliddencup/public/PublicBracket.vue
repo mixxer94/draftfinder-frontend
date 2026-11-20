@@ -20,6 +20,14 @@
       <div :class="{ 'gc-scroll': !overlay }">
         <div class="gc-tree" :style="{ width: `${tree.width}px`, height: `${tree.height}px` }">
           <div v-for="(label, c) in tree.labels" :key="c" class="gc-label" :style="{ left: `${c * tree.colW}px` }">{{ label }}</div>
+          <div
+            v-for="t in tree.times"
+            :key="t.code"
+            class="gc-time"
+            :style="{ left: `${t.x}px`, top: `${t.y - TIME_H}px`, width: `${CARD_W}px` }"
+          >
+            {{ t.text }}
+          </div>
 
           <svg class="gc-lines" :width="tree.width" :height="tree.height" aria-hidden="true">
             <path
@@ -84,6 +92,7 @@
 import { computed, ref, watch } from 'vue'
 import { layoutTree } from '@/components/gliddencup/treeLayout'
 import { bracketSides, truthMap } from '@/services/gliddencupApi'
+import { airTimesOf } from './airTimes'
 
 /**
  * Öffentlicher Turnierbaum aus der HC-Projektion (`tournament` wie von
@@ -108,6 +117,7 @@ const CARD_W = 300
 const CARD_H = 104
 const COL_GAP = 56
 const TOP = 32 // Platz für die Rundennamen
+const TIME_H = 18 // Platz für die Sendezeit über einer Karte
 const CHAMP_W = 176
 // Feste Maße im Overlay, damit `size` ohne Messen stimmt; passend zu .gc-ov-*.
 const OV_TITLE_H = 40
@@ -164,8 +174,17 @@ function sidesOf (slot) {
  * Spalte hinter der letzten Runde der letzten Seite, sobald deren einziges
  * Match entschieden ist.
  */
+const airTimes = computed(() => airTimesOf(props.tournament))
+// Ohne Sendezeiten (etwa Saison 1) bleibt der Baum so kompakt wie bisher.
+const timeH = computed(() => (Object.keys(airTimes.value).length ? TIME_H : 0))
+
 const trees = computed(() => sides.value.map((side, index) => {
-  const layout = layoutTree(side.rounds, { cardW: CARD_W, cardH: CARD_H, top: TOP, colGap: COL_GAP, rowGap: 15 })
+  const layout = layoutTree(side.rounds, {
+    cardW: CARD_W, cardH: CARD_H, top: TOP + timeH.value, colGap: COL_GAP, rowGap: 15 + timeH.value,
+  })
+  const times = layout.cards
+    .filter(c => airTimes.value[c.slot.code])
+    .map(c => ({ code: c.slot.code, text: airTimes.value[c.slot.code], x: c.x, y: c.y }))
   const paths = layout.links.map(link => ({
     d: link.d,
     winner: sidesOf(link.from.slot).find(s => s.won)?.pseudo ?? null,
@@ -190,6 +209,7 @@ const trees = computed(() => sides.value.map((side, index) => {
     bracket: side.bracket,
     title: side.title,
     cards: layout.cards,
+    times,
     paths,
     colW: layout.colW,
     labels: [...side.rounds.map(r => r.label), ...(champ ? ['Sieger'] : [])],
@@ -222,6 +242,7 @@ defineExpose({ size })
   color: rgb(var(--v-theme-on-surface));
 }
 .gc-label { position: absolute; top: 0; font-size: 0.8125rem; color: var(--muted); white-space: nowrap; }
+.gc-time { position: absolute; padding-left: 2px; font-size: 0.75rem; line-height: 14px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
 .gc-lines { position: absolute; inset: 0; pointer-events: none; }
 .gc-lines path { fill: none; stroke: var(--rule); stroke-width: 1.25; }
 .gc-lines path.is-won { stroke: var(--accent); stroke-width: 2; }
