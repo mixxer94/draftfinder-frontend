@@ -105,7 +105,7 @@ import { airTimesOf } from './airTimes'
  * vorwegnehmen. Hover über einen Spieler hebt seine Matches in allen Runden
  * hervor.
  *
- * Mit `overlay` ohne Schalter, Hinweistext und Scrollbereich, für die
+ * Mit `overlay` ohne Schalter, Hinweistext, Sendezeiten und Scrollbereich, für die
  * OBS-Browserquelle; `size` liefert dann die Gesamtgröße für OverlayStage.
  */
 const props = defineProps({
@@ -169,15 +169,15 @@ function sidesOf (slot) {
   return [about(a, slot.guessB), about(b, slot.guessA)]
 }
 
+const airTimes = computed(() => (props.overlay ? {} : airTimesOf(props.tournament)))
+// Ohne Sendezeiten (etwa Saison 1 oder im Overlay) bleibt der Baum kompakt.
+const timeH = computed(() => (Object.keys(airTimes.value).length ? TIME_H : 0))
+
 /*
  * Pro Bracket-Seite ein Baum. Der Turniersieger steht in einer eigenen
  * Spalte hinter der letzten Runde der letzten Seite, sobald deren einziges
  * Match entschieden ist.
  */
-const airTimes = computed(() => airTimesOf(props.tournament))
-// Ohne Sendezeiten (etwa Saison 1) bleibt der Baum so kompakt wie bisher.
-const timeH = computed(() => (Object.keys(airTimes.value).length ? TIME_H : 0))
-
 const trees = computed(() => sides.value.map((side, index) => {
   const layout = layoutTree(side.rounds, {
     cardW: CARD_W, cardH: CARD_H, top: TOP + timeH.value, colGap: COL_GAP, rowGap: 15 + timeH.value,
