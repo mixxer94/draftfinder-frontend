@@ -18,6 +18,9 @@ const light = {
     warning: '#8a4b00',
     success: '#2e6b30',
     info: '#0d5aa7',
+    // Richtig/falsch in der Auflösung des Tippspiels: erdiger als success/error, passend zum cremefarbenen Grund; AA auf background und surface.
+    hit: '#3f6b22',
+    miss: '#a63d24',
   },
 }
 
@@ -31,6 +34,8 @@ const dark = {
     'on-success': '#0b1f0c',
     'on-error': '#1f0a0e',
     'on-info': '#04192a',
+    hit: '#9ccc65',
+    miss: '#ef8a6f',
   }
 }
 const  defaultDarkTheme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches

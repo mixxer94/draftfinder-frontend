@@ -1,7 +1,8 @@
 <template>
   <p v-if="!users.length" class="text-medium-emphasis">Ohne Tipps gibt es nichts auszuwerten.</p>
 
-  <v-row v-else>
+  <!-- rv-theme: Folien in den Theme-Farben der Seite, wie im Vollbild. -->
+  <v-row v-else class="rv-theme">
     <v-col cols="12" md="3">
       <v-btn
         block
@@ -13,12 +14,7 @@
       >
         Auflösung im Vollbild
       </v-btn>
-      <RevealShow
-        v-model:open="showOpen"
-        :tournament="tournament"
-        :overview="overview"
-        :start="view === 'questions' ? null : view"
-      />
+      <RevealShow v-model:open="showOpen" :tournament="tournament" :overview="overview" :deck="deck" />
       <v-select
         v-if="!mdAndUp"
         v-model="view"
@@ -29,50 +25,70 @@
         density="comfortable"
         hide-details
       />
-      <v-list v-else density="compact" nav class="py-0" bg-color="transparent" aria-label="Auswertungen">
-        <v-list-item
-          v-for="v in VIEWS"
-          :key="v.value"
-          :active="view === v.value"
-          color="secondary"
-          :title="v.title"
-          @click="view = v.value"
-        />
-      </v-list>
+      <!-- Schrittliste: zeigt, was kommt und was schon aufgelöst ist; jeder Eintrag springt dorthin. -->
+      <nav v-else class="ts-steps" aria-label="Auswertungen">
+        <template v-for="g in deck.groups" :key="g.value">
+          <template v-if="g.value === 'questions'">
+            <div class="ts-group">{{ g.title }}</div>
+            <button
+              v-for="s in questionSlides"
+              :key="s.key"
+              type="button"
+              class="ts-step ts-step--sub"
+              :class="{ 'ts-step--on': s.index === deck.index.value }"
+              :aria-current="s.index === deck.index.value || undefined"
+              @click="deck.go(s.index)"
+            >
+              <span class="ts-num">{{ s.pos + 1 }}</span>
+              <span class="ts-ellipsis">{{ s.title }}</span>
+              <v-icon v-if="deck.isSolved(s)" icon="mdi-check" size="16" class="ts-check" aria-label="aufgelöst" />
+            </button>
+          </template>
+          <button
+            v-else
+            type="button"
+            class="ts-step"
+            :class="{ 'ts-step--on': deck.current.value.group === g.value }"
+            :aria-current="deck.current.value.group === g.value || undefined"
+            @click="deck.go(deck.slides.value.findIndex(x => x.group === g.value))"
+          >
+            {{ g.title }}
+          </button>
+        </template>
+      </nav>
     </v-col>
 
     <v-col cols="12" md="9">
-      <!-- Der Titel steht schon im gewählten Menüpunkt; sichtbar wäre er doppelt. -->
-      <h2 class="d-sr-only">{{ current.title }}</h2>
-      <!-- Die Folien erklären sich selbst; die Tabellen in der schmalen Ansicht brauchen den Hinweis. -->
-      <p v-if="!mdAndUp && current.text" class="text-body-2 text-medium-emphasis mb-4">{{ current.text }}</p>
-
       <!-- Ab mittlerer Breite dieselben Folien wie im Vollbild; schmaler wären sie zu klein zum Lesen, dort bleiben die Tabellen. -->
-      <SlidePager v-if="mdAndUp && view === 'questions'" :slides="slides" :label="current.title">
-        <template #default="{ slide }">
-          <StageFit>
+      <div v-if="mdAndUp" class="gc-stepper" tabindex="0" aria-label="Auswertung, mit Pfeiltasten blättern" @keydown="onKey">
+        <Transition :name="`ts-slide-${direction}`" mode="out-in">
+          <StageFit :key="deck.current.value.key">
             <RevealStage
               :tournament="tournament"
               :overview="overview"
-              :item="slide.item"
-              :page="slide.page"
-              :solvable="slide.solvable"
-              :solved="slide.solvable && shownSolutions.has(slide.item)"
-              @toggle="toggleSolution(slide.item)"
+              :item="deck.current.value.item"
+              :page="deck.current.value.page"
+              :solved="deck.isSolved(deck.current.value)"
             />
           </StageFit>
-        </template>
-      </SlidePager>
-      <template v-else-if="mdAndUp">
-        <StageFit>
-          <RevealStage :tournament="tournament" :overview="overview" :item="view" :page="page" />
-        </StageFit>
-        <div v-if="pageCount > 1" class="d-flex align-center justify-end ga-1 mt-1">
-          <v-btn icon="mdi-chevron-left" size="small" variant="text" :disabled="page === 0" aria-label="Vorherige Seite" @click="page--" />
-          <span class="text-body-2 text-medium-emphasis gc-page">{{ page + 1 }} / {{ pageCount }}</span>
-          <v-btn icon="mdi-chevron-right" size="small" variant="text" :disabled="page === pageCount - 1" aria-label="Nächste Seite" @click="page++" />
-        </div>
-      </template>
+        </Transition>
+        <!-- Ein Hauptknopf an fester Stelle: erst „Lösung zeigen“, dann weiter. -->
+        <StepBar
+          class="mt-3"
+          :position="deck.position.value"
+          :next-label="deck.nextLabel.value"
+          :can-back="deck.index.value > 0"
+          :can-next="!deck.atEnd.value || deck.needsSolve.value"
+          :strong="deck.needsSolve.value"
+          :icon="deck.needsSolve.value ? 'mdi-eye-outline' : 'mdi-chevron-right'"
+          @back="deck.prev"
+          @next="deck.advance"
+        />
+      </div>
+
+      <template v-else>
+        <h2 class="d-sr-only">{{ current.title }}</h2>
+        <p v-if="current.text" class="text-body-2 text-medium-emphasis mb-4">{{ current.text }}</p>
 
       <v-table v-else-if="view === 'ranking'" density="compact">
         <thead>
@@ -117,7 +133,7 @@
             </v-btn>
           </div>
           <p v-if="isShown(r)" class="text-body-2 mb-2">
-            <strong class="text-success">{{ r.solution }} {{ r.question.unit }}</strong><template v-if="winnersOf(r).length">
+            <strong class="text-hit">{{ r.solution }} {{ r.question.unit }}</strong><template v-if="winnersOf(r).length">
               <br>Korrekt: {{ winnersOf(r).join(', ') }}
             </template>
           </p>
@@ -128,7 +144,7 @@
             label
             class="ma-1"
             :variant="isShown(r) && value === r.solution ? 'flat' : 'tonal'"
-            :color="isShown(r) && value === r.solution ? 'success' : undefined"
+            :color="isShown(r) && value === r.solution ? 'hit' : undefined"
           >
             {{ value }} × {{ count }}
           </v-chip>
@@ -151,7 +167,7 @@
           </div>
           <p class="text-body-2 text-medium-emphasis mb-2">Gleiche Namen in anderer Schreibweise oder mit Tippfehler sind zusammengefasst.</p>
           <p v-if="isShown(mystery)" class="text-body-2 mb-2">
-            <strong class="text-success">{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length">
+            <strong class="text-hit">{{ mystery.solution }}</strong><template v-if="winnersOf(mystery).length">
               <br>Korrekt: {{ winnersOf(mystery).join(', ') }}</template>
           </p>
           <v-chip v-for="g in mysteryList" :key="g.label" size="small" label variant="tonal" class="ma-1">
@@ -185,7 +201,7 @@
                   label
                   class="ma-1"
                   :variant="name === p.truth ? 'flat' : 'tonal'"
-                  :color="name === p.truth ? 'success' : undefined"
+                  :color="name === p.truth ? 'hit' : undefined"
                 >
                   {{ name }} × {{ count }}
                 </v-chip>
@@ -218,6 +234,7 @@
         </template>
       </template>
 
+      </template>
     </v-col>
   </v-row>
 </template>
@@ -227,9 +244,10 @@ import { computed, h, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import RevealShow from './reveal/RevealShow.vue'
 import RevealStage from './reveal/RevealStage.vue'
-import SlidePager from './reveal/SlidePager.vue'
 import StageFit from './reveal/StageFit.vue'
 import { pct, summarize } from './reveal/reveal'
+import { useRevealDeck } from './reveal/deck'
+import StepBar, { onStepKey } from './StepBar.vue'
 import { mysteryGroups, mysteryResult, questionResult } from '@/services/gliddencupStats'
 
 /** Auswertungen des Tippspiels; erst mit veröffentlichter Zuordnung sinnvoll. */
@@ -278,17 +296,15 @@ function toggleSolution (id) {
   shownSolutions.value = next
 }
 
-// Die Zusatzfragen werden als Folien geblättert, Guy Glidden zuletzt.
-const slides = computed(() => [...results.value, mystery.value]
-  .map(r => ({ key: r.question.id, item: r.question.id, solvable: r.solution !== null })))
+// Folienfolge für Reiter und Vollbild; Lösungen erst auf Klick, damit man beim Stream mitraten kann.
+const deck = useRevealDeck(computed(() => props.tournament), overview)
+const questionSlides = computed(() => deck.slides.value.filter(s => s.group === 'questions'))
 
-// Rangliste und „Wer wurde erkannt?“ haben ab 17 Einträgen mehrere Seiten.
-const page = ref(0)
-const pageCount = computed(() => ({
-  ranking: summary.value.rankingPages.length,
-  recognized: summary.value.recognizedPages.length,
-})[view.value] ?? 1)
-watch(view, () => { page.value = 0 })
+// Die Folienanimation folgt der Blätterrichtung.
+const direction = ref('next')
+watch(deck.index, (i, old) => { direction.value = i < old ? 'prev' : 'next' })
+
+const onKey = e => onStepKey(e, { back: deck.prev, next: deck.advance })
 
 /** Pseudonym mit dem Klarnamen darunter, in allen Tabellen gleich. */
 const PseudonymCell = p => h('div', [
@@ -301,6 +317,45 @@ PseudonymCell.props = ['pseudonym', 'truth']
 <style scoped>
 .gc-rank { width: 4.5rem; }
 .gc-list { padding-left: 1.25rem; }
-.gc-page { min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
 .gc-crowd { font-style: italic; background: rgba(var(--v-theme-secondary), 0.08); }
+
+.ts-num { font-variant-numeric: tabular-nums; }
+.ts-ellipsis { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.ts-steps { display: flex; flex-direction: column; gap: 2px; }
+.ts-group { padding: 8px 12px 4px; font-size: 0.875rem; font-weight: 500; }
+
+/* Wie v-list nav: abgerundet, aktiver Eintrag petrolfarben getönt. */
+.ts-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color 120ms ease-out;
+}
+
+.ts-step--sub { grid-template-columns: 1.25rem minmax(0, 1fr) 16px; gap: 8px; font-weight: 400; }
+.ts-step--sub .ts-num { text-align: right; color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity)); }
+.ts-step:hover { background: rgba(var(--v-theme-on-surface), 0.04); }
+.ts-step:focus-visible { outline: 2px solid rgb(var(--v-theme-secondary)); outline-offset: -2px; }
+.ts-step--on { background: rgba(var(--v-theme-secondary), 0.14); color: rgb(var(--v-theme-secondary)); }
+.ts-step--on .ts-num { color: inherit; }
+.ts-check { color: rgb(var(--v-theme-secondary)); }
+
+
+/* Waagerecht blättern, kurz und ohne Federn. */
+.ts-slide-next-enter-active, .ts-slide-next-leave-active,
+.ts-slide-prev-enter-active, .ts-slide-prev-leave-active { transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease-out; }
+.ts-slide-next-enter-from, .ts-slide-prev-leave-to { opacity: 0; transform: translateX(32px); }
+.ts-slide-next-leave-to, .ts-slide-prev-enter-from { opacity: 0; transform: translateX(-32px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-slide-next-enter-active, .ts-slide-next-leave-active,
+  .ts-slide-prev-enter-active, .ts-slide-prev-leave-active { transition: none; }
+}
 </style>

@@ -64,7 +64,7 @@ const size = count => Math.round(30 + 80 * Math.sqrt(count / max.value))
 
 .nw-name { color: var(--rv-ink); }
 .nw-off { color: var(--rv-faint); }
-.nw-ok { color: var(--rv-ochre); text-shadow: 0 4px 30px rgb(208 138 69 / 45%); }
+.nw-ok { color: var(--rv-accent); text-shadow: 0 4px 30px rgba(var(--rv-accent-rgb), 0.45); }
 
 .nw-meta { text-align: center; }
 
@@ -72,7 +72,7 @@ const size = count => Math.round(30 + 80 * Math.sqrt(count / max.value))
   margin-top: 40px;
   font-size: 28px;
   text-align: center;
-  color: var(--rv-ochre);
+  color: var(--rv-accent);
   opacity: 0;
 }
 

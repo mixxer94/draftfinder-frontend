@@ -36,6 +36,25 @@ function rankingPages (ranking) {
  * loadTipsOverview. Rangliste und „Wer wurde erkannt?“ sind in Seiten zu 16
  * Einträgen geteilt.
  */
+/**
+ * Zwei Auszeichnungen für „Wer wurde erkannt?“, je als Pseudonym oder null:
+ * Phantom ist, wer am seltensten erkannt wurde (die letzte Zeile, `recognized`
+ * ist absteigend sortiert). Doppelgänger ist, wessen häufigste Verwechslung den
+ * richtigen Namen am weitesten übertrifft; ohne solche Verwechslung gibt es keinen.
+ */
+function recognitionAwards (recognized) {
+  let double = null
+  let bestLead = 0
+  for (const p of recognized) {
+    const [, count = 0] = p.guesses.find(([name]) => name !== p.truth) ?? []
+    if (count - p.correct > bestLead) {
+      bestLead = count - p.correct
+      double = p.pseudonym
+    }
+  }
+  return { phantom: recognized.at(-1)?.pseudonym ?? null, double }
+}
+
 export function summarize (tournament, overview) {
   const truth = truthMap(tournament)
   const input = { pseudonyms: tournament.pseudonyms, truth, users: overview.users, picksByUser: overview.picksByUser ?? {} }
@@ -53,6 +72,7 @@ export function summarize (tournament, overview) {
     recognized,
     recognizedPages: chunk(recognized),
     confusions: globalConfusions(pStats).slice(0, 3),
+    awards: recognitionAwards(recognized),
     players: playerGuesses({ rounds: tournament.rounds ?? [], truth, stats: pStats }),
   }
 }

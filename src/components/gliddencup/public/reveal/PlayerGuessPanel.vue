@@ -19,7 +19,7 @@
 
       <h2 class="pg-heading">
         Für wen hielten die Spieler ihren Gegner?
-        <span class="pg-legend"><i class="pg-ok" />stimmte <i class="pg-wrong" />lag daneben</span>
+        <span class="pg-legend"><i class="pg-ok" />richtig <i class="pg-wrong" />falsch</span>
       </h2>
       <div class="pg-rows">
         <template v-for="p in shown" :key="p.name">
@@ -77,11 +77,11 @@ const unit = computed(() => {
 
 .pg-label { font: 400 34px/1.15 'Marcellus SC', serif; }
 .pg-sub { margin-top: 2px; font-size: 24px; color: var(--rv-dim); }
-.pg-track { height: 40px; background: rgb(255 255 255 / 8%); }
-.pg-fill { height: 100%; background: #8a847a; }
-.pg-fill--players { background: var(--rv-ochre); }
+.pg-track { height: 40px; background: rgba(var(--rv-ink-rgb), 0.08); }
+.pg-fill { height: 100%; background: var(--rv-miss); }
+.pg-fill--players { background: var(--rv-accent); }
 .pg-value { font: 400 44px 'Marcellus SC', serif; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.pg-value--players { color: var(--rv-ochre); }
+.pg-value--players { color: var(--rv-accent); }
 
 .pg-heading { display: flex; align-items: baseline; gap: 32px; margin: 32px 0 0; font: 400 32px/1.2 'Marcellus SC', serif; color: var(--rv-dim); }
 .pg-legend { font: 400 24px Roboto, sans-serif; }
@@ -101,7 +101,7 @@ const unit = computed(() => {
 .pg-count { font-size: 26px; color: var(--rv-dim); text-align: right; font-variant-numeric: tabular-nums; }
 .pg-units { display: flex; gap: 4px; }
 .pg-units i { width: var(--pg-unit); height: 24px; }
-.pg-ok { background: var(--rv-ochre); }
-.pg-wrong { background: #8a847a; }
+.pg-ok { background: var(--rv-accent); }
+.pg-wrong { background: var(--rv-miss); }
 .pg-rest { grid-column: 1 / -1; font-size: 24px; color: var(--rv-dim); }
 </style>

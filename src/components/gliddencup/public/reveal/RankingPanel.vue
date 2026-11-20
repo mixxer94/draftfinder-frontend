@@ -60,8 +60,8 @@ const range = computed(() => {
 .rk-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 .rk-bar { display: flex; height: 22px; }
-.rk-bar span { background: rgb(236 230 218 / 55%); }
-.rk-bar .rk-extra { background: var(--rv-ochre); }
+.rk-bar span { background: rgba(var(--rv-ink-rgb), 0.55); }
+.rk-bar .rk-extra { background: var(--rv-accent); }
 .rk-bar--crowd { border: 2px dashed var(--rv-dim); }
 .rk-bar--crowd span { display: none; }
 
@@ -77,8 +77,8 @@ const range = computed(() => {
   height: 22px;
   margin-right: 10px;
   vertical-align: -3px;
-  background: rgb(236 230 218 / 55%);
+  background: rgba(var(--rv-ink-rgb), 0.55);
 }
 
-.rk-key.rk-extra { background: var(--rv-ochre); }
+.rk-key.rk-extra { background: var(--rv-accent); }
 </style>

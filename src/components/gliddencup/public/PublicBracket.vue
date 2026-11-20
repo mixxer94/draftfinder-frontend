@@ -57,7 +57,7 @@
                 <span class="gc-sub">
                   <span class="gc-real" :title="side.real ?? undefined">{{ side.real }}</span>
                   <template v-if="guessesShown(card.slot)">
-                    <span v-if="side.tipAbout" class="gc-verdict" :class="{ 'is-ok': side.tipOk }" :title="side.tipTitle">
+                    <span v-if="side.tipAbout" class="gc-verdict" :class="{ 'is-ok': side.tipOk }" title="Vermutung des Gegners">
                       für <i>{{ side.tipAbout }}</i> gehalten
                     </span>
                     <span v-else class="gc-verdict">keine Vermutung</span>
@@ -151,13 +151,12 @@ function sidesOf (slot) {
     }
   }
   const [a, b] = [view('A'), view('B')]
-  const about = (side, other, tip) => ({
+  const about = (side, tip) => ({
     ...side,
     tipAbout: tip ?? null,
     tipOk: same(tip, side.real),
-    tipTitle: `${other.pseudo} vermutet hinter ${side.pseudo}: ${tip}`,
   })
-  return [about(a, b, slot.guessB), about(b, a, slot.guessA)]
+  return [about(a, slot.guessB), about(b, slot.guessA)]
 }
 
 /*

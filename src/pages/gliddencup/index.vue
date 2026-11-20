@@ -12,7 +12,7 @@
     </v-tabs>
 
     <!-- Kein Wischen: Kartenziehen und der breite Turnierbaum brauchen die Geste selbst. -->
-    <v-window v-model="tab" :touch="false">
+    <v-window v-model="tab" :touch="false" class="gc-window">
       <v-window-item value="tippen">
         <TipForm :tournament="tournament" :not-found="notFound" :hc-error="error" />
       </v-window-item>
@@ -115,4 +115,11 @@ watch(tournament, () => { if (resolved.value && !overview.value) loadOverview() 
 
 <style scoped>
 .gc-tabs { border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)); }
+
+/*
+ * clip statt Vuetifys hidden: schneidet beim Reiterwechsel genauso ab, macht das
+ * Fenster aber nicht zum Scroll-Container. Sonst kleben sticky-Elemente darin
+ * (Blätterleiste der Tipps, Speicherleiste beim Tippen) nicht am Bildschirmrand.
+ */
+.gc-window { overflow: clip; }
 </style>

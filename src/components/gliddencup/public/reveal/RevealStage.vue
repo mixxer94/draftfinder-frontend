@@ -22,6 +22,7 @@
       :page-count="summary.recognizedPages.length"
       :from="page * summary.recognizedPages[0].length + 1"
       :total="summary.recognized.length"
+      :awards="summary.awards"
     />
     <PlayerGuessPanel v-else-if="summary && item === 'players'" key="players" :players="summary.players" />
     <NumberLine
@@ -40,10 +41,6 @@
       :solved="solved"
       :users="overview.users"
     />
-    <!-- Sitzt in der unteren rechten Ecke des Panels; alle Panels sind gleich groß. -->
-    <button v-if="solvable" type="button" class="rv-solve" @click.stop="emit('toggle')">
-      {{ solved ? 'Lösung verbergen' : 'Lösung zeigen' }}
-    </button>
   </div>
 </template>
 
@@ -62,8 +59,7 @@ import { summarize } from './reveal'
  * Eine Folie der Auflösung auf einer Fläche von 1920 × 1080 px: eine
  * Zusatzfrage (ihre ID) oder „mystery“, je mit oder ohne Lösung, oder eine
  * Seite (`page`) der Gesamtauswertungen „recognized“, „players“, „ranking“.
- * Ohne Daten oder mit unbekannter Frage bleibt sie leer. Mit `solvable` gibt
- * es in der Folie einen Knopf, der `toggle` meldet.
+ * Ohne Daten oder mit unbekannter Frage bleibt sie leer.
  */
 const props = defineProps({
   tournament: { type: Object, default: null },
@@ -72,9 +68,7 @@ const props = defineProps({
   item: { type: String, default: null },
   page: { type: Number, default: 0 },
   solved: { type: Boolean, default: false },
-  solvable: { type: Boolean, default: false },
 })
-const emit = defineEmits(['toggle'])
 
 const SUMMARIES = ['recognized', 'players', 'ranking']
 const ready = computed(() => !!(props.tournament && props.overview))
@@ -96,12 +90,26 @@ const mystery = computed(() => {
 </script>
 
 <style>
-/* Gemeinsam für alle Auflösungs-Ansichten; Optik der Spielerkarten: dunkles Panel, doppelte feine Rahmenlinie, Marcellus SC. */
+/*
+ * Gemeinsam für alle Auflösungs-Ansichten. Im Vollbild für den Stream die Optik
+ * der Spielerkarten: dunkles Panel, doppelte feine Rahmenlinie, Ocker, Marcellus SC.
+ * Unter .rv-theme (Auswertungen-Reiter) dieselben Ansichten in den Theme-Farben der Seite.
+ * Die *-rgb-Werte stehen mit Komma, damit sie wie Vuetifys --v-theme-* in rgba() passen.
+ */
 .rv-stage {
-  --rv-ink: #ece6da;
+  --rv-ink-rgb: 236, 230, 218;
+  --rv-accent-rgb: 208, 138, 69;
+  --rv-ink: rgb(var(--rv-ink-rgb));
   --rv-dim: #a39d91;
   --rv-faint: #67625b;
-  --rv-ochre: #d08a45;
+  --rv-accent: rgb(var(--rv-accent-rgb));
+  --rv-wrong-rgb: 239, 138, 111;
+  --rv-badge-rgb: var(--rv-accent-rgb);
+  --rv-wrong: rgb(var(--rv-wrong-rgb));
+  --rv-miss: #8a847a;
+  --rv-miss-2: #57524b;
+  --rv-panel: rgb(20 19 23 / 92%);
+  --rv-panel-solid: rgb(20 19 23);
   position: relative;
   display: flex;
   align-items: center;
@@ -125,11 +133,34 @@ const mystery = computed(() => {
   width: 1680px;
   height: 1000px;
   padding: 44px 56px;
-  background: rgb(20 19 23 / 92%);
+  background: var(--rv-panel);
   border: 1px solid rgb(255 255 255 / 22%);
   outline: 1px solid rgb(255 255 255 / 10%);
   outline-offset: -10px;
   box-shadow: 0 18px 50px rgb(0 0 0 / 55%);
+}
+
+.rv-theme .rv-stage {
+  --rv-ink-rgb: var(--v-theme-on-surface);
+  --rv-accent-rgb: var(--v-theme-hit);
+  --rv-wrong-rgb: var(--v-theme-miss);
+  --rv-badge-rgb: var(--v-theme-secondary);
+  --rv-dim: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  --rv-faint: rgba(var(--v-theme-on-surface), 0.45);
+  --rv-miss: rgba(var(--v-theme-on-surface), 0.45);
+  --rv-miss-2: rgba(var(--v-theme-on-surface), 0.25);
+  --rv-panel: rgb(var(--v-theme-surface));
+  --rv-panel-solid: rgb(var(--v-theme-surface));
+}
+
+.rv-theme .rv-backdrop { background: none; }
+
+/* Wie die Karten im Turnierbaum: eine Linie, abgerundet, ohne Schatten. */
+.rv-theme .rv-panel {
+  border: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 16px;
+  outline: none;
+  box-shadow: none;
 }
 
 .rv-title {
@@ -148,24 +179,7 @@ const mystery = computed(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.rv-meta b { color: var(--rv-ochre); font-weight: 700; }
-
-/* Wie der Hauptknopf der Vollbild-Leiste, in der unteren rechten Ecke des Panels (1680 × 1000, mittig). */
-.rv-solve {
-  position: absolute;
-  right: 160px;
-  bottom: 64px;
-  padding: 12px 28px;
-  border: 1px solid var(--rv-ochre);
-  border-radius: 4px;
-  background: rgb(20 19 23 / 92%);
-  color: var(--rv-ochre);
-  font: 500 26px Roboto, sans-serif;
-  cursor: pointer;
-}
-
-.rv-solve:hover { background: rgb(208 138 69 / 14%); }
-.rv-solve:focus-visible { outline: 3px solid var(--rv-ochre); outline-offset: 3px; }
+.rv-meta b { color: var(--rv-accent); font-weight: 700; }
 
 /* Aufdecken: alles läuft gemeinsam in dieselbe Richtung, ohne Federn. */
 .rv-fade { transition: color 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1); }

@@ -180,7 +180,7 @@ const points = computed(() => {
   position: absolute;
   top: 260px;
   height: 2px;
-  background: rgb(255 255 255 / 35%);
+  background: rgba(var(--rv-ink-rgb), 0.35);
 }
 
 /* Auslauf zu den Ausreißern: gestrichelt, weil der Abstand dort nicht maßstäblich ist. */
@@ -188,7 +188,7 @@ const points = computed(() => {
   position: absolute;
   top: 260px;
   height: 2px;
-  background: repeating-linear-gradient(90deg, rgb(255 255 255 / 30%) 0 8px, transparent 8px 16px);
+  background: repeating-linear-gradient(90deg, rgba(var(--rv-ink-rgb), 0.3) 0 8px, transparent 8px 16px);
 }
 
 .nl-tick {
@@ -213,7 +213,7 @@ const points = computed(() => {
 
 .nl-stem {
   position: absolute;
-  border-left: 1px solid rgb(255 255 255 / 22%);
+  border-left: 1px solid rgba(var(--rv-ink-rgb), 0.22);
 }
 
 /* Eigener Grund in Panelfarbe, damit Linien und Striche hinter dem Namen verschwinden statt ihn zu durchkreuzen. */
@@ -222,7 +222,7 @@ const points = computed(() => {
   z-index: 2;
   padding: 0 6px;
   margin-left: -6px;
-  background: rgb(20 19 23);
+  background: var(--rv-panel-solid);
   font-size: 24px;
   white-space: nowrap;
   transition: inherit;
@@ -236,9 +236,9 @@ const points = computed(() => {
 .nl-dim .nl-dot { background: var(--rv-faint); }
 .nl-dim .nl-name { color: var(--rv-faint); }
 
-.nl-hit .nl-dot { background: var(--rv-ochre); box-shadow: 0 0 0 6px rgb(208 138 69 / 25%); }
-.nl-hit .nl-name { color: var(--rv-ochre); font-weight: 700; }
-.nl-hit .nl-stem { border-color: var(--rv-ochre); }
+.nl-hit .nl-dot { background: var(--rv-accent); box-shadow: 0 0 0 6px rgba(var(--rv-accent-rgb), 0.25); }
+.nl-hit .nl-name { color: var(--rv-accent); font-weight: 700; }
+.nl-hit .nl-stem { border-color: var(--rv-accent); }
 
 .nl-solution {
   position: absolute;
@@ -246,7 +246,7 @@ const points = computed(() => {
   top: 20px;
   height: 300px;
   width: 3px;
-  background: var(--rv-ochre);
+  background: var(--rv-accent);
   transform: translateX(-50%) scaleY(0);
   transform-origin: top;
   transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);

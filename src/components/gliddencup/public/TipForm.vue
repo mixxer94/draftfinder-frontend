@@ -53,7 +53,7 @@
             <v-icon :icon="q.open ? 'mdi-clock-outline' : 'mdi-lock'" size="16" />
             <span class="gc-until">{{ q.open ? closesShort(q) : 'geschlossen' }}</span>
             <v-tooltip activator="parent" location="top" open-on-click open-on-focus max-width="280">
-              {{ q.open ? closesText(q) : 'Geschlossen. Es zählt deine letzte Antwort.' }}
+              {{ q.open ? closesText(q) : 'Es zählt deine letzte Antwort.' }}
               <template v-if="q.type === 'NUMBER'"> Schätzfrage: Es gewinnt, wer am nächsten liegt.</template>
             </v-tooltip>
           </span>
@@ -98,7 +98,7 @@
             <span class="gc-until">{{ tournament.tipsOpen ? 'mit den Pseudonymen' : 'geschlossen' }}</span>
             <v-tooltip activator="parent" location="top" open-on-click open-on-focus max-width="280">
               In dieser Ausgabe ist ein Spieler angetreten, dessen Identität weder Zuschauer noch Spieler kennen.
-              {{ tournament.tipsOpen ? 'Offen, solange die Pseudonym-Tipps offen sind.' : 'Geschlossen. Es zählt deine letzte Antwort.' }}
+              {{ tournament.tipsOpen ? 'Offen, solange die Pseudonym-Tipps offen sind.' : 'Es zählt deine letzte Antwort.' }}
             </v-tooltip>
           </span>
           <div v-if="!tournament.tipsOpen" class="gc-closed text-medium-emphasis">{{ clean(mystery) || 'nicht getippt' }}</div>
@@ -144,12 +144,14 @@
               :items="participants"
               :disabled="!editable"
               :base-color="pickState(ps) || undefined"
+              :hint="wrongHint(ps)"
+              :hide-details="!wrongHint(ps)"
+              persistent-hint
               persistent-placeholder
               placeholder="Tippen"
               :class="['gc-pick', pickState(ps) && `gc-pick--${pickState(ps)}`]"
               clearable
               density="comfortable"
-              hide-details
               auto-select-first
               @blur="autoFill(ps)"
             />
@@ -162,7 +164,8 @@
           </span>
         </div>
 
-        <v-alert v-if="duplicates.length" type="info" variant="tonal" density="compact" class="mt-4">
+        <!-- Nach der Auflösung zählt nur noch richtig oder falsch; doppelte Namen sind dann egal. -->
+        <v-alert v-if="duplicates.length && !truth.size" type="info" variant="tonal" density="compact" class="mt-4">
           Deine Tipps wurden gespeichert.<br>
           Hinweis: Du hast einen oder mehrere Spieler mehrfach eingetragen:
           <ul class="gc-list mt-1">
@@ -219,6 +222,8 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { gcApi, LOGIN_URL, truthMap } from '@/services/gliddencupApi'
 import { bestMatch, byCloseOrder, duplicateNames } from '@/services/gliddencupStats'
+import { pickLegend, pickStateOf } from './pickStates'
+import './pickStates.css'
 
 /** Tippen: Discord-Anmeldung, Zusatzfragen, „Wer ist Guy Glidden?“ und ein Feld je Pseudonym. */
 const props = defineProps({
@@ -262,16 +267,14 @@ const duplicatePseudonyms = computed(() => new Set(duplicates.value.flatMap(d =>
 
 // Nach der Auflösung zählt nur noch richtig oder falsch, vorher getippt oder doppelt.
 const truth = computed(() => truthMap(props.tournament))
-function pickState (ps) {
-  const pick = clean(picks[ps])
-  if (!pick) return null
+const pickState = ps => pickStateOf(clean(picks[ps]), truth.value.get(ps), duplicatePseudonyms.value.has(ps))
+// Nach der Auflösung steht unter falschen Tipps, wer es war.
+function wrongHint (ps) {
   const solution = truth.value.get(ps)
-  if (solution) return pick === solution ? 'success' : 'error'
-  return duplicatePseudonyms.value.has(ps) ? 'warning' : 'secondary'
+  const pick = clean(picks[ps])
+  return solution && pick && pick !== solution ? `war ${solution}` : ''
 }
-const legend = computed(() => truth.value.size
-  ? [{ state: 'success', text: 'richtig' }, { state: 'error', text: 'falsch' }]
-  : [{ state: 'secondary', text: 'getippt' }, { state: 'warning', text: 'doppelt eingetragen' }])
+const legend = computed(() => pickLegend(truth.value.size > 0))
 
 // Aufgeklappt, solange getippt werden kann; ein Klick auf die Überschrift hat Vorrang.
 const picksToggled = ref(null)
@@ -552,25 +555,6 @@ onMounted(loadMe)
 /* Kleiner als ein getippter Name, damit leere und getippte Felder unterscheidbar bleiben. */
 .gc-pick :deep(input::placeholder) { font-size: 0.8125rem; }
 
-/* Getippte Felder: Rand und getönte Fläche in der Farbe ihres Zustands; die Legende nutzt dieselben Klassen. */
-.gc-pick--secondary { --gc-hl: var(--v-theme-secondary); }
-.gc-pick--warning { --gc-hl: var(--v-theme-warning); }
-.gc-pick--success { --gc-hl: var(--v-theme-success); }
-.gc-pick--error { --gc-hl: var(--v-theme-error); }
-.gc-pick[class*='gc-pick--'] :deep(.v-field),
-.gc-swatch {
-  box-shadow: inset 0 0 0 2px rgb(var(--gc-hl));
-  background: rgba(var(--gc-hl), 0.14);
-}
-.gc-pick[class*='gc-pick--'] :deep(.v-field__overlay) { opacity: 0; }
-/* Nach Tippschluss sind die Felder gesperrt; die Färbung soll trotzdem kräftig bleiben. */
-.gc-pick[class*='gc-pick--'] :deep(.v-field--disabled) { opacity: 1; }
-.gc-swatch {
-  display: inline-block;
-  width: 20px;
-  height: 14px;
-  border-radius: 4px;
-}
 
 .gc-section {
   border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));

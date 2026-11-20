@@ -10,8 +10,8 @@
           <div class="cb-bar rv-fade" :class="state(r)" :style="{ width: `${(r.count / max) * 100}%` }" />
         </div>
         <div class="cb-count rv-fade" :class="state(r)">{{ r.count }}</div>
-        <div v-if="showSolution && r.hit" class="cb-winners">
-          {{ winners.length ? namesText(winners, 8) : 'Niemand lag richtig' }}
+        <div v-if="showSolution && r.hit && winners.length && winners.length <= MAX_WINNERS" class="cb-winners">
+          {{ winners.join(', ') }}
         </div>
       </template>
       <div v-if="rest" class="cb-rest">und {{ rest }} weitere Antworten</div>
@@ -21,7 +21,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { namesText, tipsText, winnersOf } from './reveal'
+import { tipsText, winnersOf } from './reveal'
 
 /** Auswahlfrage als Balken je Antwort; die Lösung wird ocker, der Rest tritt zurück. */
 const props = defineProps({
@@ -33,6 +33,10 @@ const props = defineProps({
 
 // Mehr Zeilen passen nicht lesbar auf eine Folie.
 const MAX_ROWS = 7
+
+// Die Namen der Richtigen nur, solange sie in eine Zeile passen. Ihre Zahl
+// steht schon am Balken, ebenso eine 0, wenn niemand richtig lag.
+const MAX_WINNERS = 8
 
 const showSolution = computed(() => props.solved && props.result.solution !== null)
 const winners = computed(() => winnersOf(props.result, props.users))
@@ -74,20 +78,20 @@ const state = r => (showSolution.value ? (r.hit ? 'cb-on' : 'cb-off') : '')
   text-overflow: ellipsis;
 }
 
-.cb-bar { height: 34px; min-width: 4px; background: rgb(255 255 255 / 40%); }
+.cb-bar { height: 34px; min-width: 4px; background: rgba(var(--rv-ink-rgb), 0.4); }
 
 .cb-count { font-size: 30px; text-align: right; font-variant-numeric: tabular-nums; }
 
-.cb-on { color: var(--rv-ochre); }
-.cb-bar.cb-on { background: var(--rv-ochre); }
+.cb-on { color: var(--rv-accent); }
+.cb-bar.cb-on { background: var(--rv-accent); }
 .cb-off { color: var(--rv-faint); }
-.cb-bar.cb-off { background: rgb(255 255 255 / 10%); }
+.cb-bar.cb-off { background: rgba(var(--rv-ink-rgb), 0.1); }
 
 .cb-winners {
   grid-column: 2 / 4;
   margin-top: -8px;
   font-size: 24px;
-  color: var(--rv-ochre);
+  color: var(--rv-accent);
 }
 
 .cb-rest { grid-column: 1 / 4; font-size: 24px; color: var(--rv-dim); }

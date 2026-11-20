@@ -1,0 +1,24 @@
+/*
+ * Getippte Pseudonym-Felder in Tippen und Tipps: getönte Fläche in der Farbe ihres
+ * Zustands, die Unterstreichung färbt Vuetify über base-color. Die Legende bildet
+ * beides nach und nutzt dieselben Klassen.
+ */
+.gc-pick--secondary { --gc-hl: var(--v-theme-secondary); }
+.gc-pick--warning { --gc-hl: var(--v-theme-warning); }
+.gc-pick--hit { --gc-hl: var(--v-theme-hit); }
+.gc-pick--miss { --gc-hl: var(--v-theme-miss); }
+
+.gc-pick[class*='gc-pick--'] .v-field,
+.gc-swatch { background: rgba(var(--gc-hl), 0.14); }
+
+.gc-pick[class*='gc-pick--'] .v-field__overlay { opacity: 0; }
+/* Nach Tippschluss sind die Felder gesperrt; die Färbung soll trotzdem kräftig bleiben. */
+.gc-pick[class*='gc-pick--'] .v-field--disabled { opacity: 1; }
+
+.gc-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 14px;
+  border-radius: 4px 4px 0 0;
+  box-shadow: inset 0 -2px 0 rgb(var(--gc-hl));
+}
