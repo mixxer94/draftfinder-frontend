@@ -27,6 +27,7 @@
   <v-alert v-if="revealMode" type="info" variant="tonal" density="compact" class="mb-4">
     Je Match: Paarung → Ergebnis → Vermutung → Verlierer. Ab Runde 2 schaltest du jede Paarung selbst frei.
     Zum Schluss deckt „Zuordnung veröffentlichen“ den Sieger und alle Tipps auf.
+    Vor der ersten Vermutung das Tippspiel schließen (Tippspiel-Fragen), Aufdecken schließt es nicht.
     <template v-if="!played"><br>Ergebnis, Vermutung und Zuordnung gehen erst, wenn das Finale gespielt ist.</template>
   </v-alert>
 

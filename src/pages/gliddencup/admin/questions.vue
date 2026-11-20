@@ -4,6 +4,17 @@
     text="Zusatzfragen für die Zuschauer."
   >
     <v-switch v-model="showSolutions" label="Lösungen zeigen" color="secondary" density="compact" hide-details inset />
+    <!-- Schließt nur von Hand, damit ein Fehlklick beim Aufdecken das Tippspiel nicht zumacht. -->
+    <v-btn
+      v-if="loaded"
+      variant="tonal"
+      :color="tipsClosed ? undefined : 'error'"
+      :prepend-icon="tipsClosed ? 'mdi-lock-open-variant-outline' : 'mdi-lock-outline'"
+      :loading="savingTips"
+      @click="toggleTips"
+    >
+      {{ tipsClosed ? 'Tippspiel öffnen' : 'Tippspiel schließen' }}
+    </v-btn>
   </PageHeader>
 
   <v-alert v-if="error" type="error" variant="tonal" closable class="mb-4" @click:close="error = ''">{{ error }}</v-alert>
@@ -272,7 +283,37 @@ async function loadGuesses () {
   }
 }
 
+const tipsClosed = ref(false)
+const savingTips = ref(false)
+
+async function toggleTips () {
+  const close = !tipsClosed.value
+  if (!await confirmAction(close
+    ? {
+        title: 'Tippspiel schließen?',
+        text: 'Zuschauer können ihre Tipps auf die Zuordnung nicht mehr ändern. Spätestens vor der ersten Vermutung im Stream schließen.',
+        confirmText: 'Schließen',
+        color: 'error',
+      }
+    : {
+        title: 'Tippspiel öffnen?',
+        text: 'Zuschauer können wieder tippen und ihre Tipps ändern.',
+        confirmText: 'Öffnen',
+      })) return
+  savingTips.value = true
+  error.value = ''
+  try {
+    tipsClosed.value = (await hcApi.post('/tournament/tips', { closed: close })).data.tipsClosed
+    info.value = tipsClosed.value ? 'Tippspiel geschlossen.' : 'Tippspiel geöffnet.'
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    savingTips.value = false
+  }
+}
+
 function apply (data) {
+  tipsClosed.value = data.tipsClosed ?? false
   mystery.value = (data.mysteryAnswers ?? []).join('\n')
   mysteryCount.value = (data.mysteryAnswers ?? []).length
   questions.value = data.questions
