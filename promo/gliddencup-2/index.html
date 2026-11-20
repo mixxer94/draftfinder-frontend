@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Farben wie Auflösung und Teilnehmerkarten des Gliddencup (RevealStage.vue, PlayerCard.vue). */
+:root {
+  --bg: #0e0d11;
+  --ink: #ece6da;
+  --dim: #a39d91;
+  --faint: #67625b;
+  --accent: #d08a45;
+  --red: #c8202f;
+  --line: rgb(255 255 255 / 14%);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+body { font-family: Roboto, sans-serif; color: var(--ink); }
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background:
+    radial-gradient(760px 640px at 400px 470px, rgb(208 138 69 / 16%), transparent 70%),
+    radial-gradient(1100px 800px at 1340px 380px, rgb(255 255 255 / 3.5%), transparent 70%),
+    var(--bg);
+}
+
+/* Papierkorn wie auf der Kartenrückseite. */
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Doppelter Rahmen wie die Panels der Auflösung. */
+.frame { position: absolute; inset: 26px; border: 1px solid rgb(255 255 255 / 22%); }
+.frame::after { content: ''; position: absolute; inset: 9px; border: 1px solid rgb(255 255 255 / 10%); }
+
+/* ---------- Links: Kartenfächer mit dem Logo ---------- */
+.fan { position: absolute; left: 92px; top: 46px; width: 600px; height: 580px; }
+.card {
+  position: absolute;
+  left: 140px;
+  top: 30px;
+  width: 320px;
+  height: 480px;
+  border-radius: 16px;
+  background: url('../../public/gliddencup/card.png') center / cover;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 22%), 0 28px 60px rgb(0 0 0 / 75%);
+}
+.card.back1 { transform: translate(-66px, 22px) rotate(-12deg); filter: brightness(0.55); }
+.card.back2 { transform: translate(70px, 14px) rotate(9deg); filter: brightness(0.7); }
+.card.front { transform: rotate(-1.5deg); filter: brightness(1.18) contrast(1.06); }
+
+.cta { position: absolute; left: 92px; top: 622px; width: 600px; text-align: center; }
+.cta .rate {
+  font-family: 'Marcellus SC', serif;
+  font-size: 76px;
+  line-height: 1;
+  color: var(--accent);
+}
+.cta .prize { margin-top: 14px; font-size: 23px; color: var(--ink); }
+.cta .bastion { display: block; width: 290px; margin: 14px auto 0; }
+.cta .more { margin-top: 18px; font-size: 21px; color: var(--dim); }
+.cta .url {
+  margin-top: 2px;
+  font-family: 'Marcellus SC', serif;
+  font-size: 40px;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.footnote { position: absolute; left: 58px; bottom: 56px; font-size: 18px; line-height: 1; color: var(--dim); }
+
+/* ---------- Rechts: Titel, Ablaufplan, Teilnehmer ---------- */
+.right { position: absolute; left: 770px; top: 80px; width: 1070px; }
+
+.title {
+  margin-top: 4px;
+  font-family: 'Marcellus SC', serif;
+  font-weight: 400;
+  font-size: 126px;
+  line-height: 1;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+.title .ii { color: var(--red); -webkit-text-stroke: 2px var(--red); }
+
+.dot { display: inline-block; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); flex: none; }
+
+.subtitle { margin-top: 6px; font-family: 'Marcellus SC', serif; font-size: 40px; line-height: 1.1; color: var(--dim); letter-spacing: 0.03em; }
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: 'Marcellus SC', serif;
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+}
+h2::after { content: ''; flex: 1; height: 1px; background: rgb(208 138 69 / 35%); }
+
+.plan { margin-top: 40px; }
+.row {
+  display: grid;
+  grid-template-columns: 112px 236px 1fr;
+  align-items: center;
+  height: 88px;
+  border-bottom: 1px solid var(--line);
+}
+.row:last-child { border-bottom: none; }
+.day { display: flex; flex-direction: column; line-height: 1.1; }
+.day .wd { font-family: 'Marcellus SC', serif; font-size: 32px; color: var(--ink); }
+.day .dt { font-size: 20px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.time {
+  font-family: 'Marcellus SC', serif;
+  font-size: 54px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-right: 30px;
+}
+.time small { font-size: 26px; color: var(--dim); margin-right: 6px; }
+.round { font-family: 'Marcellus SC', serif; font-size: 31px; line-height: 1.15; }
+.stream { display: flex; align-items: center; gap: 9px; margin-top: 4px; font-size: 21px; color: var(--dim); }
+.stream svg { width: 19px; height: 19px; fill: #a970ff; flex: none; }
+.stream b { color: var(--ink); font-weight: 500; }
+
+.menu { margin-top: 34px; }
+.names {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: space-between;
+  row-gap: 10px;
+  list-style: none;
+}
+.names li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Marcellus SC', serif;
+  font-size: 31px;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="grain"></div>
+  <div class="frame"></div>
+
+  <div class="fan">
+    <div class="card back1"></div>
+    <div class="card back2"></div>
+    <div class="card front"></div>
+  </div>
+
+  <div class="cta">
+    <div class="rate">Rate mit!</div>
+    <p class="prize">Die zwei besten Tipper* gewinnen je ein Ticket für</p>
+    <img class="bastion" src="bastion.png" alt="The Bastion">
+    <div class="more">Mehr Informationen unter</div>
+    <div class="url">draftfinder.de/gliddencup</div>
+  </div>
+
+  <div class="footnote">*(Teilnehmer und Orga ausgeschlossen)</div>
+
+  <div class="right">
+    <h1 class="title">Gliddencup <span class="ii">II</span></h1>
+    <div class="subtitle">HiddenCup des Gleipcords</div>
+
+    <section class="plan">
+      <h2>Ablaufplan</h2>
+      <div class="row">
+        <div class="day"><span class="wd">Fr</span><span class="dt">20.11.</span></div>
+        <div class="time">19:00</div>
+        <div>
+          <div class="round">Achtelfinale</div>
+          <div class="stream"><svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg><b>twitch.tv/aoe2germany</b></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="day"><span class="wd">Sa</span><span class="dt">21.11.</span></div>
+        <div class="time">11:00</div>
+        <div>
+          <div class="round">Achtelfinale</div>
+          <div class="stream"><svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg><b>twitch.tv/toaster226</b></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="day"><span class="wd">Sa</span><span class="dt">21.11.</span></div>
+        <div class="time"><small>ca.</small>18:00</div>
+        <div>
+          <div class="round">Viertelfinale</div>
+          <div class="stream"><svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg><b>twitch.tv/shixo_aoe</b></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="day"><span class="wd">So</span><span class="dt">22.11.</span></div>
+        <div class="time">18:00</div>
+        <div>
+          <div class="round">Halbfinale &amp; Finale</div>
+          <div class="stream"><svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg><b>twitch.tv/shixo_aoe</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu">
+      <h2>Teilnehmer</h2>
+      <ul class="names">
+        <li><span class="dot"></span>_ovoin</li>
+        <li><span class="dot"></span>Atom</li>
+        <li><span class="dot"></span>Blackrock</li>
+        <li><span class="dot"></span>Brix</li>
+        <li><span class="dot"></span>Gleipdonir</li>
+        <li><span class="dot"></span>Guy Glidden</li>
+        <li><span class="dot"></span>Hannesthemenace</li>
+        <li><span class="dot"></span>Lazy</li>
+        <li><span class="dot"></span>Makrobean</li>
+        <li><span class="dot"></span>onkyox</li>
+        <li><span class="dot"></span>Pat_Star</li>
+        <li><span class="dot"></span>Peter_Pahn</li>
+        <li><span class="dot"></span>Storm</li>
+        <li><span class="dot"></span>Tasty</li>
+        <li><span class="dot"></span>Thorb</li>
+        <li><span class="dot"></span>Tropfzahn</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>
