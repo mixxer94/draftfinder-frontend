@@ -221,7 +221,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { gcApi, LOGIN_URL, truthMap } from '@/services/gliddencupApi'
-import { bestMatch, byCloseOrder, duplicateNames } from '@/services/gliddencupStats'
+import { bestMatch, duplicateNames } from '@/services/gliddencupStats'
 import { pickLegend, pickStateOf } from './pickStates'
 import './pickStates.css'
 
@@ -282,10 +282,10 @@ const showPicks = computed(() => picksToggled.value ?? !!props.tournament?.tipsO
 
 // Zusatzfragen: Antworten als Frage-ID → Wert. Sie haben einen eigenen
 // Endpunkt, weil jede Frage ihren eigenen Tippschluss hat.
-// Was am längsten offen bleibt, steht oben; Geschlossenes rutscht ans Ende.
+// Reihenfolge aus dem Admin-Panel; Geschlossenes rutscht ans Ende.
 const questions = computed(() => {
-  const sorted = byCloseOrder(props.tournament?.questions ?? [], props.tournament?.rounds ?? [])
-  return [...sorted.filter(q => q.open), ...sorted.filter(q => !q.open)]
+  const all = props.tournament?.questions ?? []
+  return [...all.filter(q => q.open), ...all.filter(q => !q.open)]
 })
 const answers = reactive({})
 const savedAnswers = ref({})

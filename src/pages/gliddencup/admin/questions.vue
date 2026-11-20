@@ -137,10 +137,20 @@
 
   <v-table density="compact">
     <thead>
-      <tr><th>Frage</th><th>Typ</th><th class="text-right">Punkte</th><th>Schließt</th><th>Zustand</th><th>Lösung</th><th /></tr>
+      <tr><th /><th>Frage</th><th>Typ</th><th class="text-right">Punkte</th><th>Schließt</th><th>Zustand</th><th>Lösung</th><th /></tr>
     </thead>
     <tbody>
-      <tr v-for="q in sorted" :key="q.id" :class="{ 'text-medium-emphasis': q.hidden }">
+      <tr
+        v-for="q in questions"
+        :key="q.id"
+        draggable="true"
+        :class="{ 'text-medium-emphasis': q.hidden, 'gc-dragging': q.id === dragId }"
+        @dragstart="startDrag($event, q)"
+        @dragover.prevent="dragOver(q)"
+        @drop.prevent
+        @dragend="endDrag"
+      >
+        <td class="gc-handle pr-0"><v-icon size="small">mdi-drag-vertical</v-icon></td>
         <td>{{ q.text }}</td>
         <td class="text-no-wrap">{{ q.type === 'NUMBER' ? `Zahl${q.unit ? ` (${q.unit})` : ''}` : `Auswahl (${q.options.length})` }}</td>
         <td class="text-right">{{ q.points }}</td>
@@ -169,7 +179,7 @@
         </td>
       </tr>
       <tr v-if="loaded && !questions.length">
-        <td colspan="7" class="text-medium-emphasis py-4">Noch keine Fragen.</td>
+        <td colspan="8" class="text-medium-emphasis py-4">Noch keine Fragen.</td>
       </tr>
     </tbody>
   </v-table>
@@ -181,7 +191,7 @@ import { errorMessage, hcApi } from '@/services/hcApi'
 import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import { gcApi, loadPublicTournament } from '@/services/gliddencupApi'
-import { byCloseOrder, mysteryGroups, mysteryResult } from '@/services/gliddencupStats'
+import { mysteryGroups, mysteryResult } from '@/services/gliddencupStats'
 
 const TYPES = [
   { value: 'CHOICE', title: 'Auswahl' },
@@ -196,9 +206,6 @@ const TEMPLATES = [
 const questions = ref([])
 const rounds = ref([])
 const templates = ref({})
-// Runden mit Bracket, damit die Fragen wie im Tippspiel nach Tippschluss stehen.
-const bracketRounds = ref([])
-const sorted = computed(() => byCloseOrder(questions.value, bracketRounds.value))
 const loaded = ref(false)
 const error = ref('')
 const info = ref('')
@@ -351,11 +358,34 @@ async function toggleHidden (q) {
   await patch(q, { hidden: !q.hidden }, q.hidden ? 'eingeblendet' : 'ausgeblendet')
 }
 
+// Ziehen sortiert die Liste schon beim Überfahren um; gespeichert wird beim Loslassen.
+const dragId = ref(null)
+let orderBefore = []
+
+function startDrag (event, q) {
+  dragId.value = q.id
+  orderBefore = questions.value.map(x => x.id)
+  event.dataTransfer.effectAllowed = 'move'
+}
+
+function dragOver (target) {
+  if (!dragId.value || target.id === dragId.value) return
+  const list = [...questions.value]
+  const from = list.findIndex(x => x.id === dragId.value)
+  const to = list.findIndex(x => x.id === target.id)
+  list.splice(to, 0, ...list.splice(from, 1))
+  questions.value = list
+}
+
+async function endDrag () {
+  dragId.value = null
+  const ids = questions.value.map(x => x.id)
+  if (ids.join() === orderBefore.join()) return
+  const ok = await send(() => hcApi.put('/questions/order', { ids }), 'Reihenfolge gespeichert.')
+  if (!ok) questions.value = orderBefore.map(id => questions.value.find(x => x.id === id))
+}
+
 onMounted(async () => {
-  // Ohne Runden bleibt nur die Sortierung aus; die Fragen sollen trotzdem erscheinen.
-  hcApi.get('/rounds')
-    .then(res => { bracketRounds.value = [...res.data.rounds].sort((a, b) => a.number - b.number) })
-    .catch(() => {})
   loadGuesses()
   try {
     apply((await hcApi.get('/questions')).data)
@@ -368,6 +398,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.gc-handle { cursor: grab; width: 1px; }
+.gc-dragging { opacity: 0.4; }
 /* Bei vielen Tippern mit derselben Schreibweise umbrechen statt die Tabelle zu sprengen. */
 .gc-guess { height: auto !important; min-height: 24px; white-space: normal; }
 </style>

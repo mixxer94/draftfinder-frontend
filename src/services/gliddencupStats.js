@@ -298,35 +298,3 @@ export function bestMatch (query, options) {
     shortest(options.filter(n => n.toLowerCase().includes(q))) ??
     null
 }
-
-/**
- * Zusatzfragen nach Tippschluss: von Hand zu schließende oben, dann von der
- * spätesten zur frühesten Runde. `rounds` sind [{ bracket, label }], je
- * Bracket in Spielreihenfolge. Gleichstände behalten ihre Reihenfolge.
- */
-export function byCloseOrder (questions, rounds) {
-  const rank = closeRanks(rounds)
-  // Ein Label ohne Runde schließt nie von selbst, wie „nur von Hand“.
-  const key = q => rank.get(q.closeAfterRound) ?? Number.MAX_VALUE
-  return [...questions].sort((a, b) => key(b) - key(a))
-}
-
-// Winner- und Loser-Runden laufen parallel; vergleichbar macht sie der
-// Fortschritt im eigenen Bracket. Das Grand Final kommt nach allem.
-function closeRanks (rounds) {
-  const perBracket = new Map()
-  for (const r of rounds) {
-    const bracket = r.bracket ?? 'MAIN'
-    if (!perBracket.has(bracket)) perBracket.set(bracket, [])
-    perBracket.get(bracket).push(r.label)
-  }
-  const rank = new Map()
-  for (const [bracket, labels] of perBracket) {
-    labels.forEach((label, i) => {
-      const progress = (i + 1) / labels.length + (bracket === 'GRAND_FINAL' ? 1 : 0)
-      // Eine Frage schließt erst, wenn alle Runden ihres Labels gespielt sind.
-      rank.set(label, Math.max(rank.get(label) ?? 0, progress))
-    })
-  }
-  return rank
-}
