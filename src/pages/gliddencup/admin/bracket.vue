@@ -1,6 +1,10 @@
 <template>
   <PageHeader title="Bracket">
-    <template v-if="admin">
+    <!-- Admins sehen den Zustand am Schalter in der Leiste, Helfer haben keinen. -->
+    <template v-if="spoilerFree && !admin" #meta>
+      <v-chip size="small" variant="tonal" color="secondary" prepend-icon="mdi-eye-off-outline">Spoilerfrei</v-chip>
+    </template>
+    <template v-if="canReveal">
       <v-switch v-model="revealMode" label="Aufdecken" color="secondary" density="compact" hide-details inset class="flex-grow-0 mr-2" />
       <!-- Der Schlusspunkt im Stream: erst nach dem Finale, zurücknehmen geht immer. -->
       <v-btn
@@ -33,6 +37,7 @@
       v-if="view === 'tree'"
       :rounds="side.rounds"
       :admin="admin"
+      :show-state="!spoilerFree"
       :card-height="revealMode ? 120 : 84"
       :card-width="revealMode ? 360 : 220"
     >
@@ -70,12 +75,12 @@
           <col>
           <col>
           <col class="hc-col-score">
-          <col class="hc-col-state">
+          <col v-if="!spoilerFree" class="hc-col-state">
           <col class="hc-col-level">
           <col v-if="admin" class="hc-col-action">
         </colgroup>
         <thead>
-          <tr><th>Slot</th><th>Spieler A</th><th>Spieler B</th><th>Ergebnis</th><th>Status</th><th>Öffentlich</th><th v-if="admin" /></tr>
+          <tr><th>Slot</th><th>Spieler A</th><th>Spieler B</th><th>Ergebnis</th><th v-if="!spoilerFree">Status</th><th>Öffentlich</th><th v-if="admin" /></tr>
         </thead>
         <tbody>
           <tr v-for="s in round.slots" :key="s.code">
@@ -83,7 +88,7 @@
             <td :class="{ 'font-weight-bold': s.match?.winner === 'A' }">{{ s.a ?? '—' }}</td>
             <td :class="{ 'font-weight-bold': s.match?.winner === 'B' }">{{ s.b ?? '—' }}</td>
             <td>{{ s.match?.score ?? '' }}</td>
-            <td><MatchStateChip :match="s.match ?? { state: s.a && s.b ? 'READY' : 'PENDING' }" /></td>
+            <td v-if="!spoilerFree"><MatchStateChip :match="s.match ?? { state: s.a && s.b ? 'READY' : 'PENDING' }" /></td>
             <td>
               <v-chip size="small" variant="tonal" :color="STAGES[stage(s)].color">{{ STAGES[stage(s)].text }}</v-chip>
             </td>
@@ -99,7 +104,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { BRACKETS, errorMessage, hcApi, isAdmin, REVEAL_LEVELS } from '@/services/hcApi'
+import { BRACKETS, errorMessage, hasRole, hcApi, isAdmin, REVEAL_LEVELS } from '@/services/hcApi'
 import { confirmAction } from '@/services/confirm'
 import PageHeader from '@/components/gliddencup/PageHeader.vue'
 import MatchStateChip from '@/components/gliddencup/MatchStateChip.vue'
@@ -109,6 +114,8 @@ import BracketTree from '@/components/gliddencup/BracketTree.vue'
 const slots = ref([])
 const identitiesPublic = ref(false)
 const played = ref(false)
+// Vom Server: Die Slots zeigen nur, was öffentlich ist (Helfer nach dem Finale, Admins mit „Spoilerfrei“).
+const spoilerFree = ref(false)
 // Die gewählte Darstellung bleibt über Seitenwechsel hinweg erhalten.
 const view = ref(localStorage.getItem('hc_bracket_view') === 'list' ? 'list' : 'tree')
 watch(view, v => localStorage.setItem('hc_bracket_view', v))
@@ -117,6 +124,7 @@ const revealMode = ref(false)
 const error = ref('')
 const busy = ref('')
 const admin = computed(() => isAdmin())
+const canReveal = computed(() => hasRole('HELPER'))
 
 // Spielreihenfolge: erst Winner, dann Loser, zuletzt das Grand Final.
 const ORDER = ['MAIN', 'WINNERS', 'LOSERS', 'GRAND_FINAL']
@@ -155,6 +163,7 @@ async function load () {
     slots.value = data.slots
     identitiesPublic.value = data.identitiesPublic ?? false
     played.value = data.played ?? false
+    spoilerFree.value = data.spoilerFree ?? false
   } catch (e) {
     error.value = errorMessage(e)
   }

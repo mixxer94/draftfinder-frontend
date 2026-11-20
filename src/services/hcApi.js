@@ -13,7 +13,7 @@ export const hcApi = axios.create({ baseURL: '/api/hc' })
 /** Angemeldete Person; `loaded` erst nach dem ersten /me. */
 export const hcSession = reactive({
   loaded: false,
-  user: null, // { username, roles, csrf }
+  user: null, // { username, roles, csrf, spoilerFree }
   // Turnierzustand für die Navigation (SETUP, DRAWN, …); null = noch nicht geladen.
   tournamentState: null,
   // Matches, die auf Freigabe warten; Zähler in der Navigation.
@@ -42,6 +42,12 @@ export function loadSession (force = false) {
       pending = null
     })
   return pending.then(() => hcSession.user)
+}
+
+/** Spoilerfreie Sicht für die eigene Session (nur Admins); der Server blendet danach überall aus. */
+export async function setSpoilerFree (on) {
+  const { spoilerFree } = (await hcApi.post('/me/spoilerfrei', { on })).data
+  hcSession.user.spoilerFree = spoilerFree
 }
 
 export function login () {

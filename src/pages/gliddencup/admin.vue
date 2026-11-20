@@ -4,6 +4,17 @@
     <v-app-bar-title>Gliddencup · Turnierleitung</v-app-bar-title>
     <v-spacer />
     <template v-if="hcSession.user">
+      <v-switch
+        v-if="admin"
+        :model-value="hcSession.user.spoilerFree"
+        label="Spoilerfrei"
+        color="secondary"
+        density="compact"
+        hide-details
+        inset
+        class="flex-grow-0 mr-4"
+        @update:model-value="setSpoilerFree"
+      />
       <span class="text-body-2 mr-2 d-none d-sm-inline">
         {{ hcSession.user.username }}
         <v-chip size="small" class="ml-1" variant="tonal">
@@ -59,7 +70,8 @@
     </v-card>
 
     <template v-else>
-      <router-view />
+      <!-- Neu einhängen lädt die Seite neu, sobald sich die spoilerfreie Sicht ändert. -->
+      <router-view :key="hcSession.user.spoilerFree" />
     </template>
   </v-container>
 
@@ -70,7 +82,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay, useTheme } from 'vuetify'
-import { hasRole, HC_NAV, hcApi, hcSession, isAdmin, login, logout, mayOpen } from '@/services/hcApi'
+import { hasRole, HC_NAV, hcApi, hcSession, isAdmin, login, logout, mayOpen, setSpoilerFree } from '@/services/hcApi'
 import ConfirmDialog from '@/components/gliddencup/ConfirmDialog.vue'
 
 const route = useRoute()
