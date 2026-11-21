@@ -8,11 +8,16 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useTheme } from 'vuetify'
 
 /**
  * Bühne für OBS-Browserquellen: transparenter Hintergrund, keine Scrollbalken,
  * Inhalt fester Größe (width × height in px) zentriert und so groß skaliert,
  * wie die Quelle es zulässt.
+ *
+ * `?mode=dark` bzw. `?mode=light` in der URL legt das Theme fest. Ohne den
+ * Parameter folgt es dem Farbschema des Rechners, auf dem OBS läuft — das
+ * Overlay sähe sonst bei jedem Streamer anders aus.
  *
  * `zoom` statt `transform: scale`: Chromium rendert Schrift dann in der
  * Endgröße neu, statt eine kleine Rastergrafik hochzuziehen — sonst wird die
@@ -27,6 +32,11 @@ const props = defineProps({
 })
 
 const fit = ref(1)
+
+const theme = useTheme()
+const previousTheme = theme.global.name.value
+const mode = new URLSearchParams(window.location.search).get('mode')
+if (mode === 'dark' || mode === 'light') theme.global.name.value = mode
 
 function updateFit () {
   const w = window.innerWidth - 2 * props.padding
@@ -45,6 +55,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.documentElement.classList.remove('gc-overlay')
   window.removeEventListener('resize', updateFit)
+  theme.global.name.value = previousTheme
 })
 </script>
 
