@@ -18,7 +18,7 @@
     <section v-for="tree in trees" :key="tree.bracket" :class="overlay ? 'gc-ov-section' : 'mb-8'">
       <h2 v-if="trees.length > 1" :class="overlay ? 'gc-ov-title' : 'hc-h2'">{{ tree.title }}</h2>
       <div :class="{ 'gc-scroll': !overlay }">
-        <div class="gc-tree" :style="{ width: `${tree.width}px`, height: `${tree.height}px` }">
+        <div class="gc-tree" :class="{ 'gc-tree--ov': overlay }" :style="{ width: `${tree.width}px`, height: `${tree.height}px` }">
           <div v-for="(label, c) in tree.labels" :key="c" class="gc-label" :style="{ left: `${c * tree.colW}px` }">{{ label }}</div>
           <div
             v-for="t in tree.times"
@@ -63,9 +63,10 @@
                 <span class="gc-name" :title="side.pseudo ?? undefined">{{ side.pseudo ?? '—' }}</span>
                 <!-- Die Zeile ist immer da, damit Klarname und Vermutung beim Erscheinen nichts verschieben. -->
                 <span class="gc-sub">
-                  <span class="gc-real" :title="side.real ?? undefined">{{ side.real }}</span>
+                  <!-- Die Auflösung gibt es auf der Website; im Stream weder Klarnamen noch, ob eine Vermutung stimmt. -->
+                  <span v-if="!overlay" class="gc-real" :title="side.real ?? undefined">{{ side.real }}</span>
                   <template v-if="guessesShown(card.slot)">
-                    <span v-if="side.tipAbout" class="gc-verdict" :class="{ 'is-ok': side.tipOk }" title="Vermutung des Gegners">
+                    <span v-if="side.tipAbout" class="gc-verdict" :class="{ 'is-ok': side.tipOk && !overlay }" title="Vermutung des Gegners">
                       für <i>{{ side.tipAbout }}</i> gehalten
                     </span>
                     <span v-else class="gc-verdict">keine Vermutung</span>
@@ -79,7 +80,7 @@
             <div class="gc-champ" :style="{ left: `${tree.champ.x}px`, top: `${tree.champ.y - 46}px` }">
               <v-icon icon="mdi-trophy-outline" size="28" />
               <span class="gc-champ-name">{{ tree.champ.side.pseudo }}</span>
-              <span class="gc-champ-real">{{ tree.champ.side.real }}</span>
+              <span v-if="!overlay" class="gc-champ-real">{{ tree.champ.side.real }}</span>
             </div>
           </template>
         </div>
@@ -136,7 +137,8 @@ const showAll = ref(false)
 const overrides = ref({})
 watch(showAll, () => { overrides.value = {} })
 
-const guessesShown = slot => hasGuessStage(slot) && (overrides.value[slot.code] ?? showAll.value)
+// Im Overlay gibt es keinen Schalter, und in OBS klickt niemand: Dort zählt allein die Aufdeck-Stufe.
+const guessesShown = slot => hasGuessStage(slot) && (props.overlay || (overrides.value[slot.code] ?? showAll.value))
 function toggleCard (slot) {
   overrides.value = { ...overrides.value, [slot.code]: !guessesShown(slot) }
 }
@@ -297,6 +299,15 @@ defineExpose({ size })
 .gc-verdict { flex: 0 0 auto; margin-left: auto; white-space: nowrap; color: var(--muted); }
 .gc-verdict i { color: rgb(var(--v-theme-on-surface)); }
 .gc-verdict.is-ok, .gc-verdict.is-ok i { color: rgb(var(--v-theme-success)); font-weight: 600; }
+
+/* Im Stream wird der Baum stark verkleinert. Größere Schrift bei gleichen Kartenmaßen; zwei Zeilen brauchen 46 der 52 px einer Kartenhälfte. */
+.gc-tree--ov .gc-label { font-size: 1.125rem; }
+.gc-tree--ov .gc-score { height: 32px; font-size: 1.25rem; }
+.gc-tree--ov .gc-name { height: 26px; font-size: 1.375rem; line-height: 26px; }
+.gc-tree--ov .gc-sub { height: 20px; font-size: 1.0625rem; line-height: 20px; }
+/* „für … gehalten“ kleiner, damit der getippte Name heraussticht. */
+.gc-tree--ov .gc-verdict { flex-shrink: 1; min-width: 0; margin-left: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.8125rem; }
+.gc-tree--ov .gc-verdict i { font-size: 1.0625rem; }
 
 .gc-champ { position: absolute; display: flex; flex-direction: column; width: 176px; color: var(--accent); }
 .gc-champ-name { font-size: 1.375rem; line-height: 1.25; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
