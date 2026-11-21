@@ -118,21 +118,30 @@
         </div>
       </div>
 
-      <!-- Geschlossene Pseudonym-Tipps bleiben eingeklappt: Dort gibt es nichts mehr zu tun. -->
-      <button
-        type="button"
-        class="gc-section d-flex align-center ga-3 w-100 py-3 mt-6 text-left"
-        :aria-expanded="showPicks"
-        @click="picksToggled = !showPicks"
-      >
-        <h2 class="hc-h2 mb-0">Pseudonyme</h2>
-        <span class="text-body-2 text-medium-emphasis gc-num">{{ filled }}/{{ pseudonyms.length }}</span>
+      <!-- Geschlossene Pseudonym-Tipps bleiben eingeklappt: Dort gibt es nichts mehr zu tun.
+           Die ganze Zeile klappt per Maus; für die Tastatur ist der Knopf da, der Chip liegt daneben, weil Knöpfe nicht ineinander dürfen. -->
+      <div class="gc-section d-flex align-center ga-3 w-100 py-3 mt-6" @click="togglePicks">
+        <button type="button" class="d-flex align-center ga-3 text-left" :aria-expanded="showPicks" @click.stop="togglePicks">
+          <h2 class="hc-h2 mb-0">Pseudonyme</h2>
+          <span class="text-body-2 text-medium-emphasis gc-num">{{ filled }}/{{ pseudonyms.length }}</span>
+        </button>
         <span v-if="!tournament.tipsOpen" class="gc-meta gc-meta--inline text-medium-emphasis">
           <v-icon icon="mdi-lock" size="16" /> geschlossen
         </span>
+        <v-menu v-else-if="editable && untipped.length" location="bottom start">
+          <template #activator="{ props: menu }">
+            <v-chip v-bind="menu" size="small" variant="tonal" append-icon="mdi-menu-down" class="gc-num" @click.stop>
+              {{ untipped.length }} {{ untipped.length === 1 ? 'Spieler fehlt' : 'Spieler fehlen' }}
+            </v-chip>
+          </template>
+          <v-list density="compact" max-height="320">
+            <v-list-subheader>Noch keinem Pseudonym zugeordnet</v-list-subheader>
+            <v-list-item v-for="name in untipped" :key="name" :title="name" />
+          </v-list>
+        </v-menu>
         <v-spacer />
         <v-icon :icon="showPicks ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-      </button>
+      </div>
 
       <div v-if="showPicks" class="pb-4">
         <v-row dense>
@@ -279,6 +288,13 @@ const legend = computed(() => pickLegend(truth.value.size > 0))
 // Aufgeklappt, solange getippt werden kann; ein Klick auf die Überschrift hat Vorrang.
 const picksToggled = ref(null)
 const showPicks = computed(() => picksToggled.value ?? !!props.tournament?.tipsOpen)
+const togglePicks = () => { picksToggled.value = !showPicks.value }
+
+// Teilnehmer, die bei keinem Pseudonym eingetragen sind; Mehrfachnennungen zählen einmal.
+const untipped = computed(() => {
+  const used = new Set(Object.values(current()))
+  return participants.value.filter(name => !used.has(name))
+})
 
 // Zusatzfragen: Antworten als Frage-ID → Wert. Sie haben einen eigenen
 // Endpunkt, weil jede Frage ihren eigenen Tippschluss hat.
@@ -557,6 +573,7 @@ onMounted(loadMe)
 
 
 .gc-section {
+  cursor: pointer;
   border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
